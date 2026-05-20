@@ -1,0 +1,163 @@
+// tptp_grammar.lark
+
+start: tptp_input*
+
+tptp_input: annotated_formula | include
+
+// ── Top-level formula types ──────────────────────────────────────────
+annotated_formula: fof_annotated
+
+fof_annotated: "fof" "(" name "," formula_role "," fof_formula annotations? ")" "."
+
+annotations: "," source optional_info?
+           | "," source "," useful_info
+
+optional_info: "," useful_info
+
+// ── Roles ────────────────────────────────────────────────────────────
+formula_role: "axiom"             -> axiom
+            | "conjecture"        -> conjecture
+            | "negated_conjecture" -> negated_conjecture
+            | "plain"             -> plain
+            | "hypothesis"        -> hypothesis
+            | "definition"        -> definition
+            | "lemma"             -> lemma
+
+// ── FOF Formulas ─────────────────────────────────────────────────────
+fof_formula: fof_logic_formula
+
+fof_logic_formula: fof_binary_formula
+                 | fof_unary_formula
+                 | fof_unit_formula
+
+fof_binary_formula: fof_binary_nonassoc
+                  | fof_binary_assoc
+
+fof_binary_nonassoc: fof_unit_formula nonassoc_connective fof_unit_formula
+
+fof_binary_assoc: fof_or_formula | fof_and_formula
+
+fof_or_formula:  fof_unit_formula ("|" fof_unit_formula)+
+fof_and_formula: fof_unit_formula ("&" fof_unit_formula)+
+
+
+nonassoc_connective: "=>"  -> implies
+                   | "<="  -> implied_by
+                   | "<=>" -> iff
+                   | "<~>" -> xor
+                   | "~|"  -> nor
+                   | "~&"  -> nand
+
+fof_unary_formula: "~" fof_unit_formula -> negation
+                 | fof_infix_unary
+
+fof_infix_unary: fof_term "!=" fof_term -> not_equal
+
+fof_unit_formula: fof_unitary_formula
+                | fof_unary_formula
+
+fof_unitary_formula: fof_quantified_formula
+                | fof_atomic_formula
+                | "(" fof_logic_formula ")"
+
+
+fof_quantified_formula: quantifier "[" fof_variable_list "]" ":" fof_unit_formula
+
+quantifier: "!" -> forall
+           | "?" -> exists
+
+fof_variable_list: VARIABLE ("," VARIABLE)*
+
+// ── Atomic formulas ──────────────────────────────────────────────────
+fof_atomic_formula: fof_plain_atomic_formula
+              | fof_defined_atomic_formula
+
+fof_plain_atomic_formula: functor "(" fof_arguments ")"
+                    | functor                       -> proposition
+
+fof_defined_atomic_formula: "$true"  -> true_atom
+                      | "$false" -> false_atom
+                      | fof_term "=" fof_term -> equality
+
+// ── Terms ────────────────────────────────────────────────────────────
+fof_arguments: fof_term ("," fof_term)*
+
+fof_term: functor "(" fof_arguments ")"  -> compound_term
+        | VARIABLE                        -> variable_term
+        | functor                         -> constant_term
+        | number                          -> number_term
+
+functor: LOWER_WORD | SINGLE_QUOTED
+
+number: REAL | RATIONAL | INTEGER
+
+// ── Sources / Inference annotations ─────────────────────────────────
+source: dag_source | internal_source | external_source | "unknown"
+
+dag_source: name
+          | inference_record
+
+external_source: "file" "(" SINGLE_QUOTED ("," name)? ")"
+
+internal_source: "introduced" "(" introduction_type "," general_list ")"
+
+introduction_type: "definition"
+                 | "axiom_of_choice"
+                 | "tautology"
+                 | "assumption"
+
+inference_record: "inference" "(" inference_rule "," inference_info "," "[" parent_list "]" ")"
+
+inference_rule: LOWER_WORD | SINGLE_QUOTED
+
+inference_info: "[" inference_info_item ("," inference_info_item)* "]"
+
+inference_info_item: status_info
+                   | new_symbols_info
+                   | skolemize_info
+                   | LOWER_WORD "(" general_terms ")"
+
+status_info:     "status" "(" status_value ")"
+new_symbols_info: "new_symbols" "(" LOWER_WORD "," "[" name ("," name)* "]" ")"
+skolemize_info:  "skolemize" "(" VARIABLE "," fof_term ")"
+
+status_value: "thm" | "esa" | "cth" | "sat" | "unsat" | "wth"
+
+parent_list: parent_info ("," parent_info)*
+parent_info: name | name ":" general_term
+
+// ── General terms (for annotations) ─────────────────────────────────
+useful_info: "[" general_term ("," general_term)* "]"
+
+general_terms: general_term ("," general_term)*
+
+general_term: general_data
+            | general_data ":" general_term
+            | general_list
+
+general_data: LOWER_WORD
+            | LOWER_WORD "(" general_terms ")"
+            | number
+            | VARIABLE
+            | SINGLE_QUOTED
+
+general_list: "[" (general_term ("," general_term)*)? "]"
+
+// ── Include ──────────────────────────────────────────────────────────
+include: "include" "(" SINGLE_QUOTED ("," "[" name ("," name)* "]")? ")" "."
+
+// ── Terminals ────────────────────────────────────────────────────────
+name: LOWER_WORD | INTEGER | SINGLE_QUOTED
+
+VARIABLE:     /[A-Z][a-zA-Z0-9_]*/
+LOWER_WORD:   /[a-z][a-zA-Z0-9_]*/
+SINGLE_QUOTED: /\'[^\']*\'/
+INTEGER:      /[0-9]+/
+RATIONAL:     /[0-9]+\/[0-9]+/
+REAL:         /[0-9]+\.[0-9]*/
+
+COMMENT:      /(%[^\n]*)|(\/\*.*?\*\/)/s
+WHITESPACE:   /\s+/
+
+%ignore COMMENT
+%ignore WHITESPACE
