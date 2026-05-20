@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-from lark import Lark, Transformer, v_args
+from lark import Lark, Transformer
 
 from .ast_nodes import AnnotatedFormula, InferenceRecord, ProofFile
 
@@ -27,6 +27,9 @@ class TPTPTransformer(Transformer):
     def status_info(self, items):
         return ("status", str(items[0]))
 
+    def status_value(self, items):
+        return str(items[0]) if items else None
+
     def new_symbols_info(self, items):
         # new_symbols(skolem, [sK0, sK1, ...])
         kind = str(items[0])
@@ -51,7 +54,7 @@ class TPTPTransformer(Transformer):
     def dag_source(self, items):
         return items[0]  # either an InferenceRecord or a name string
 
-    def file_source(self, items):
+    def external_source(self, items):
         path = str(items[0])
         ref = str(items[1]) if len(items) > 1 else None
         return ("file", path, ref)
@@ -70,6 +73,9 @@ class TPTPTransformer(Transformer):
 
     def inference_info_item(self, items):
         return items[0]  # unwrap the single child
+
+    def inference_rule(self, items):
+        return str(items[0])
 
     def inference_record(self, items):
         rule = str(items[0])

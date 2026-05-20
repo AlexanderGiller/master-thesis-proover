@@ -121,7 +121,8 @@ status_info:     "status" "(" status_value ")"
 new_symbols_info: "new_symbols" "(" LOWER_WORD "," "[" name ("," name)* "]" ")"
 skolemize_info:  "skolemize" "(" VARIABLE "," fof_term ")"
 
-status_value: "thm" | "esa" | "cth" | "sat" | "unsat" | "wth"
+status_value: STATUS_VAL
+STATUS_VAL: "thm" | "esa" | "cth" | "sat" | "unsat" | "wth"
 
 parent_list: parent_info ("," parent_info)*
 parent_info: name | name ":" general_term
