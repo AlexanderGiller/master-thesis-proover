@@ -3,14 +3,41 @@ from pathlib import Path
 
 from lark import Lark, Transformer
 
-from .ast_nodes import AnnotatedFormula, InferenceRecord, ProofFile
+from .ast_nodes import (
+    AnnotatedFormula,
+    Atom,
+    BinaryFormula,
+    Constant,
+    Equality,
+    FunctionTerm,
+    InferenceRecord,
+    JunctionFormula,
+    Negation,
+    ProofFile,
+    QuantifiedFormula,
+    Variable,
+)
 
 GRAMMAR_PATH = Path(__file__).parent / "tptp_grammar.lark"
 
 
+def _strip_quotes(token_str: str) -> str:
+    """Strip single quotes from SINGLE_QUOTED tokens."""
+    s = str(token_str)
+    if s.startswith("'") and s.endswith("'"):
+        return s[1:-1]
+    return s
+
+
 class TPTPTransformer(Transformer):
 
-    # ── Formula role ────────────────────────────────────────────────
+    def __default_token__(self, token):
+        return str(token)
+
+    def token(self, token):
+        return str(token)
+
+    # ── Formula role ─────────────────────────────────────────────────
     def axiom(self, _):
         return "axiom"
 
@@ -23,25 +50,124 @@ class TPTPTransformer(Transformer):
     def plain(self, _):
         return "plain"
 
-    # ── Status ──────────────────────────────────────────────────────
-    def status_info(self, items):
-        return ("status", str(items[0]))
+    def hypothesis(self, _):
+        return "hypothesis"
 
-    def status_value(self, items):
-        return str(items[0]) if items else None
+    def definition(self, _):
+        return "definition"
+
+    def lemma(self, _):
+        return "lemma"
+
+    # ── Status / introduction type ────────────────────────────────────
+    def thm(self, _):   return "thm"
+    def esa(self, _):   return "esa"
+    def cth(self, _):   return "cth"
+    def sat(self, _):   return "sat"
+    def unsat(self, _): return "unsat"
+    def wth(self, _):   return "wth"
+
+    def status_info(self, items):
+        return ("status", items[0])
+
+    def introduction_type(self, items):
+        return str(items[0])
 
     def new_symbols_info(self, items):
-        # new_symbols(skolem, [sK0, sK1, ...])
         kind = str(items[0])
         symbols = [str(s) for s in items[1:]]
         return ("new_symbols", kind, symbols)
 
     def skolemize_info(self, items):
         var = str(items[0])
-        term = items[1]  # keep as tree node or stringify
+        term = items[1]
         return ("skolemize", var, term)
 
-    # ── Inference record ─────────────────────────────────────────────
+    # ── Terms ──────────────────────────────────────────────────────────
+    def functor(self, items):
+        return _strip_quotes(items[0])
+
+    def number(self, items):
+        return items[0]
+
+    def variable_term(self, items):
+        return Variable(str(items[0]))
+
+    def constant_term(self, items):
+        return Constant(items[0])
+
+    def compound_term(self, items):
+        functor = items[0]
+        # items = [functor, arg1, arg2, ...] because fof_arguments is inlined
+        args = list(items[1:])
+        return FunctionTerm(functor=functor, args=args)
+
+    def number_term(self, items):
+        return items[0]
+
+    def fof_arguments(self, items):
+        return list(items)
+
+    # ── Atomic formulas ─────────────────────────────────────────────────
+    def fof_plain_atomic_formula(self, items):
+        if len(items) >= 2:
+            # items = [predicate, arg1, arg2, ...] because fof_arguments is inlined
+            predicate = items[0]
+            args = list(items[1:])
+            return Atom(predicate=predicate, args=args)
+        return Atom(predicate=items[0], args=[])
+
+    def proposition(self, items):
+        return Atom(predicate=items[0], args=[])
+
+    def true_atom(self, _):
+        return Atom(predicate="$true", args=[])
+
+    def false_atom(self, _):
+        return Atom(predicate="$false", args=[])
+
+    def equality(self, items):
+        return Equality(left=items[0], right=items[1])
+
+    def not_equal(self, items):
+        return Equality(left=items[0], right=items[1], negated=True)
+
+    # ── Negation, quantifiers ────────────────────────────────────────────
+    def negation(self, items):
+        return Negation(items[0])
+
+    def exists(self, _):
+        return "?"
+
+    def forall(self, _):
+        return "!"
+
+    def fof_variable_list(self, items):
+        return [str(v) for v in items]
+
+    def fof_quantified_formula(self, items):
+        quantifier, variables, formula = items
+        return QuantifiedFormula(quantifier=quantifier, variables=variables, formula=formula)
+
+    # ── Binary connectives ────────────────────────────────────────────────
+    def implies(self, _):    return "=>"
+    def implied_by(self, _): return "<="
+    def iff(self, _):        return "<=>"
+    def xor(self, _):        return "<~>"
+    def nor(self, _):        return "~|"
+    def nand(self, _):       return "~&"
+
+    def fof_binary_nonassoc(self, items):
+        left, connective, right = items
+        return BinaryFormula(connective=connective, left=left, right=right)
+
+    def fof_and_formula(self, items):
+        return JunctionFormula(connective="&", operands=list(items))
+
+    def fof_or_formula(self, items):
+        return JunctionFormula(connective="|", operands=list(items))
+
+    # ── Inference record ──────────────────────────────────────────────────
     def parent_list(self, items):
         return [str(i) for i in items]
 
@@ -52,18 +178,15 @@ class TPTPTransformer(Transformer):
         return items[0] if items else None
 
     def dag_source(self, items):
-        return items[0]  # either an InferenceRecord or a name string
+        return items[0]
 
     def external_source(self, items):
-        path = str(items[0])
-        ref = str(items[1]) if len(items) > 1 else None
+        path = _strip_quotes(items[0])
+        ref = _strip_quotes(items[1]) if len(items) > 1 else None
         return ("file", path, ref)
 
     def internal_source(self, items):
-        return ("introduced", str(items[0]))
-
-    def introduction_type(self, items):
-        return str(items[0])
+        return ("introduced", items[0])
 
     def general_function(self, items):
         return ("general", str(items[0]))
@@ -72,14 +195,14 @@ class TPTPTransformer(Transformer):
         return list(items)
 
     def inference_info_item(self, items):
-        return items[0]  # unwrap the single child
+        return items[0]
 
     def inference_rule(self, items):
-        return str(items[0])
+        return _strip_quotes(items[0])
 
     def inference_record(self, items):
         rule = str(items[0])
-        info = items[1]  # list from inference_info
+        info = items[1]
         parents = items[2] if len(items) > 2 else []
 
         status, new_syms, sk_var, sk_term = None, None, None, None
@@ -103,16 +226,15 @@ class TPTPTransformer(Transformer):
         )
 
     def annotations(self, items):
-        # items[0] is the source, items[1] (if present) is useful_info — ignore it
         return items[0] if items else None
 
+    # ── Top level ─────────────────────────────────────────────────────────
     def fof_annotated(self, items):
         name = str(items[0])
         role = items[1]
         formula = items[2]
         source = items[3] if len(items) > 3 else None
 
-        # Only store as inference if it's an actual InferenceRecord
         inference = source if isinstance(source, InferenceRecord) else None
         raw_source = source if not isinstance(source, InferenceRecord) else None
 
@@ -120,6 +242,12 @@ class TPTPTransformer(Transformer):
             name=name, role=role, formula=formula,
             inference=inference, raw_source=raw_source
         )
+
+    def include(self, items):
+        # First item is the included filename, second (if present) is the
+        # optional formula-selection list. Not resolved here — just flagged
+        # so callers can decide whether to inline it themselves.
+        return None
 
     def tptp_input(self, items):
         return items[0] if items else None
@@ -131,7 +259,7 @@ class TPTPTransformer(Transformer):
         return [i for i in items if i is not None]
 
     def name(self, items):
-        return str(items[0])
+        return _strip_quotes(items[0])
 
 
 def parse_file(path: str) -> list[AnnotatedFormula]:
@@ -142,9 +270,14 @@ def parse_file(path: str) -> list[AnnotatedFormula]:
 
     return TPTPTransformer().transform(tree)
 
+def parse_file_pretty(path: str):
+    grammar = GRAMMAR_PATH.read_text()
+    parser = Lark(grammar, parser="earley", ambiguity="resolve")
+    source = Path(path).read_text()
+    tree = parser.parse(source)
+    print(tree.pretty())
 
 def extract_problem_ref(path: str) -> str:
-    """Read the 'Proof: <file>' header comment from a proof file."""
     with open(path) as f:
         for line in f:
             m = re.match(r"%\s*Proof:\s*(\S+)", line)
