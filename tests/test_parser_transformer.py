@@ -73,7 +73,7 @@ def test_include_and_parse_file_pretty_runs(capsys):
     t = TPTPTransformer()
     assert t.include(["file"]) is None
     # run parse_file_pretty on an existing problem file to exercise printing
-    parse_file_pretty("examples/correct/Problems/COR001+1.p")
+    parse_file_pretty("Problems/example1_proover.p")
     captured = capsys.readouterr()
     # tree.pretty prints something; ensure output is non-empty
     assert captured.out is not None
