@@ -9,10 +9,8 @@ annotated_formula: fof_annotated
 
 fof_annotated: "fof" "(" name "," formula_role "," fof_formula annotations? ")" "."
 
-annotations: "," source optional_info?
-           | "," source "," useful_info
+annotations: "," source ("," useful_info)?
 
-optional_info: "," useful_info
 
 // ── Roles ────────────────────────────────────────────────────────────
 formula_role: "axiom"             -> axiom
@@ -24,21 +22,21 @@ formula_role: "axiom"             -> axiom
             | "lemma"             -> lemma
 
 // ── FOF Formulas ─────────────────────────────────────────────────────
-fof_formula: fof_logic_formula
+?fof_formula: fof_logic_formula
 
-fof_logic_formula: fof_binary_formula
+?fof_logic_formula: fof_binary_formula
                  | fof_unary_formula
                  | fof_unit_formula
 
-fof_binary_formula: fof_binary_nonassoc
+?fof_binary_formula: fof_binary_nonassoc
                   | fof_binary_assoc
 
-fof_binary_nonassoc: fof_unit_formula nonassoc_connective fof_unit_formula
+?fof_binary_nonassoc: fof_unit_formula nonassoc_connective fof_unit_formula
 
-fof_binary_assoc: fof_or_formula | fof_and_formula
+?fof_binary_assoc: fof_or_formula | fof_and_formula
 
-fof_or_formula:  fof_unit_formula ("|" fof_unit_formula)+
-fof_and_formula: fof_unit_formula ("&" fof_unit_formula)+
+?fof_or_formula:  fof_unit_formula ("|" fof_unit_formula)+
+?fof_and_formula: fof_unit_formula ("&" fof_unit_formula)+
 
 
 nonassoc_connective: "=>"  -> implies
@@ -48,41 +46,41 @@ nonassoc_connective: "=>"  -> implies
                    | "~|"  -> nor
                    | "~&"  -> nand
 
-fof_unary_formula: "~" fof_unit_formula -> negation
+?fof_unary_formula: "~" fof_unit_formula -> negation
                  | fof_infix_unary
 
-fof_infix_unary: fof_term "!=" fof_term -> not_equal
+?fof_infix_unary: fof_term "!=" fof_term -> not_equal
 
-fof_unit_formula: fof_unitary_formula
+?fof_unit_formula: fof_unitary_formula
                 | fof_unary_formula
 
-fof_unitary_formula: fof_quantified_formula
+?fof_unitary_formula: fof_quantified_formula
                 | fof_atomic_formula
                 | "(" fof_logic_formula ")"
 
 
-fof_quantified_formula: quantifier "[" fof_variable_list "]" ":" fof_unit_formula
+?fof_quantified_formula: quantifier "[" fof_variable_list "]" ":" fof_unit_formula
 
 quantifier: "!" -> forall
            | "?" -> exists
 
-fof_variable_list: VARIABLE ("," VARIABLE)*
+?fof_variable_list: VARIABLE ("," VARIABLE)*
 
 // ── Atomic formulas ──────────────────────────────────────────────────
-fof_atomic_formula: fof_plain_atomic_formula
+?fof_atomic_formula: fof_plain_atomic_formula
               | fof_defined_atomic_formula
 
-fof_plain_atomic_formula: functor "(" fof_arguments ")"
+?fof_plain_atomic_formula: functor "(" fof_arguments ")"
                     | functor                       -> proposition
 
-fof_defined_atomic_formula: "$true"  -> true_atom
+?fof_defined_atomic_formula: "$true"  -> true_atom
                       | "$false" -> false_atom
                       | fof_term "=" fof_term -> equality
 
 // ── Terms ────────────────────────────────────────────────────────────
-fof_arguments: fof_term ("," fof_term)*
+?fof_arguments: fof_term ("," fof_term)*
 
-fof_term: functor "(" fof_arguments ")"  -> compound_term
+?fof_term: functor "(" fof_arguments ")"  -> compound_term
         | VARIABLE                        -> variable_term
         | functor                         -> constant_term
         | number                          -> number_term
@@ -115,14 +113,19 @@ inference_info: "[" inference_info_item ("," inference_info_item)* "]"
 inference_info_item: status_info
                    | new_symbols_info
                    | skolemize_info
-                   | LOWER_WORD "(" general_terms ")"
+                   | general_function
 
-status_info:     "status" "(" status_value ")"
-new_symbols_info: "new_symbols" "(" LOWER_WORD "," "[" name ("," name)* "]" ")"
-skolemize_info:  "skolemize" "(" VARIABLE "," fof_term ")"
+status_info.2:     "status" "(" status_value ")"
+new_symbols_info.2: "new_symbols" "(" LOWER_WORD "," "[" name ("," name)* "]" ")"
+skolemize_info.2:  "skolemize" "(" VARIABLE "," fof_term ")"
+general_function.1: LOWER_WORD "(" general_terms ")"
 
-status_value: STATUS_VAL
-STATUS_VAL: "thm" | "esa" | "cth" | "sat" | "unsat" | "wth"
+status_value: "thm"   -> thm
+            | "esa"   -> esa
+            | "cth"   -> cth
+            | "sat"   -> sat
+            | "unsat" -> unsat
+            | "wth"   -> wth
 
 parent_list: parent_info ("," parent_info)*
 parent_info: name | name ":" general_term
