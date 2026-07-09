@@ -1,6 +1,5 @@
-from src.parser.parser import load_proof, parse_file, parse_file_pretty
 from src.checker.file_dir import check_axiom_provenance
-
+from src.parser.parser import load_proof, parse_file, parse_file_pretty
 
 problem_path = "examples/correct/Problems/COR002+1.p"
 proof_path = "examples/correct/COR002+1.s"

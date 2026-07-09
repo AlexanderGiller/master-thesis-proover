@@ -1,6 +1,13 @@
 from src.parser.ast_nodes import (
-    Variable, Constant, FunctionTerm, Atom, Equality,
-    Negation, BinaryFormula, JunctionFormula, QuantifiedFormula
+    Atom,
+    BinaryFormula,
+    Constant,
+    Equality,
+    FunctionTerm,
+    JunctionFormula,
+    Negation,
+    QuantifiedFormula,
+    Variable,
 )
 
 
