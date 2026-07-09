@@ -1,4 +1,3 @@
-from atp_bridge import verify_with_atp
 from skolem_checker import check_skolemization
 
 from src.parser.ast_nodes import AnnotatedFormula, ProofFile
