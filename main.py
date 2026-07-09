@@ -1,6 +1,5 @@
 from src.parser.parser import load_proof, parse_file, parse_file_pretty
 
-
 parse_file_pretty("Problems/example1_proover.p")
 problem = parse_file("Problems/example1_proover.p")
 

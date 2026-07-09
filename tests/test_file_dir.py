@@ -1,5 +1,5 @@
-from src.checker.file_dir import check_axiom_provenance, ProvenanceIssue
-from src.parser.ast_nodes import AnnotatedFormula, InferenceRecord, Atom, Constant
+from src.checker.file_dir import ProvenanceIssue, check_axiom_provenance
+from src.parser.ast_nodes import AnnotatedFormula, Atom, Constant, InferenceRecord
 
 
 def make_annotated(name, role, formula, raw_source=None):

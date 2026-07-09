@@ -1,9 +1,9 @@
 from pathlib import Path
+
 import pytest
 
-from src.parser.parser import parse_file, load_proof
 from src.checker.file_dir import check_axiom_provenance
-
+from src.parser.parser import load_proof, parse_file
 
 EXAMPLES_DIR = Path("examples/correct")
 

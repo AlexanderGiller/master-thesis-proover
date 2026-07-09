@@ -1,7 +1,14 @@
 # alpha_equivalence.py
 from src.parser.ast_nodes import (
-    Atom, BinaryFormula, Constant, Equality, FunctionTerm,
-    JunctionFormula, Negation, QuantifiedFormula, Variable,
+    Atom,
+    BinaryFormula,
+    Constant,
+    Equality,
+    FunctionTerm,
+    JunctionFormula,
+    Negation,
+    QuantifiedFormula,
+    Variable,
 )
 
 _MISSING = object()
