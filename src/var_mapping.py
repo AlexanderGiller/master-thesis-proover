@@ -1,6 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
-class FormulaRole(str, Enum):
+
+class FormulaRole(StrEnum):
     """TPTP formula roles (TPTP syntax BNF, %-comment role list)."""
     AXIOM = "axiom"
     CONJECTURE = "conjecture"
@@ -10,7 +11,7 @@ class FormulaRole(str, Enum):
     DEFINITION = "definition"
     LEMMA = "lemma"
 
-class InferenceStatus(str, Enum):
+class InferenceStatus(StrEnum):
     """SZS-style status codes used inside inference(...) annotations."""
     THM = "thm"  # theorem
     CTH = "cth"  # co-theorem (used for negated_conjecture step)
@@ -19,7 +20,7 @@ class InferenceStatus(str, Enum):
     UNSAT = "unsat"
     WTH = "wth"  # with theorem
 
-class InferenceRule(str, Enum):
+class InferenceRule(StrEnum):
     """Common inference rule names seen in TSTP proofs."""
     NEGATED_CONJECTURE = "negated_conjecture"
     DEDUCTION = "deduction"
@@ -31,7 +32,25 @@ class InferenceRule(str, Enum):
     FLATTENING = "flattening"
 
 
-class SZSStatus(str, Enum):
+class Quantifier(StrEnum):
+    """Quantifier symbols used in TPTP formulas."""
+    UNIVERSAL = "!"
+    EXISTENTIAL = "?"
+
+
+class BinaryConnective(StrEnum):
+    """Binary connective symbols used in TPTP formulas."""
+    AND = "&"
+    OR = "|"
+    IMPLIES = "=>"
+    IMPLIED = "<="
+    IFF = "<=>"
+    XOR = "<~>"
+    NOR = "~|"
+    NAND = "~&"
+
+
+class SZSStatus(StrEnum):
     """SZS ontology status values (top-level problem verdict)."""
     THEOREM = "Theorem"
     COUNTERSATISFIABLE = "CounterSatisfiable"
@@ -40,7 +59,7 @@ class SZSStatus(str, Enum):
     UNKNOWN = "Unknown"
 
 
-class FileExt(str, Enum):
+class FileExt(StrEnum):
     PROBLEM = ".p"
     SOLUTION = ".s"
 

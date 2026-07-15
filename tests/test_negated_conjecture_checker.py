@@ -1,13 +1,25 @@
 """Tests for negated_conjecture checker."""
 
 import pytest
-from src.parser.ast_nodes import (
-    AnnotatedFormula, InferenceRecord, Atom, Constant, Variable,
-    QuantifiedFormula, Negation, BinaryFormula, JunctionFormula
-)
+
 from src.checker.negated_conjecture_checker import (
-    check_negated_conjecture, NegatedConjectureIssue, _negate_formula
+    NegatedConjectureIssue,
+    _negate_formula,
+    check_negated_conjecture,
 )
+from src.parser.ast_nodes import (
+    AnnotatedFormula,
+    Atom,
+    BinaryFormula,
+    Constant,
+    InferenceRecord,
+    JunctionFormula,
+    Negation,
+    QuantifiedFormula,
+    Variable,
+)
+
+from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus, BinaryConnective, Quantifier
 
 
 def make_annotated(name, role, formula, inference=None):
@@ -17,7 +29,10 @@ def make_annotated(name, role, formula, inference=None):
 
 def make_inference(rule, status, parents):
     """Helper to create InferenceRecord."""
-    return InferenceRecord(rule=rule, status=status, parents=parents)
+    from src.parser.ast_nodes import StatusInfo
+    
+    info = [StatusInfo(status=status)] if status is not None else []
+    return InferenceRecord(rule=rule, info=info, parents=parents)
 
 
 class TestNegateFormula:
@@ -39,22 +54,22 @@ class TestNegateFormula:
     def test_negate_universally_quantified_becomes_existential(self):
         """![X]: p(X) becomes ?[X]: ~p(X)"""
         inner = Atom("p", args=[Variable("X")])
-        quantified = QuantifiedFormula("!", ["X"], inner)
+        quantified = QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], inner)
         negated = _negate_formula(quantified)
 
         assert isinstance(negated, QuantifiedFormula)
-        assert negated.quantifier == "?"
+        assert negated.quantifier == Quantifier.EXISTENTIAL
         assert negated.variables == ["X"]
         assert isinstance(negated.formula, Negation)
 
     def test_negate_existentially_quantified_becomes_universal(self):
         """?[X]: p(X) becomes ![X]: ~p(X)"""
         inner = Atom("p", args=[Variable("X")])
-        quantified = QuantifiedFormula("?", ["X"], inner)
+        quantified = QuantifiedFormula(Quantifier.EXISTENTIAL, ["X"], inner)
         negated = _negate_formula(quantified)
 
         assert isinstance(negated, QuantifiedFormula)
-        assert negated.quantifier == "!"
+        assert negated.quantifier == Quantifier.UNIVERSAL
         assert negated.variables == ["X"]
         assert isinstance(negated.formula, Negation)
 
@@ -71,16 +86,16 @@ class TestNegateFormula:
     def test_negate_nested_quantifiers(self):
         """![X]: ?[Y]: p(X,Y) becomes ?[X]: ![Y]: ~p(X,Y)"""
         inner_atom = Atom("p", args=[Variable("X"), Variable("Y")])
-        inner_quantified = QuantifiedFormula("?", ["Y"], inner_atom)
-        outer_quantified = QuantifiedFormula("!", ["X"], inner_quantified)
+        inner_quantified = QuantifiedFormula(Quantifier.EXISTENTIAL, ["Y"], inner_atom)
+        outer_quantified = QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], inner_quantified)
 
         negated = _negate_formula(outer_quantified)
 
         assert isinstance(negated, QuantifiedFormula)
-        assert negated.quantifier == "?"
+        assert negated.quantifier == Quantifier.EXISTENTIAL
         assert negated.variables == ["X"]
         assert isinstance(negated.formula, QuantifiedFormula)
-        assert negated.formula.quantifier == "!"
+        assert negated.formula.quantifier == Quantifier.UNIVERSAL
         assert negated.formula.variables == ["Y"]
 
 
@@ -89,12 +104,12 @@ class TestNegatedConjectureChecker:
 
     def test_valid_negated_conjecture_simple(self):
         """Valid negated_conjecture: negates a simple conjecture."""
-        conj = make_annotated("c", "conjecture", Atom("p", args=[]))
+        conj = make_annotated("c", FormulaRole.CONJECTURE, Atom("p", args=[]))
         neg_conj = make_annotated(
             "nc",
-            "negated_conjecture",
+            FormulaRole.NEGATED_CONJECTURE,
             Negation(Atom("p", args=[])),
-            make_inference("negated_conjecture", "cth", ["c"])
+            make_inference(InferenceRule.NEGATED_CONJECTURE, InferenceStatus.CTH, ["c"])
         )
         issues = check_negated_conjecture(neg_conj, conj)
         assert issues == []
@@ -104,15 +119,15 @@ class TestNegatedConjectureChecker:
         # Conjecture: ![X]: p(X)
         conj = make_annotated(
             "c",
-            "conjecture",
-            QuantifiedFormula("!", ["X"], Atom("p", args=[Variable("X")]))
+            FormulaRole.CONJECTURE,
+            QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], Atom("p", args=[Variable("X")]))
         )
         # Negated: ?[X]: ~p(X)
         neg_conj = make_annotated(
             "nc",
-            "negated_conjecture",
-            QuantifiedFormula("?", ["X"], Negation(Atom("p", args=[Variable("X")]))),
-            make_inference("negated_conjecture", "cth", ["c"])
+            FormulaRole.NEGATED_CONJECTURE,
+            QuantifiedFormula(Quantifier.EXISTENTIAL, ["X"], Negation(Atom("p", args=[Variable("X")]))),
+            make_inference(InferenceRule.NEGATED_CONJECTURE, InferenceStatus.CTH, ["c"])
         )
         issues = check_negated_conjecture(neg_conj, conj)
         assert issues == []
@@ -120,28 +135,28 @@ class TestNegatedConjectureChecker:
     def test_valid_negated_conjecture_with_negation_in_conjecture(self):
         """Valid negated_conjecture: ?[X]: ~P(X) becomes ![X]: P(X) with negation elimination."""
         # Conjecture: ?[X]: ~(p(X) => q(X))
-        inner_formula = BinaryFormula("=>", 
+        inner_formula = BinaryFormula(BinaryConnective.IMPLIES,
                                      Atom("p", args=[Variable("X")]),
                                      Atom("q", args=[Variable("X")]))
         conj = make_annotated(
             "c",
-            "conjecture",
-            QuantifiedFormula("?", ["X"], Negation(inner_formula))
+            FormulaRole.CONJECTURE,
+            QuantifiedFormula(Quantifier.EXISTENTIAL, ["X"], Negation(inner_formula))
         )
         # Negated: ![X]: (p(X) => q(X))  (negation of negation is eliminated)
         neg_conj = make_annotated(
             "nc",
-            "negated_conjecture",
-            QuantifiedFormula("!", ["X"], inner_formula),
-            make_inference("negated_conjecture", "cth", ["c"])
+            FormulaRole.NEGATED_CONJECTURE,
+            QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], inner_formula),
+            make_inference(InferenceRule.NEGATED_CONJECTURE, InferenceStatus.CTH, ["c"])
         )
         issues = check_negated_conjecture(neg_conj, conj)
         assert issues == []
 
     def test_missing_inference_record(self):
         """Negated_conjecture without inference record should fail."""
-        conj = make_annotated("c", "conjecture", Atom("p", args=[]))
-        neg_conj = make_annotated("nc", "negated_conjecture", Negation(Atom("p", args=[])))
+        conj = make_annotated("c", FormulaRole.CONJECTURE, Atom("p", args=[]))
+        neg_conj = make_annotated("nc", FormulaRole.NEGATED_CONJECTURE, Negation(Atom("p", args=[])))
 
         issues = check_negated_conjecture(neg_conj, conj)
         assert len(issues) == 1
@@ -149,36 +164,36 @@ class TestNegatedConjectureChecker:
 
     def test_wrong_rule_name(self):
         """Negated_conjecture with wrong rule name should fail."""
-        conj = make_annotated("c", "conjecture", Atom("p", args=[]))
+        conj = make_annotated("c", FormulaRole.CONJECTURE, Atom("p", args=[]))
         neg_conj = make_annotated(
             "nc",
-            "negated_conjecture",
+            FormulaRole.NEGATED_CONJECTURE,
             Negation(Atom("p", args=[])),
-            make_inference("resolution", "cth", ["c"])  # Wrong rule
+            make_inference(InferenceRule.RESOLUTION, InferenceStatus.CTH, ["c"])  # Wrong rule
         )
         issues = check_negated_conjecture(neg_conj, conj)
         assert any("rule must be 'negated_conjecture'" in it.reason for it in issues)
 
     def test_wrong_status(self):
         """Negated_conjecture with wrong status should fail."""
-        conj = make_annotated("c", "conjecture", Atom("p", args=[]))
+        conj = make_annotated("c", FormulaRole.CONJECTURE, Atom("p", args=[]))
         neg_conj = make_annotated(
             "nc",
-            "negated_conjecture",
+            FormulaRole.NEGATED_CONJECTURE,
             Negation(Atom("p", args=[])),
-            make_inference("negated_conjecture", "thm", ["c"])  # Wrong status
+            make_inference(InferenceRule.NEGATED_CONJECTURE, InferenceStatus.THM, ["c"])  # Wrong status
         )
         issues = check_negated_conjecture(neg_conj, conj)
         assert any("status must be 'cth'" in it.reason for it in issues)
 
     def test_incorrect_formula_not_negation(self):
         """Negated_conjecture with incorrect formula (not a negation)."""
-        conj = make_annotated("c", "conjecture", Atom("p", args=[]))
+        conj = make_annotated("c", FormulaRole.CONJECTURE, Atom("p", args=[]))
         neg_conj = make_annotated(
             "nc",
-            "negated_conjecture",
+            FormulaRole.NEGATED_CONJECTURE,
             Atom("q", args=[]),  # Wrong: should be ~p
-            make_inference("negated_conjecture", "cth", ["c"])
+            make_inference(InferenceRule.NEGATED_CONJECTURE, InferenceStatus.CTH, ["c"])
         )
         issues = check_negated_conjecture(neg_conj, conj)
         assert any("not the correct negation" in it.reason for it in issues)
@@ -187,15 +202,15 @@ class TestNegatedConjectureChecker:
         """Negated_conjecture with incorrect quantifier flip."""
         conj = make_annotated(
             "c",
-            "conjecture",
-            QuantifiedFormula("!", ["X"], Atom("p", args=[Variable("X")]))
+            FormulaRole.CONJECTURE,
+            QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], Atom("p", args=[Variable("X")]))
         )
         # Wrong: should flip ! to ?
         neg_conj = make_annotated(
             "nc",
-            "negated_conjecture",
-            QuantifiedFormula("!", ["X"], Negation(Atom("p", args=[Variable("X")]))),
-            make_inference("negated_conjecture", "cth", ["c"])
+            FormulaRole.NEGATED_CONJECTURE,
+            QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], Negation(Atom("p", args=[Variable("X")]))),
+            make_inference(InferenceRule.NEGATED_CONJECTURE, InferenceStatus.CTH, ["c"])
         )
         issues = check_negated_conjecture(neg_conj, conj)
         assert any("not the correct negation" in it.reason for it in issues)
@@ -204,15 +219,15 @@ class TestNegatedConjectureChecker:
         """Negated_conjecture with renamed variables should still pass via alpha-equivalence."""
         conj = make_annotated(
             "c",
-            "conjecture",
-            QuantifiedFormula("!", ["X"], Atom("p", args=[Variable("X")]))
+            FormulaRole.CONJECTURE,
+            QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], Atom("p", args=[Variable("X")]))
         )
         # Same negation but with renamed variable Y (should be alpha-equivalent)
         neg_conj = make_annotated(
             "nc",
-            "negated_conjecture",
-            QuantifiedFormula("?", ["Y"], Negation(Atom("p", args=[Variable("Y")]))),
-            make_inference("negated_conjecture", "cth", ["c"])
+            FormulaRole.NEGATED_CONJECTURE,
+            QuantifiedFormula(Quantifier.EXISTENTIAL, ["Y"], Negation(Atom("p", args=[Variable("Y")]))),
+            make_inference(InferenceRule.NEGATED_CONJECTURE, InferenceStatus.CTH, ["c"])
         )
         issues = check_negated_conjecture(neg_conj, conj)
         assert issues == []
@@ -227,9 +242,9 @@ class TestNegatedConjectureChecker:
 
         neg_conj = make_annotated(
             "nc",
-            "negated_conjecture",
+            FormulaRole.NEGATED_CONJECTURE,
             Negation(conj_formula),
-            make_inference("negated_conjecture", "cth", ["c"])
+            make_inference(InferenceRule.NEGATED_CONJECTURE, InferenceStatus.CTH, ["c"])
         )
         issues = check_negated_conjecture(neg_conj, conj)
         assert issues == []
@@ -239,9 +254,9 @@ class TestNegatedConjectureChecker:
         conj = make_annotated("c", "conjecture", Atom("p", args=[]))
         neg_conj = make_annotated(
             "nc",
-            "negated_conjecture",
+            FormulaRole.NEGATED_CONJECTURE,
             Atom("q", args=[]),  # Wrong formula
-            make_inference("resolution", "thm", ["c"])  # Wrong rule and status
+            make_inference(InferenceRule.RESOLUTION, InferenceStatus.THM, ["c"])  # Wrong rule and status
         )
         issues = check_negated_conjecture(neg_conj, conj)
         # Should have 3 issues: wrong rule, wrong status, wrong formula

@@ -4,6 +4,8 @@ import pytest
 
 from src.checker.file_dir import check_axiom_provenance
 from src.parser.parser import load_proof, parse_file
+from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus, BinaryConnective, Quantifier
+
 
 EXAMPLES_DIR = Path("examples/correct")
 
@@ -20,7 +22,7 @@ def test_example_proofs_verify(proof_path):
 
     issues = []
     for step in proof.steps:
-        if step.role != "axiom":
+        if step.role != FormulaRole.AXIOM:
             continue
         step_issues = check_axiom_provenance(step, problem_formulas, str(problem_file))
         for it in step_issues:

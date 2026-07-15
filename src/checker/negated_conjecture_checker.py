@@ -1,10 +1,16 @@
 """Checker for negated_conjecture steps in proofs."""
 
 from dataclasses import dataclass
-from src.parser.ast_nodes import (
-    AnnotatedFormula, QuantifiedFormula, Negation, Variable, InferenceRecord
-)
+
 from src.checker.alpha_eq import is_alpha_equivalent
+from src.parser.ast_nodes import (
+    AnnotatedFormula,
+    InferenceRecord,
+    Negation,
+    QuantifiedFormula,
+    Variable,
+)
+from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus, Quantifier
 
 
 @dataclass
@@ -31,7 +37,7 @@ def _negate_formula(formula):
         # De Morgan's law: ~(![X]: P) becomes ?[X]: ~P
         # and ~(?[X]: P) becomes ![X]: ~P
         elif isinstance(inner, QuantifiedFormula):
-            new_quantifier = "?" if inner.quantifier == "!" else "!"
+            new_quantifier = Quantifier.EXISTENTIAL if inner.quantifier == Quantifier.UNIVERSAL else Quantifier.UNIVERSAL
             negated_inner = _negate_formula(inner.formula)
             return QuantifiedFormula(
                 quantifier=new_quantifier,
@@ -43,7 +49,7 @@ def _negate_formula(formula):
             return inner
     elif isinstance(formula, QuantifiedFormula):
         # Flip the quantifier and negate the inner formula
-        new_quantifier = "?" if formula.quantifier == "!" else "!"
+        new_quantifier = Quantifier.EXISTENTIAL if formula.quantifier == Quantifier.UNIVERSAL else Quantifier.UNIVERSAL
         negated_inner = _negate_formula(formula.formula)
         return QuantifiedFormula(
             quantifier=new_quantifier,
@@ -78,14 +84,14 @@ def check_negated_conjecture(
         return issues
 
     # Check rule is "negated_conjecture"
-    if neg_conj_step.inference.rule != "negated_conjecture":
+    if neg_conj_step.inference.rule != InferenceRule.NEGATED_CONJECTURE:
         issues.append(NegatedConjectureIssue(
             name,
             f"rule must be 'negated_conjecture', got '{neg_conj_step.inference.rule}'"
         ))
 
     # Check status is "cth" (Conjecture THeorem negation)
-    if neg_conj_step.inference.status != "cth":
+    if neg_conj_step.inference.status != InferenceStatus.CTH:
         issues.append(NegatedConjectureIssue(
             name,
             f"status must be 'cth', got '{neg_conj_step.inference.status}'"

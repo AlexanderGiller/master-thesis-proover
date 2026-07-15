@@ -1,5 +1,6 @@
 # tests/test_parser.py
 from src.parser.ast_nodes import AnnotatedFormula, InferenceRecord, ProofFile
+from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus
 
 
 class TestProblemParsing:
@@ -16,7 +17,7 @@ class TestProblemParsing:
 
     def test_step_roles(self, simple_problem):
         roles = [s.role for s in simple_problem]
-        assert roles == ["axiom", "axiom", "conjecture"]
+        assert roles == [FormulaRole.AXIOM, FormulaRole.AXIOM, FormulaRole.CONJECTURE]
 
     def test_steps_are_annotated_formulas(self, simple_problem):
         for step in simple_problem:
@@ -29,7 +30,7 @@ class TestProblemParsing:
 
     def test_conjecture_role(self, simple_problem):
         con = next(s for s in simple_problem if s.name == "con")
-        assert con.role == "conjecture"
+        assert con.role == FormulaRole.CONJECTURE
 
 
 class TestProofParsing:
@@ -51,7 +52,7 @@ class TestProofParsing:
 
     def test_negated_conjecture_step(self, simple_proof):
         step = next(s for s in simple_proof.steps if s.name == "neg_con")
-        assert step.role == "negated_conjecture"
+        assert step.role == FormulaRole.NEGATED_CONJECTURE
 
     def test_inference_on_derived_steps(self, simple_proof):
         step = next(s for s in simple_proof.steps if s.name == "contra")
@@ -59,11 +60,11 @@ class TestProofParsing:
 
     def test_final_step_rule(self, simple_proof):
         contra = next(s for s in simple_proof.steps if s.name == "contra")
-        assert contra.inference.rule == "resolution"
+        assert contra.inference.rule == InferenceRule.RESOLUTION
 
     def test_final_step_status(self, simple_proof):
         contra = next(s for s in simple_proof.steps if s.name == "contra")
-        assert contra.inference.status == "thm"
+        assert contra.inference.status == InferenceStatus.THM
 
     def test_final_step_parents(self, simple_proof):
         contra = next(s for s in simple_proof.steps if s.name == "contra")
@@ -82,8 +83,8 @@ class TestInferenceRecord:
         inst1 = next(s for s in simple_proof.steps if s.name == "inst1")
         inf = inst1.inference
         assert isinstance(inf, InferenceRecord)
-        assert inf.rule == "resolution"
-        assert inf.status == "thm"
+        assert inf.rule == InferenceRule.RESOLUTION
+        assert inf.status == InferenceStatus.THM
         assert inf.parents == ["ax1"]
 
 
@@ -95,11 +96,11 @@ class TestSkolemParsing:
 
     def test_skolem_rule_name(self, skolem_proof):
         sk = next(s for s in skolem_proof.steps if s.name == "ax1_sk")
-        assert sk.inference.rule == "skolemize"
+        assert sk.inference.rule == InferenceRule.SKOLEMIZE
 
     def test_skolem_status_is_esa(self, skolem_proof):
         sk = next(s for s in skolem_proof.steps if s.name == "ax1_sk")
-        assert sk.inference.status == "esa"
+        assert sk.inference.status == InferenceStatus.ESA
 
     def test_skolem_new_symbol(self, skolem_proof):
         sk = next(s for s in skolem_proof.steps if s.name == "ax1_sk")

@@ -3,13 +3,70 @@ from typing import Optional
 
 
 @dataclass
+class StatusInfo:
+    """Represents status(...) in inference info."""
+    status: str  # "thm", "esa", "cth", etc.
+
+
+@dataclass
+class NewSymbolsInfo:
+    """Represents new_symbols(kind, [...]) in inference info."""
+    kind: str  # e.g., "skolem", "general"
+    symbols: list[str]
+
+
+@dataclass
+class SkolemizeInfo:
+    """Represents skolemize(Var, Term) in inference info."""
+    variable: str
+    term: object  # Parsed term node
+
+
+@dataclass
+class GeneralFunctionInfo:
+    """Represents general_function(...) in inference info."""
+    name: str
+    args: Optional[list] = None
+
+
+@dataclass
 class InferenceRecord:
     rule: str  # e.g. "skolemize", "resolution"
-    status: str  # "thm", "esa", "cth"
+    info: list  # List of StatusInfo, NewSymbolsInfo, SkolemizeInfo, GeneralFunctionInfo
     parents: list[str]
-    new_symbols: Optional[list[str]] = None  # from new_symbols(...)
-    skolem_var: Optional[str] = None  # from skolemize(Var, sk(...))
-    skolem_term: Optional[str] = None
+
+    # Convenience properties for backward compatibility
+    @property
+    def status(self) -> Optional[str]:
+        """Extract status from info list."""
+        for item in self.info:
+            if isinstance(item, StatusInfo):
+                return item.status
+        return None
+
+    @property
+    def new_symbols(self) -> Optional[list[str]]:
+        """Extract new_symbols from info list."""
+        for item in self.info:
+            if isinstance(item, NewSymbolsInfo):
+                return item.symbols
+        return None
+
+    @property
+    def skolem_var(self) -> Optional[str]:
+        """Extract skolemize variable from info list."""
+        for item in self.info:
+            if isinstance(item, SkolemizeInfo):
+                return item.variable
+        return None
+
+    @property
+    def skolem_term(self) -> Optional[object]:
+        """Extract skolemize term from info list."""
+        for item in self.info:
+            if isinstance(item, SkolemizeInfo):
+                return item.term
+        return None
 
 
 @dataclass
@@ -19,6 +76,13 @@ class AnnotatedFormula:
     formula: object  # parse tree node
     inference: Optional[InferenceRecord] = None
     raw_source: Optional[str] = None
+
+
+@dataclass
+class IncludeDirective:
+    """Represents an include(...) directive in TPTP files."""
+    path: str
+    selected_formulas: Optional[list[str]] = None  # Optional filter list
 
 
 @dataclass

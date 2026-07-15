@@ -2,12 +2,16 @@ from src.parser.ast_nodes import (
     Atom,
     Equality,
     FunctionTerm,
+    IncludeDirective,
     InferenceRecord,
     JunctionFormula,
+    NewSymbolsInfo,
+    SkolemizeInfo,
+    StatusInfo,
     Variable,
 )
 from src.parser.parser import TPTPTransformer, _strip_quotes, parse_file_pretty
-
+from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus, BinaryConnective, Quantifier
 
 def test_strip_quotes_and_token_methods():
     assert _strip_quotes("'abc'") == "abc"
@@ -20,21 +24,23 @@ def test_strip_quotes_and_token_methods():
 
 def test_formula_role_methods():
     t = TPTPTransformer()
-    assert t.axiom(None) == "axiom"
-    assert t.conjecture(None) == "conjecture"
-    assert t.negated_conjecture(None) == "negated_conjecture"
-    assert t.plain(None) == "plain"
-    assert t.hypothesis(None) == "hypothesis"
-    assert t.definition(None) == "definition"
-    assert t.lemma(None) == "lemma"
+    assert t.axiom(None) == FormulaRole.AXIOM
+    assert t.conjecture(None) == FormulaRole.CONJECTURE
+    assert t.negated_conjecture(None) == FormulaRole.NEGATED_CONJECTURE
+    assert t.plain(None) == FormulaRole.PLAIN
+    assert t.hypothesis(None) == FormulaRole.HYPOTHESIS
+    assert t.definition(None) == FormulaRole.DEFINITION
+    assert t.lemma(None) == FormulaRole.LEMMA
 
 
 def test_status_and_introduction_type():
     t = TPTPTransformer()
-    assert t.thm(None) == "thm"
-    assert t.esa(None) == "esa"
-    assert t.cth(None) == "cth"
-    assert t.status_info(["thm"]) == ("status", "thm")
+    assert t.thm(None) == InferenceStatus.THM
+    assert t.esa(None) == InferenceStatus.ESA
+    assert t.cth(None) == InferenceStatus.CTH
+    status_info = t.status_info([InferenceStatus.THM])
+    assert isinstance(status_info, StatusInfo)
+    assert status_info.status == InferenceStatus.THM
     assert t.introduction_type(["foo"]) == "foo"
 
 
@@ -65,10 +71,11 @@ def test_fof_variable_list_and_junctions():
     assert isinstance(j, JunctionFormula)
 
 
-def test_inference_record_handles_non_tuple_info():
+def test_inference_record_handles_non_info_objects():
     t = TPTPTransformer()
-    # craft items: rule, info-list (contains non-tuple), parents list
-    items = ["rule", ["not-a-tuple", ("status", "thm")], ["p1"]]
+    # craft items: rule, info-list (contains mixed info objects and non-objects), parents list
+    info = [StatusInfo(status='thm'), "not-an-info-object"]
+    items = ["rule", info, ["p1"]]
     inf = t.inference_record(items)
     assert inf.rule == "rule"
     assert inf.status == "thm"
@@ -77,7 +84,10 @@ def test_inference_record_handles_non_tuple_info():
 
 def test_include_and_parse_file_pretty_runs(capsys):
     t = TPTPTransformer()
-    assert t.include(["file"]) is None
+    include_result = t.include(["'file.p'"])
+    assert isinstance(include_result, IncludeDirective)
+    assert include_result.path == 'file.p'
+    assert include_result.selected_formulas is None
     # run parse_file_pretty on an existing problem file to exercise printing
     parse_file_pretty("examples/correct/Problems/COR001+1.p")
     captured = capsys.readouterr()
@@ -91,22 +101,19 @@ def test_token_and_helper_strip_quotes():
     assert _strip_quotes("'x'") == 'x'
 
 
-def test_role_shortcuts():
-    t = TPTPTransformer()
-    assert t.hypothesis(None) == 'hypothesis'
-    assert t.definition(None) == 'definition'
-    assert t.lemma(None) == 'lemma'
-
-
 def test_introduction_and_new_symbols_skolemize_info():
     t = TPTPTransformer()
     assert t.introduction_type(['definition']) == 'definition'
     # new_symbols_info: kind + symbols
     res = t.new_symbols_info(['kind', 's1', 's2'])
-    assert res[0] == 'new_symbols' and res[1] == 'kind' and isinstance(res[2], list)
+    assert isinstance(res, NewSymbolsInfo)
+    assert res.kind == 'kind'
+    assert res.symbols == ['s1', 's2']
     # skolemize_info
     sk = t.skolemize_info(['X', FunctionTerm('f', [Variable('X')])])
-    assert sk[0] == 'skolemize' and sk[1] == 'X'
+    assert isinstance(sk, SkolemizeInfo)
+    assert sk.variable == 'X'
+    assert isinstance(sk.term, FunctionTerm)
 
 
 def test_numbers_and_terms_and_atoms():
@@ -153,25 +160,27 @@ def test_source_variants_and_general_function():
     internal = t.internal_source(['definition', []])
     assert internal[0] == 'introduced'
     # general function
+    from src.parser.ast_nodes import GeneralFunctionInfo
     gf = t.general_function(['fname'])
-    assert gf[0] == 'general'
+    assert isinstance(gf, GeneralFunctionInfo)
+    assert gf.name == 'fname'
 
 
 def test_inference_record_parsing_with_all_info():
     t = TPTPTransformer()
-    # craft info list with status, new_symbols, skolemize entries
+    # craft info list with StatusInfo, NewSymbolsInfo, SkolemizeInfo entries
     info = [
-        ('status', 'thm'),
-        ('new_symbols', 'kind', ['sK0']),
-        ('skolemize', 'X', 'sK0'),
+        StatusInfo(status='thm'),
+        NewSymbolsInfo(kind='skolem', symbols=['sK0']),
+        SkolemizeInfo(variable='X', term='sK0'),
     ]
     items = ['skolemize', info, ['parent']]
     inf = t.inference_record(items)
     assert isinstance(inf, InferenceRecord)
     assert inf.rule == 'skolemize'
-    assert inf.status == 'thm'
-    assert inf.new_symbols == ['sK0']
-    assert inf.skolem_var == 'X'
+    assert inf.status == 'thm'  # Via property
+    assert inf.new_symbols == ['sK0']  # Via property
+    assert inf.skolem_var == 'X'  # Via property
 
 
 def test_annotations_and_top_level_and_parse_pretty(capsys):

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from src.checker.alpha_eq import is_alpha_equivalent
 from src.parser.ast_nodes import AnnotatedFormula
+from src.var_mapping import FormulaRole
 
 
 @dataclass
@@ -48,7 +49,7 @@ def check_axiom_provenance(
         ))
         return issues
 
-    if original.role != "axiom":
+    if original.role != FormulaRole.AXIOM:
         issues.append(ProvenanceIssue(
             name, f"'{lookup_name}' in problem file has role '{original.role}', not 'axiom'"
         ))

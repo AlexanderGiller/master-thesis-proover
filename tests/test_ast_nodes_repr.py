@@ -9,6 +9,7 @@ from src.parser.ast_nodes import (
     QuantifiedFormula,
     Variable,
 )
+from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus, BinaryConnective, Quantifier
 
 
 def test_repr_variable_and_constant():
@@ -42,15 +43,15 @@ def test_repr_equality_and_negated():
 def test_repr_negation_and_binary_and_junction():
     n = Negation(Atom("p", args=[]))
     assert repr(n).startswith("~")
-    b = BinaryFormula("=>", Atom("p", args=[]), Atom("q", args=[]))
-    assert "=>" in repr(b)
-    j = JunctionFormula("&", [Atom("p", args=[]), Atom("q", args=[])])
+    b = BinaryFormula(BinaryConnective.IMPLIES, Atom("p", args=[]), Atom("q", args=[]))
+    assert BinaryConnective.IMPLIES in repr(b)
+    j = JunctionFormula(BinaryConnective.AND, [Atom("p", args=[]), Atom("q", args=[])])
     s = repr(j)
-    assert "&" in s and s.startswith("(") and s.endswith(")")
+    assert BinaryConnective.AND in s and s.startswith("(") and s.endswith(")")
 
 
 def test_repr_quantified_formula():
-    q = QuantifiedFormula("!", ["X", "Y"], Atom("p", args=[Variable("X"), Variable("Y")]))
+    q = QuantifiedFormula(Quantifier.UNIVERSAL, ["X", "Y"], Atom("p", args=[Variable("X"), Variable("Y")]))
     s = repr(q)
-    assert s.startswith("!") and ":" in s and "p(" in s
+    assert s.startswith(Quantifier.UNIVERSAL) and ":" in s and "p(" in s
 
