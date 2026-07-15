@@ -5,8 +5,13 @@ from typing import Callable
 import pytest
 
 from proof_checker_demo import check_proof_file
-from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus, BinaryConnective, Quantifier
-
+from src.var_mapping import (
+    BinaryConnective,
+    FormulaRole,
+    InferenceRule,
+    InferenceStatus,
+    Quantifier,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -34,9 +39,9 @@ def _run_mutation_case(tmp_path: Path, case: MutationCase):
         assert result["negated_conjecture_issues"] == {}
         assert result["skolem_issues"] == {}
     else:
-        assert result[case.expected_issue_bucket], (
-            f"Expected issues in bucket {case.expected_issue_bucket}, got: {result}"
-        )
+        assert result[
+            case.expected_issue_bucket
+        ], f"Expected issues in bucket {case.expected_issue_bucket}, got: {result}"
 
 
 SEED_COR001 = ROOT / "examples" / "correct" / "COR001+1.s"
@@ -121,5 +126,3 @@ def test_guided_mutation_cases_have_known_oracles(tmp_path, case):
     This avoids the oracle problem because each mutation carries its expected label.
     """
     _run_mutation_case(tmp_path, case)
-
-

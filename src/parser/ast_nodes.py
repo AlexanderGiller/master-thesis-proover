@@ -1,16 +1,26 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
+from src.var_mapping import (
+    BinaryConnective,
+    FormulaRole,
+    InferenceRule,
+    InferenceStatus,
+    Quantifier,
+)
+
 
 @dataclass
 class StatusInfo:
     """Represents status(...) in inference info."""
-    status: str  # "thm", "esa", "cth", etc.
+
+    status: InferenceStatus  # "thm", "esa", "cth", etc.
 
 
 @dataclass
 class NewSymbolsInfo:
     """Represents new_symbols(kind, [...]) in inference info."""
+
     kind: str  # e.g., "skolem", "general"
     symbols: list[str]
 
@@ -18,6 +28,7 @@ class NewSymbolsInfo:
 @dataclass
 class SkolemizeInfo:
     """Represents skolemize(Var, Term) in inference info."""
+
     variable: str
     term: object  # Parsed term node
 
@@ -25,13 +36,14 @@ class SkolemizeInfo:
 @dataclass
 class GeneralFunctionInfo:
     """Represents general_function(...) in inference info."""
+
     name: str
     args: Optional[list] = None
 
 
 @dataclass
 class InferenceRecord:
-    rule: str  # e.g. "skolemize", "resolution"
+    rule: InferenceRule  # e.g. "skolemize", "resolution"
     info: list  # List of StatusInfo, NewSymbolsInfo, SkolemizeInfo, GeneralFunctionInfo
     parents: list[str]
 
@@ -70,17 +82,33 @@ class InferenceRecord:
 
 
 @dataclass
+class FileSource:
+    """Represents source(file(path, ref)) — an axiom/formula's provenance file."""
+
+    path: str
+    ref: Optional[str] = None
+
+
+@dataclass
+class IntroducedSource:
+    """Represents source(introduced(...)) — internally introduced (e.g. by skolemization)."""
+
+    kind: object
+
+
+@dataclass
 class AnnotatedFormula:
     name: str
-    role: str  # "axiom", "plain", etc.
+    role: FormulaRole  # "axiom", "plain", etc.
     formula: object  # parse tree node
     inference: Optional[InferenceRecord] = None
-    raw_source: Optional[str] = None
+    raw_source: Optional[FileSource | IntroducedSource] = None
 
 
 @dataclass
 class IncludeDirective:
     """Represents an include(...) directive in TPTP files."""
+
     path: str
     selected_formulas: Optional[list[str]] = None  # Optional filter list
 
@@ -148,7 +176,7 @@ class Negation:
 
 @dataclass
 class BinaryFormula:
-    connective: str  # "=>", "<=>", "<~>", "~|", "~&", "<="
+    connective: BinaryConnective  # "=>", "<=>", "<~>", "~|", "~&", "<="
     left: object
     right: object
 
@@ -158,7 +186,7 @@ class BinaryFormula:
 
 @dataclass
 class JunctionFormula:
-    connective: str  # "&" or "|"
+    connective: BinaryConnective  # "&" or "|"
     operands: list
 
     def __repr__(self):
@@ -168,7 +196,7 @@ class JunctionFormula:
 
 @dataclass
 class QuantifiedFormula:
-    quantifier: str  # "!" or "?"
+    quantifier: Quantifier  # "!" or "?"
     variables: list
     formula: object
 

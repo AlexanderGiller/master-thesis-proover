@@ -1,5 +1,5 @@
 # tests/test_parser.py
-from src.parser.ast_nodes import AnnotatedFormula, InferenceRecord, ProofFile
+from src.parser.ast_nodes import AnnotatedFormula, FileSource, InferenceRecord, ProofFile
 from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus
 
 
@@ -72,8 +72,7 @@ class TestProofParsing:
 
     def test_axiom_steps_have_file_source(self, simple_proof):
         ax1 = next(s for s in simple_proof.steps if s.name == "ax1")
-        assert isinstance(ax1.raw_source, tuple)
-        assert ax1.raw_source[0] == "file"
+        assert isinstance(ax1.raw_source, FileSource)
         assert ax1.inference is None
 
 

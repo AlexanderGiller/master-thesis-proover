@@ -13,7 +13,13 @@ from src.parser.ast_nodes import (
     StatusInfo,
     Variable,
 )
-from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus, BinaryConnective, Quantifier
+from src.var_mapping import (
+    BinaryConnective,
+    FormulaRole,
+    InferenceRule,
+    InferenceStatus,
+    Quantifier,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -185,8 +191,7 @@ class TestSkolemCheckerExamples:
 
         assert "groom" in result["skolem_issues"]
         assert any(
-            "already introduced earlier" in reason
-            for reason in result["skolem_issues"]["groom"]
+            "already introduced earlier" in reason for reason in result["skolem_issues"]["groom"]
         )
 
     def test_evl004_reports_incorrect_resulting_formula(self):
@@ -197,7 +202,5 @@ class TestSkolemCheckerExamples:
 
         assert "groom" in result["skolem_issues"]
         assert any(
-            "not a correct Skolemization" in reason
-            for reason in result["skolem_issues"]["groom"]
+            "not a correct Skolemization" in reason for reason in result["skolem_issues"]["groom"]
         )
-

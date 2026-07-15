@@ -1,6 +1,20 @@
 # tests/test_ast_nodes.py
-from src.parser.ast_nodes import AnnotatedFormula, InferenceRecord, ProofFile, StatusInfo, NewSymbolsInfo, SkolemizeInfo
-from src.var_mapping import FormulaRole, InferenceStatus, InferenceRule, BinaryConnective, Quantifier
+from src.parser.ast_nodes import (
+    AnnotatedFormula,
+    InferenceRecord,
+    NewSymbolsInfo,
+    ProofFile,
+    SkolemizeInfo,
+    StatusInfo,
+)
+from src.var_mapping import (
+    BinaryConnective,
+    FormulaRole,
+    InferenceRule,
+    InferenceStatus,
+    Quantifier,
+)
+
 
 class TestAnnotatedFormula:
 

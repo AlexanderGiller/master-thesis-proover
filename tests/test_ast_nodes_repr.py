@@ -9,7 +9,13 @@ from src.parser.ast_nodes import (
     QuantifiedFormula,
     Variable,
 )
-from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus, BinaryConnective, Quantifier
+from src.var_mapping import (
+    BinaryConnective,
+    FormulaRole,
+    InferenceRule,
+    InferenceStatus,
+    Quantifier,
+)
 
 
 def test_repr_variable_and_constant():
@@ -51,7 +57,8 @@ def test_repr_negation_and_binary_and_junction():
 
 
 def test_repr_quantified_formula():
-    q = QuantifiedFormula(Quantifier.UNIVERSAL, ["X", "Y"], Atom("p", args=[Variable("X"), Variable("Y")]))
+    q = QuantifiedFormula(
+        Quantifier.UNIVERSAL, ["X", "Y"], Atom("p", args=[Variable("X"), Variable("Y")])
+    )
     s = repr(q)
     assert s.startswith(Quantifier.UNIVERSAL) and ":" in s and "p(" in s
-

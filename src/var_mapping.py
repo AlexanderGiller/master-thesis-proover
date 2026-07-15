@@ -3,6 +3,7 @@ from enum import StrEnum
 
 class FormulaRole(StrEnum):
     """TPTP formula roles (TPTP syntax BNF, %-comment role list)."""
+
     AXIOM = "axiom"
     CONJECTURE = "conjecture"
     NEGATED_CONJECTURE = "negated_conjecture"
@@ -11,8 +12,10 @@ class FormulaRole(StrEnum):
     DEFINITION = "definition"
     LEMMA = "lemma"
 
+
 class InferenceStatus(StrEnum):
     """SZS-style status codes used inside inference(...) annotations."""
+
     THM = "thm"  # theorem
     CTH = "cth"  # co-theorem (used for negated_conjecture step)
     ESA = "esa"  # equisatisfiable
@@ -20,13 +23,15 @@ class InferenceStatus(StrEnum):
     UNSAT = "unsat"
     WTH = "wth"  # with theorem
 
+
 class InferenceRule(StrEnum):
     """Common inference rule names seen in TSTP proofs."""
+
     NEGATED_CONJECTURE = "negated_conjecture"
     DEDUCTION = "deduction"
     RESOLUTION = "resolution"
     PARAMODULATION = "paramodulation"
-    SKOLEMIZE = "skolemize"   # NB: TPTP spells it with an 's'
+    SKOLEMIZE = "skolemize"  # NB: TPTP spells it with an 's'
     CNF_TRANSFORMATION = "cnf_transformation"
     RECTIFY = "rectify"
     FLATTENING = "flattening"
@@ -34,12 +39,14 @@ class InferenceRule(StrEnum):
 
 class Quantifier(StrEnum):
     """Quantifier symbols used in TPTP formulas."""
+
     UNIVERSAL = "!"
     EXISTENTIAL = "?"
 
 
 class BinaryConnective(StrEnum):
     """Binary connective symbols used in TPTP formulas."""
+
     AND = "&"
     OR = "|"
     IMPLIES = "=>"
@@ -52,6 +59,7 @@ class BinaryConnective(StrEnum):
 
 class SZSStatus(StrEnum):
     """SZS ontology status values (top-level problem verdict)."""
+
     THEOREM = "Theorem"
     COUNTERSATISFIABLE = "CounterSatisfiable"
     UNSATISFIABLE = "Unsatisfiable"
@@ -62,6 +70,7 @@ class SZSStatus(StrEnum):
 class FileExt(StrEnum):
     PROBLEM = ".p"
     SOLUTION = ".s"
+
 
 class Score:
     CORRECT_REJECT: int = 2

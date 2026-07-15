@@ -4,8 +4,13 @@ import pytest
 
 from src.checker.file_dir import check_axiom_provenance
 from src.parser.parser import load_proof, parse_file
-from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus, BinaryConnective, Quantifier
-
+from src.var_mapping import (
+    BinaryConnective,
+    FormulaRole,
+    InferenceRule,
+    InferenceStatus,
+    Quantifier,
+)
 
 EXAMPLES_DIR = Path("examples/correct")
 
@@ -29,4 +34,3 @@ def test_example_proofs_verify(proof_path):
             issues.append(f"{proof_path.name}:{it.formula_name}: {it.reason}")
 
     assert not issues, "Found provenance/alpha-equivalence issues:\n" + "\n".join(issues)
-

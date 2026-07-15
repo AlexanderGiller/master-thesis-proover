@@ -17,10 +17,12 @@ from .ast_nodes import (
     BinaryFormula,
     Constant,
     Equality,
+    FileSource,
     FunctionTerm,
     GeneralFunctionInfo,
     IncludeDirective,
     InferenceRecord,
+    IntroducedSource,
     JunctionFormula,
     Negation,
     NewSymbolsInfo,
@@ -58,7 +60,7 @@ def _unwrap_single_list(items):
 
 def _extract_functor_and_args(items: list) -> tuple[str, list]:
     """Extract functor and arguments from parser items.
-    
+
     Handles both direct item sequences and nested lists from inlined rules.
     Returns (functor, args).
     """
@@ -109,12 +111,23 @@ class TPTPTransformer(Transformer):
         return FormulaRole.LEMMA
 
     # ── Status / introduction type ────────────────────────────────────
-    def thm(self, _):   return InferenceStatus.THM
-    def esa(self, _):   return InferenceStatus.ESA
-    def cth(self, _):   return InferenceStatus.CTH
-    def sat(self, _):   return InferenceStatus.SAT
-    def unsat(self, _): return InferenceStatus.UNSAT
-    def wth(self, _):   return InferenceStatus.WTH
+    def thm(self, _):
+        return InferenceStatus.THM
+
+    def esa(self, _):
+        return InferenceStatus.ESA
+
+    def cth(self, _):
+        return InferenceStatus.CTH
+
+    def sat(self, _):
+        return InferenceStatus.SAT
+
+    def unsat(self, _):
+        return InferenceStatus.UNSAT
+
+    def wth(self, _):
+        return InferenceStatus.WTH
 
     def status_info(self, items):
         return StatusInfo(status=items[0])
@@ -198,12 +211,23 @@ class TPTPTransformer(Transformer):
         return QuantifiedFormula(quantifier=quantifier, variables=variables, formula=formula)
 
     # ── Binary connectives ────────────────────────────────────────────────
-    def implies(self, _):    return BinaryConnective.IMPLIES
-    def implied_by(self, _): return BinaryConnective.IMPLIED
-    def iff(self, _):        return BinaryConnective.IFF
-    def xor(self, _):        return BinaryConnective.XOR
-    def nor(self, _):        return BinaryConnective.NOR
-    def nand(self, _):       return BinaryConnective.NAND
+    def implies(self, _):
+        return BinaryConnective.IMPLIES
+
+    def implied_by(self, _):
+        return BinaryConnective.IMPLIED
+
+    def iff(self, _):
+        return BinaryConnective.IFF
+
+    def xor(self, _):
+        return BinaryConnective.XOR
+
+    def nor(self, _):
+        return BinaryConnective.NOR
+
+    def nand(self, _):
+        return BinaryConnective.NAND
 
     def fof_binary_nonassoc(self, items):
         left, connective, right = items
@@ -234,10 +258,10 @@ class TPTPTransformer(Transformer):
     def external_source(self, items):
         path = _strip_quotes(items[0])
         ref = _strip_quotes(items[1]) if len(items) > 1 else None
-        return ("file", path, ref)
+        return FileSource(path=path, ref=ref)
 
     def internal_source(self, items):
-        return ("introduced", items[0])
+        return IntroducedSource(kind=items[0])
 
     def general_function(self, items):
         return GeneralFunctionInfo(name=str(items[0]), args=items[1:] if len(items) > 1 else None)
@@ -272,8 +296,7 @@ class TPTPTransformer(Transformer):
         raw_source = source if not isinstance(source, InferenceRecord) else None
 
         return AnnotatedFormula(
-            name=name, role=role, formula=formula,
-            inference=inference, raw_source=raw_source
+            name=name, role=role, formula=formula, inference=inference, raw_source=raw_source
         )
 
     def include(self, items):
@@ -302,11 +325,13 @@ def parse_file(path: str) -> list[AnnotatedFormula | IncludeDirective]:
     tree = parser.parse(source)
     return TPTPTransformer().transform(tree)
 
+
 def parse_file_pretty(path: str):
     parser = _get_parser()
     source = Path(path).read_text()
     tree = parser.parse(source)
     print(tree.pretty())
+
 
 def extract_problem_ref(path: str) -> str:
     with open(path) as f:

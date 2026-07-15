@@ -44,9 +44,13 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                     if issues:
                         negated_conjecture_issues[step.name] = [it.reason for it in issues]
                 else:
-                    negated_conjecture_issues[step.name] = [f"Parent conjecture '{parent_name}' not found"]
+                    negated_conjecture_issues[step.name] = [
+                        f"Parent conjecture '{parent_name}' not found"
+                    ]
             else:
-                negated_conjecture_issues[step.name] = ["No parent conjecture specified in inference"]
+                negated_conjecture_issues[step.name] = [
+                    "No parent conjecture specified in inference"
+                ]
         # Skolemization steps: often role is 'plain' but inference.rule == 'skolemize'
         elif step.inference and step.inference.rule == "skolemize":
             # Find parent step by name (first parent)
@@ -65,15 +69,17 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             if step.inference.new_symbols:
                 for sym in step.inference.new_symbols:
                     if sym in seen_skolem_symbols:
-                        issues.append(SkolemizationIssue(step.name, f"Skolem symbol '{sym}' was already introduced earlier"))
+                        issues.append(
+                            SkolemizationIssue(
+                                step.name, f"Skolem symbol '{sym}' was already introduced earlier"
+                            )
+                        )
                 # add all introduced symbols to seen set
                 for sym in step.inference.new_symbols:
                     seen_skolem_symbols.add(sym)
 
             if issues:
                 skolem_issues[step.name] = [it.reason for it in issues]
-
-
 
     all_ok = not axiom_issues and not negated_conjecture_issues and not skolem_issues
 
@@ -142,6 +148,7 @@ def collect_example_pairs(example_dir: Path):
             print(f"Warning: problem file not found for {proof} -> expected {problem}")
     return pairs
 
+
 if __name__ == "__main__":
     # Iterate over example proofs in examples/correct and examples/incorrect
 
@@ -160,4 +167,3 @@ if __name__ == "__main__":
         proof_sub_path, problem_sub_path = all_pairs[i]
         report_proof_check(proof_sub_path, problem_sub_path)
         i += 1
-
