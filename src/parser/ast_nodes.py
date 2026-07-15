@@ -1,24 +1,116 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
+from src.var_mapping import (
+    BinaryConnective,
+    FormulaRole,
+    InferenceRule,
+    InferenceStatus,
+    Quantifier,
+)
+
+
+@dataclass
+class StatusInfo:
+    """Represents status(...) in inference info."""
+
+    status: InferenceStatus  # "thm", "esa", "cth", etc.
+
+
+@dataclass
+class NewSymbolsInfo:
+    """Represents new_symbols(kind, [...]) in inference info."""
+
+    kind: str  # e.g., "skolem", "general"
+    symbols: list[str]
+
+
+@dataclass
+class SkolemizeInfo:
+    """Represents skolemize(Var, Term) in inference info."""
+
+    variable: str
+    term: object  # Parsed term node
+
+
+@dataclass
+class GeneralFunctionInfo:
+    """Represents general_function(...) in inference info."""
+
+    name: str
+    args: Optional[list] = None
+
 
 @dataclass
 class InferenceRecord:
-    rule: str  # e.g. "skolemize", "resolution"
-    status: str  # "thm", "esa", "cth"
+    rule: InferenceRule  # e.g. "skolemize", "resolution"
+    info: list  # List of StatusInfo, NewSymbolsInfo, SkolemizeInfo, GeneralFunctionInfo
     parents: list[str]
-    new_symbols: Optional[list[str]] = None  # from new_symbols(...)
-    skolem_var: Optional[str] = None  # from skolemize(Var, sk(...))
-    skolem_term: Optional[str] = None
+
+    # Convenience properties for backward compatibility
+    @property
+    def status(self) -> Optional[str]:
+        """Extract status from info list."""
+        for item in self.info:
+            if isinstance(item, StatusInfo):
+                return item.status
+        return None
+
+    @property
+    def new_symbols(self) -> Optional[list[str]]:
+        """Extract new_symbols from info list."""
+        for item in self.info:
+            if isinstance(item, NewSymbolsInfo):
+                return item.symbols
+        return None
+
+    @property
+    def skolem_var(self) -> Optional[str]:
+        """Extract skolemize variable from info list."""
+        for item in self.info:
+            if isinstance(item, SkolemizeInfo):
+                return item.variable
+        return None
+
+    @property
+    def skolem_term(self) -> Optional[object]:
+        """Extract skolemize term from info list."""
+        for item in self.info:
+            if isinstance(item, SkolemizeInfo):
+                return item.term
+        return None
+
+
+@dataclass
+class FileSource:
+    """Represents source(file(path, ref)) — an axiom/formula's provenance file."""
+
+    path: str
+    ref: Optional[str] = None
+
+
+@dataclass
+class IntroducedSource:
+    """Represents source(introduced(...)) — internally introduced (e.g. by skolemization)."""
+
+    kind: object
 
 
 @dataclass
 class AnnotatedFormula:
     name: str
-    role: str  # "axiom", "plain", etc.
+    role: FormulaRole  # "axiom", "plain", etc.
     formula: object  # parse tree node
     inference: Optional[InferenceRecord] = None
-    raw_source: Optional[str] = None
+    raw_source: Optional[FileSource | IntroducedSource] = None
+
+
+@dataclass
+class IncludeDirective:
+    """Represents an include(...) directive in TPTP files."""
+
+    path: str
+    selected_formulas: Optional[list[str]] = None  # Optional filter list
 
 
 @dataclass
@@ -84,7 +176,7 @@ class Negation:
 
 @dataclass
 class BinaryFormula:
-    connective: str  # "=>", "<=>", "<~>", "~|", "~&", "<="
+    connective: BinaryConnective  # "=>", "<=>", "<~>", "~|", "~&", "<="
     left: object
     right: object
 
@@ -94,7 +186,7 @@ class BinaryFormula:
 
 @dataclass
 class JunctionFormula:
-    connective: str  # "&" or "|"
+    connective: BinaryConnective  # "&" or "|"
     operands: list
 
     def __repr__(self):
@@ -104,7 +196,7 @@ class JunctionFormula:
 
 @dataclass
 class QuantifiedFormula:
-    quantifier: str  # "!" or "?"
+    quantifier: Quantifier  # "!" or "?"
     variables: list
     formula: object
 
