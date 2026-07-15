@@ -16,4 +16,3 @@ for step in proof.steps:
             print(f"[FAIL] {issue.formula_name}: {issue.reason}")
     else:
         print(f"[OK] {step.name} correctly cites and matches the problem file")
-

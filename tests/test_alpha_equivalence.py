@@ -13,6 +13,13 @@ from src.parser.ast_nodes import (
     QuantifiedFormula,
     Variable,
 )
+from src.var_mapping import (
+    BinaryConnective,
+    FormulaRole,
+    InferenceRule,
+    InferenceStatus,
+    Quantifier,
+)
 
 
 class TestAlphaEquivalenceBasics:
@@ -174,20 +181,20 @@ class TestAlphaEquivalenceBinaryFormulas:
 
     def test_same_binary_formula_is_equivalent(self):
         """Two identical binary formulas should be equivalent."""
-        b1 = BinaryFormula("=>", Atom("p", args=[]), Atom("q", args=[]))
-        b2 = BinaryFormula("=>", Atom("p", args=[]), Atom("q", args=[]))
+        b1 = BinaryFormula(BinaryConnective.IMPLIES, Atom("p", args=[]), Atom("q", args=[]))
+        b2 = BinaryFormula(BinaryConnective.IMPLIES, Atom("p", args=[]), Atom("q", args=[]))
         assert is_alpha_equivalent(b1, b2)
 
     def test_different_connectives_not_equivalent(self):
         """Binary formulas with different connectives should not be equivalent."""
-        b1 = BinaryFormula("=>", Atom("p", args=[]), Atom("q", args=[]))
-        b2 = BinaryFormula("<=>", Atom("p", args=[]), Atom("q", args=[]))
+        b1 = BinaryFormula(BinaryConnective.IMPLIES, Atom("p", args=[]), Atom("q", args=[]))
+        b2 = BinaryFormula(BinaryConnective.IFF, Atom("p", args=[]), Atom("q", args=[]))
         assert not is_alpha_equivalent(b1, b2)
 
     def test_swapped_binary_operands_not_equivalent(self):
         """Binary formulas with swapped operands should not be equivalent."""
-        b1 = BinaryFormula("=>", Atom("p", args=[]), Atom("q", args=[]))
-        b2 = BinaryFormula("=>", Atom("q", args=[]), Atom("p", args=[]))
+        b1 = BinaryFormula(BinaryConnective.IMPLIES, Atom("p", args=[]), Atom("q", args=[]))
+        b2 = BinaryFormula(BinaryConnective.IMPLIES, Atom("q", args=[]), Atom("p", args=[]))
         assert not is_alpha_equivalent(b1, b2)
 
 
@@ -196,33 +203,35 @@ class TestAlphaEquivalenceJunctionFormulas:
 
     def test_same_and_formula_is_equivalent(self):
         """Two identical AND formulas should be equivalent."""
-        j1 = JunctionFormula("&", [Atom("p", args=[]), Atom("q", args=[])])
-        j2 = JunctionFormula("&", [Atom("p", args=[]), Atom("q", args=[])])
+        j1 = JunctionFormula(BinaryConnective.AND, [Atom("p", args=[]), Atom("q", args=[])])
+        j2 = JunctionFormula(BinaryConnective.AND, [Atom("p", args=[]), Atom("q", args=[])])
         assert is_alpha_equivalent(j1, j2)
 
     def test_or_formula_equivalence(self):
         """Two identical OR formulas should be equivalent."""
-        j1 = JunctionFormula("|", [Atom("p", args=[]), Atom("q", args=[])])
-        j2 = JunctionFormula("|", [Atom("p", args=[]), Atom("q", args=[])])
+        j1 = JunctionFormula(BinaryConnective.OR, [Atom("p", args=[]), Atom("q", args=[])])
+        j2 = JunctionFormula(BinaryConnective.OR, [Atom("p", args=[]), Atom("q", args=[])])
         assert is_alpha_equivalent(j1, j2)
 
     def test_different_connectives_not_equivalent(self):
         """Junction formulas with different connectives should not be equivalent."""
-        j1 = JunctionFormula("&", [Atom("p", args=[]), Atom("q", args=[])])
-        j2 = JunctionFormula("|", [Atom("p", args=[]), Atom("q", args=[])])
+        j1 = JunctionFormula(BinaryConnective.AND, [Atom("p", args=[]), Atom("q", args=[])])
+        j2 = JunctionFormula(BinaryConnective.OR, [Atom("p", args=[]), Atom("q", args=[])])
         assert not is_alpha_equivalent(j1, j2)
 
     def test_swapped_operands_not_equivalent(self):
         """Junction formulas with swapped operands should not be equivalent
         (order is significant)."""
-        j1 = JunctionFormula("&", [Atom("p", args=[]), Atom("q", args=[])])
-        j2 = JunctionFormula("&", [Atom("q", args=[]), Atom("p", args=[])])
+        j1 = JunctionFormula(BinaryConnective.AND, [Atom("p", args=[]), Atom("q", args=[])])
+        j2 = JunctionFormula(BinaryConnective.AND, [Atom("q", args=[]), Atom("p", args=[])])
         assert not is_alpha_equivalent(j1, j2)
 
     def test_different_operand_count_not_equivalent(self):
         """Junction formulas with different number of operands should not be equivalent."""
-        j1 = JunctionFormula("&", [Atom("p", args=[]), Atom("q", args=[])])
-        j2 = JunctionFormula("&", [Atom("p", args=[]), Atom("q", args=[]), Atom("r", args=[])])
+        j1 = JunctionFormula(BinaryConnective.AND, [Atom("p", args=[]), Atom("q", args=[])])
+        j2 = JunctionFormula(
+            BinaryConnective.AND, [Atom("p", args=[]), Atom("q", args=[]), Atom("r", args=[])]
+        )
         assert not is_alpha_equivalent(j1, j2)
 
 
@@ -231,68 +240,80 @@ class TestAlphaEquivalenceQuantifiedFormulas:
 
     def test_same_quantified_formula_is_equivalent(self):
         """Two identical quantified formulas should be equivalent."""
-        q1 = QuantifiedFormula("!", ["X"], Atom("p", args=[Variable("X")]))
-        q2 = QuantifiedFormula("!", ["X"], Atom("p", args=[Variable("X")]))
+        q1 = QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], Atom("p", args=[Variable("X")]))
+        q2 = QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], Atom("p", args=[Variable("X")]))
         assert is_alpha_equivalent(q1, q2)
 
     def test_different_quantifiers_not_equivalent(self):
         """Quantified formulas with different quantifiers should not be equivalent."""
-        q1 = QuantifiedFormula("!", ["X"], Atom("p", args=[Variable("X")]))
-        q2 = QuantifiedFormula("?", ["X"], Atom("p", args=[Variable("X")]))
+        q1 = QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], Atom("p", args=[Variable("X")]))
+        q2 = QuantifiedFormula(Quantifier.EXISTENTIAL, ["X"], Atom("p", args=[Variable("X")]))
         assert not is_alpha_equivalent(q1, q2)
 
     def test_renamed_bound_variable_is_equivalent(self):
         """Renamed bound variables should be considered equivalent (alpha-equivalence)."""
         # ![X]: p(X) should be equivalent to ![Y]: p(Y)
-        q1 = QuantifiedFormula("!", ["X"], Atom("p", args=[Variable("X")]))
-        q2 = QuantifiedFormula("!", ["Y"], Atom("p", args=[Variable("Y")]))
+        q1 = QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], Atom("p", args=[Variable("X")]))
+        q2 = QuantifiedFormula(Quantifier.UNIVERSAL, ["Y"], Atom("p", args=[Variable("Y")]))
         assert is_alpha_equivalent(q1, q2)
 
     def test_renamed_multiple_bound_variables_is_equivalent(self):
         """Multiple renamed bound variables should be equivalent."""
         # ![X,Y]: p(X,Y) should be equivalent to ![A,B]: p(A,B)
-        q1 = QuantifiedFormula("!", ["X", "Y"], 
-                               Atom("p", args=[Variable("X"), Variable("Y")]))
-        q2 = QuantifiedFormula("!", ["A", "B"], 
-                               Atom("p", args=[Variable("A"), Variable("B")]))
+        q1 = QuantifiedFormula(
+            Quantifier.UNIVERSAL, ["X", "Y"], Atom("p", args=[Variable("X"), Variable("Y")])
+        )
+        q2 = QuantifiedFormula(
+            Quantifier.UNIVERSAL, ["A", "B"], Atom("p", args=[Variable("A"), Variable("B")])
+        )
         assert is_alpha_equivalent(q1, q2)
 
     def test_reordered_bound_variables_is_equivalent(self):
         """Reordered bound variables of the same quantifier type are equivalent.
         ![X, Y]: p(X, Y) is alpha-equivalent to ![Y, X]: p(Y, X) because
         we can rename X->Y, Y->X to get from one to the other."""
-        q1 = QuantifiedFormula("!", ["X", "Y"], 
-                               Atom("p", args=[Variable("X"), Variable("Y")]))
-        q2 = QuantifiedFormula("!", ["Y", "X"], 
-                               Atom("p", args=[Variable("Y"), Variable("X")]))
+        q1 = QuantifiedFormula(
+            Quantifier.UNIVERSAL, ["X", "Y"], Atom("p", args=[Variable("X"), Variable("Y")])
+        )
+        q2 = QuantifiedFormula(
+            Quantifier.UNIVERSAL, ["Y", "X"], Atom("p", args=[Variable("Y"), Variable("X")])
+        )
         assert is_alpha_equivalent(q1, q2)
 
     def test_partial_renaming_different_body(self):
         """Partial renaming with different body should not be equivalent."""
-        q1 = QuantifiedFormula("!", ["X"], Atom("p", args=[Variable("X")]))
-        q2 = QuantifiedFormula("!", ["Y"], Atom("q", args=[Variable("Y")]))
+        q1 = QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], Atom("p", args=[Variable("X")]))
+        q2 = QuantifiedFormula(Quantifier.UNIVERSAL, ["Y"], Atom("q", args=[Variable("Y")]))
         assert not is_alpha_equivalent(q1, q2)
 
     def test_nested_quantifiers_with_renaming(self):
         """Nested quantifiers with renaming should be equivalent."""
         # ![X]: ?[Y]: p(X,Y) equivalent to ![A]: ?[B]: p(A,B)
-        inner1 = QuantifiedFormula("?", ["Y"], Atom("p", args=[Variable("X"), Variable("Y")]))
-        outer1 = QuantifiedFormula("!", ["X"], inner1)
-        
-        inner2 = QuantifiedFormula("?", ["B"], Atom("p", args=[Variable("A"), Variable("B")]))
-        outer2 = QuantifiedFormula("!", ["A"], inner2)
-        
+        inner1 = QuantifiedFormula(
+            Quantifier.EXISTENTIAL, ["Y"], Atom("p", args=[Variable("X"), Variable("Y")])
+        )
+        outer1 = QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], inner1)
+
+        inner2 = QuantifiedFormula(
+            Quantifier.EXISTENTIAL, ["B"], Atom("p", args=[Variable("A"), Variable("B")])
+        )
+        outer2 = QuantifiedFormula(Quantifier.UNIVERSAL, ["A"], inner2)
+
         assert is_alpha_equivalent(outer1, outer2)
 
     def test_nested_quantifiers_different_nesting_not_equivalent(self):
         """Nested quantifiers with different nesting order should not be equivalent."""
         # ![X]: ?[Y]: p(X,Y) NOT equivalent to ?[X]: ![Y]: p(X,Y)
-        inner1 = QuantifiedFormula("?", ["Y"], Atom("p", args=[Variable("X"), Variable("Y")]))
-        outer1 = QuantifiedFormula("!", ["X"], inner1)
-        
-        inner2 = QuantifiedFormula("!", ["Y"], Atom("p", args=[Variable("X"), Variable("Y")]))
-        outer2 = QuantifiedFormula("?", ["X"], inner2)
-        
+        inner1 = QuantifiedFormula(
+            Quantifier.EXISTENTIAL, ["Y"], Atom("p", args=[Variable("X"), Variable("Y")])
+        )
+        outer1 = QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], inner1)
+
+        inner2 = QuantifiedFormula(
+            Quantifier.UNIVERSAL, ["Y"], Atom("p", args=[Variable("X"), Variable("Y")])
+        )
+        outer2 = QuantifiedFormula(Quantifier.EXISTENTIAL, ["X"], inner2)
+
         assert not is_alpha_equivalent(outer1, outer2)
 
 
@@ -302,46 +323,53 @@ class TestAlphaEquivalenceComplex:
     def test_from_axiom_checker_example(self):
         """Test with the formula from axiom_checker: p(a) & ~p(b)"""
         # p(a) & ~p(b)
-        formula1 = JunctionFormula("&", [
-            Atom("p", args=[Constant("a")]),
-            Negation(Atom("p", args=[Constant("b")]))
-        ])
-        
+        formula1 = JunctionFormula(
+            BinaryConnective.AND,
+            [Atom("p", args=[Constant("a")]), Negation(Atom("p", args=[Constant("b")]))],
+        )
+
         # Same formula
-        formula2 = JunctionFormula("&", [
-            Atom("p", args=[Constant("a")]),
-            Negation(Atom("p", args=[Constant("b")]))
-        ])
-        
+        formula2 = JunctionFormula(
+            BinaryConnective.AND,
+            [Atom("p", args=[Constant("a")]), Negation(Atom("p", args=[Constant("b")]))],
+        )
+
         assert is_alpha_equivalent(formula1, formula2)
 
     def test_complex_quantified_with_implications(self):
         """Complex formula: ?[X]: (p(X) => q(X))"""
-        inner = BinaryFormula("=>",
-                              Atom("p", args=[Variable("X")]),
-                              Atom("q", args=[Variable("X")]))
-        q1 = QuantifiedFormula("?", ["X"], inner)
-        
-        inner2 = BinaryFormula("=>",
-                               Atom("p", args=[Variable("Y")]),
-                               Atom("q", args=[Variable("Y")]))
-        q2 = QuantifiedFormula("?", ["Y"], inner2)
-        
+        inner = BinaryFormula(
+            BinaryConnective.IMPLIES,
+            Atom("p", args=[Variable("X")]),
+            Atom("q", args=[Variable("X")]),
+        )
+        q1 = QuantifiedFormula(Quantifier.EXISTENTIAL, ["X"], inner)
+
+        inner2 = BinaryFormula(
+            BinaryConnective.IMPLIES,
+            Atom("p", args=[Variable("Y")]),
+            Atom("q", args=[Variable("Y")]),
+        )
+        q2 = QuantifiedFormula(Quantifier.EXISTENTIAL, ["Y"], inner2)
+
         assert is_alpha_equivalent(q1, q2)
 
     def test_shadowing_variables_correctly_handled(self):
         """Test that shadowing of variables is correctly handled.
         ![X]: (p(X) | ?[X]: q(X)) should be equivalent to ![A]: (p(A) | ?[B]: q(B))
         """
-        inner_q = QuantifiedFormula("?", ["X"], Atom("q", args=[Variable("X")]))
-        outer1 = QuantifiedFormula("!", ["X"],
-                                  JunctionFormula("|",
-                                                  [Atom("p", args=[Variable("X")]), inner_q]))
-        
-        inner_q2 = QuantifiedFormula("?", ["B"], Atom("q", args=[Variable("B")]))
-        outer2 = QuantifiedFormula("!", ["A"],
-                                  JunctionFormula("|",
-                                                  [Atom("p", args=[Variable("A")]), inner_q2]))
-        
-        assert is_alpha_equivalent(outer1, outer2)
+        inner_q = QuantifiedFormula(Quantifier.EXISTENTIAL, ["X"], Atom("q", args=[Variable("X")]))
+        outer1 = QuantifiedFormula(
+            Quantifier.UNIVERSAL,
+            ["X"],
+            JunctionFormula(BinaryConnective.OR, [Atom("p", args=[Variable("X")]), inner_q]),
+        )
 
+        inner_q2 = QuantifiedFormula(Quantifier.EXISTENTIAL, ["B"], Atom("q", args=[Variable("B")]))
+        outer2 = QuantifiedFormula(
+            Quantifier.UNIVERSAL,
+            ["A"],
+            JunctionFormula(BinaryConnective.OR, [Atom("p", args=[Variable("A")]), inner_q2]),
+        )
+
+        assert is_alpha_equivalent(outer1, outer2)
