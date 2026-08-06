@@ -36,6 +36,9 @@ def _normalize_variables(variables: object) -> list[str]:
 
 
 def _skolem_term_argument_names(term: object) -> list[str] | None:
+    if isinstance(term, Constant):
+        # Nullary Skolem "function" (zero universal dependencies in scope).
+        return []
     if not isinstance(term, FunctionTerm):
         return None
     names: list[str] = []
@@ -327,19 +330,26 @@ def check_skolemization(
 
     introduced = new_symbols_info.symbols[0] if new_symbols_info else None
     sk_term = skolemize_info.term
-    if not isinstance(sk_term, FunctionTerm):
+    if isinstance(sk_term, FunctionTerm):
+        sk_functor = sk_term.functor
+    elif isinstance(sk_term, Constant):
+        # A Skolem "function" with zero universal dependencies in scope is
+        # simply a nullary constant (e.g. sK0), not a FunctionTerm.
+        sk_functor = sk_term.name
+    else:
         issues.append(
             SkolemizationIssue(
-                skolem_step.name, "Skolem term must be a function term with the introduced functor"
+                skolem_step.name,
+                "Skolem term must be a function term (or constant) with the introduced functor",
             )
         )
         return issues
 
-    if introduced and sk_term.functor != introduced:
+    if introduced and sk_functor != introduced:
         issues.append(
             SkolemizationIssue(
                 skolem_step.name,
-                f"Skolem term functor '{sk_term.functor}' does not match introduced symbol '{introduced}'",
+                f"Skolem term functor '{sk_functor}' does not match introduced symbol '{introduced}'",
             )
         )
 
