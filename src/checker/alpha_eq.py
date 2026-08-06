@@ -14,6 +14,45 @@ from src.parser.ast_nodes import (
 _MISSING = object()
 
 
+def _normalize_quantifiers(node):
+    """Flatten consecutive quantifiers of the same kind into one prefix."""
+    if isinstance(node, QuantifiedFormula):
+        inner = _normalize_quantifiers(node.formula)
+        variables = list(node.variables)
+        if (
+            isinstance(inner, QuantifiedFormula)
+            and inner.quantifier == node.quantifier
+            and set(variables).isdisjoint(set(inner.variables))
+        ):
+            variables.extend(inner.variables)
+            inner = inner.formula
+        return QuantifiedFormula(quantifier=node.quantifier, variables=variables, formula=inner)
+    if isinstance(node, Negation):
+        return Negation(_normalize_quantifiers(node.formula))
+    if isinstance(node, BinaryFormula):
+        return BinaryFormula(
+            connective=node.connective,
+            left=_normalize_quantifiers(node.left),
+            right=_normalize_quantifiers(node.right),
+        )
+    if isinstance(node, JunctionFormula):
+        return JunctionFormula(
+            connective=node.connective,
+            operands=[_normalize_quantifiers(op) for op in node.operands],
+        )
+    if isinstance(node, Equality):
+        return Equality(
+            left=_normalize_quantifiers(node.left),
+            right=_normalize_quantifiers(node.right),
+            negated=node.negated,
+        )
+    if isinstance(node, Atom):
+        return Atom(predicate=node.predicate, args=[_normalize_quantifiers(arg) for arg in node.args])
+    if isinstance(node, FunctionTerm):
+        return FunctionTerm(functor=node.functor, args=[_normalize_quantifiers(arg) for arg in node.args])
+    return node
+
+
 def _alpha_eq(a, b, map1: dict, map2: dict) -> bool:
     if type(a) is not type(b):
         return False
@@ -106,4 +145,4 @@ def is_alpha_equivalent(f1, f2) -> bool:
     - ![A, B]: (p(A) & ~p(B)) is alpha-equivalent to ![X, Y]: (p(X) & ~p(Y))  ✓
     - p(a) & ~p(b) is NOT alpha-equivalent to p(d) & ~p(e)  ✗
     """
-    return _alpha_eq(f1, f2, {}, {})
+    return _alpha_eq(_normalize_quantifiers(f1), _normalize_quantifiers(f2), {}, {})

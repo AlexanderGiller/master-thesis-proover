@@ -283,3 +283,46 @@ class TestNegatedConjectureChecker:
         assert any("rule" in r for r in reasons)
         assert any("status" in r for r in reasons)
         assert any("negation" in r for r in reasons)
+
+    def test_prv001_scoped_variables(self):
+        """PRV001-style conjectures should compare correctly despite reused variable names."""
+        conj = make_annotated(
+            "c",
+            FormulaRole.CONJECTURE,
+            Negation(
+                QuantifiedFormula(
+                    Quantifier.UNIVERSAL,
+                    ["X"],
+                    QuantifiedFormula(
+                        Quantifier.EXISTENTIAL,
+                        ["Y"],
+                        QuantifiedFormula(
+                            Quantifier.UNIVERSAL,
+                            ["Z"],
+                            Atom("p", args=[Variable("X"), Variable("Y"), Variable("Z")]),
+                        ),
+                    ),
+                )
+            ),
+        )
+        neg_conj = make_annotated(
+            "neg",
+            FormulaRole.NEGATED_CONJECTURE,
+            QuantifiedFormula(
+                Quantifier.UNIVERSAL,
+                ["A"],
+                QuantifiedFormula(
+                    Quantifier.EXISTENTIAL,
+                    ["B"],
+                    QuantifiedFormula(
+                        Quantifier.UNIVERSAL,
+                        ["C"],
+                        Atom("p", args=[Variable("A"), Variable("B"), Variable("C")]),
+                    ),
+                ),
+            ),
+            make_inference(InferenceRule.NEGATED_CONJECTURE, InferenceStatus.CTH, ["c"]),
+        )
+
+        issues = check_negated_conjecture(neg_conj, conj)
+        assert issues == []
