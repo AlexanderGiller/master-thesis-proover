@@ -13,10 +13,30 @@ class ProvenanceIssue:
     reason: str
 
 
+def _normalized_path(path_str: str) -> Path:
+    path = Path(path_str)
+    try:
+        return path.resolve()
+    except OSError:
+        return path
+
+
+def _paths_match(cited_path: str, expected_path: str, strict_path_match: bool) -> bool:
+    cited = Path(cited_path)
+    expected = Path(expected_path)
+    if strict_path_match:
+        return _normalized_path(cited_path) == _normalized_path(expected_path)
+    if cited.name == expected.name:
+        return True
+    return _normalized_path(cited_path) == _normalized_path(expected_path)
+
+
 def check_axiom_provenance(
     proof_axiom: AnnotatedFormula,
     problem_axioms: dict[str, AnnotatedFormula],
     expected_problem_path: str,
+    *,
+    strict_path_match: bool = False,
 ) -> list[ProvenanceIssue]:
     """Checks that a proof-file axiom correctly cites the problem file it was
     imported from, and that its formula content is alpha-equivalent to the
@@ -32,15 +52,16 @@ def check_axiom_provenance(
     cited_path = proof_axiom.raw_source.path
     cited_ref = proof_axiom.raw_source.ref
 
-    # Compare by filename, not full path -- the proof file might cite
-    # '/work/problem1.p' (container path) while your problem set uses a
-    # different absolute path locally. Tighten this if you need exact paths.
-    if Path(cited_path).name != Path(expected_problem_path).name:
+    if not _paths_match(cited_path, expected_problem_path, strict_path_match):
+        expectation = (
+            f"expected exact path '{expected_problem_path}'"
+            if strict_path_match
+            else f"expected a file named '{Path(expected_problem_path).name}'"
+        )
         issues.append(
             ProvenanceIssue(
                 name,
-                f"file(...) points to '{cited_path}', expected a file named "
-                f"'{Path(expected_problem_path).name}'",
+                f"file(...) points to '{cited_path}', {expectation}",
             )
         )
     lookup_name = cited_ref if cited_ref else name
