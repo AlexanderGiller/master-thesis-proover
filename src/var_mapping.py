@@ -29,6 +29,8 @@ class InferenceRule(StrEnum):
 
     NEGATED_CONJECTURE = "negated_conjecture"
     DEDUCTION = "deduction"
+    INSTANTIATE = "instantiate"
+    EXISTENTIAL_GEN = "existential_gen"
     RESOLUTION = "resolution"
     PARAMODULATION = "paramodulation"
     SKOLEMIZE = "skolemize"  # NB: TPTP spells it with an 's'

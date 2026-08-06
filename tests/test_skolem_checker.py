@@ -204,3 +204,11 @@ class TestSkolemCheckerExamples:
         assert any(
             "not a correct Skolemization" in reason for reason in result["skolem_issues"]["groom"]
         )
+
+    def test_prv005_reports_no_skolem_issues(self):
+        result = check_proof_file(
+            str(ROOT / "ProoVer2026" / "PRV005+1.s"),
+            str(ROOT / "ProoVer2026" / "Problems" / "PRV005+1.p"),
+        )
+
+        assert result["skolem_issues"] == {}

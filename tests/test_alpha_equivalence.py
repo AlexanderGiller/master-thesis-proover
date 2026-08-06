@@ -301,6 +301,25 @@ class TestAlphaEquivalenceQuantifiedFormulas:
 
         assert is_alpha_equivalent(outer1, outer2)
 
+    def test_nested_same_quantifiers_flatten(self):
+        """Consecutive quantifiers of the same kind should compare as a single prefix."""
+        nested = QuantifiedFormula(
+            Quantifier.UNIVERSAL,
+            ["X"],
+            QuantifiedFormula(
+                Quantifier.UNIVERSAL,
+                ["Z"],
+                Atom("r", args=[Variable("X"), Variable("Z")]),
+            ),
+        )
+        flattened = QuantifiedFormula(
+            Quantifier.UNIVERSAL,
+            ["X", "Z"],
+            Atom("r", args=[Variable("X"), Variable("Z")]),
+        )
+
+        assert is_alpha_equivalent(nested, flattened)
+
     def test_nested_quantifiers_different_nesting_not_equivalent(self):
         """Nested quantifiers with different nesting order should not be equivalent."""
         # ![X]: ?[Y]: p(X,Y) NOT equivalent to ?[X]: ![Y]: p(X,Y)

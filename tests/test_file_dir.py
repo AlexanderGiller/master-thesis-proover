@@ -101,3 +101,19 @@ def test_all_ok_returns_empty_list():
     }
     issues = check_axiom_provenance(proof_ax, problem_axioms, "Problems/foo.p")
     assert issues == []
+
+
+def test_strict_path_matching_can_be_enabled():
+    proof_ax = make_annotated(
+        name="ax1",
+        role=FormulaRole.AXIOM,
+        formula=Atom("p", args=[Constant("a")]),
+        raw_source=FileSource(path="Problems/foo.p", ref="ax1"),
+    )
+    problem_axioms = {
+        "ax1": make_annotated("ax1", FormulaRole.AXIOM, Atom("p", args=[Constant("a")]))
+    }
+    issues = check_axiom_provenance(
+        proof_ax, problem_axioms, "C:/different/location/foo.p", strict_path_match=True
+    )
+    assert any("points to" in it.reason for it in issues)

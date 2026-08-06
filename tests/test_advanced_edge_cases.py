@@ -464,8 +464,7 @@ class TestSkolemCheckerWrongArguments:
 
     def test_wrong_order_in_skolem_arguments(self):
         """Skolem arguments are in wrong order.
-        NOTE: Current implementation may accept different orders if all variables are present.
-        This is a gap that could be addressed with stricter checking."""
+        The checker should reject reordered dependencies."""
         parent = make_annotated(
             "step1",
             FormulaRole.AXIOM,
@@ -515,9 +514,7 @@ class TestSkolemCheckerWrongArguments:
         )
 
         issues = check_skolemization(child, parent)
-        # Currently this passes because both X and Y are present (not order-sensitive)
-        # TODO: Consider if order-sensitivity should be enforced
-        assert issues == []
+        assert any("arguments" in issue.reason for issue in issues)
 
 
 class TestSkolemCheckerInComplexFormulas:
