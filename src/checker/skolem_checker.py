@@ -1,5 +1,6 @@
 """Checker for Skolemization in logical formulas."""
 
+from collections import Counter
 from dataclasses import dataclass
 from itertools import count
 
@@ -375,7 +376,7 @@ def check_skolemization(
                 "Skolem term must be a function applied to the universally scoped variables",
             )
         )
-    elif arg_vars != universals_at_elim:
+    elif Counter(arg_vars) != Counter(universals_at_elim):
         issues.append(
             SkolemizationIssue(
                 skolem_step.name,
