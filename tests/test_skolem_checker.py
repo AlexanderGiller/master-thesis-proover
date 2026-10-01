@@ -212,3 +212,47 @@ class TestSkolemCheckerExamples:
         )
 
         assert result["skolem_issues"] == {}
+
+    def test_prv080_reports_existential_dependency_in_skolem_term(self):
+        result = check_proof_file(
+            str(ROOT / "ProoVer2026" / "PRV080+1.s"),
+            str(ROOT / "ProoVer2026" / "Problems" / "PRV080+1.p"),
+        )
+
+        assert "sk" in result["skolem_issues"]
+        assert any(
+            "Skolem term arguments" in reason for reason in result["skolem_issues"]["sk"]
+        )
+
+    def test_prv085_reports_no_skolem_issues(self):
+        result = check_proof_file(
+            str(ROOT / "ProoVer2026" / "PRV085+1.s"),
+            str(ROOT / "ProoVer2026" / "Problems" / "PRV085+1.p"),
+        )
+
+        assert result["skolem_issues"] == {}
+
+    def test_prv083_reports_universal_only_skolem_target(self):
+        result = check_proof_file(
+            str(ROOT / "ProoVer2026" / "PRV083+1.s"),
+            str(ROOT / "ProoVer2026" / "Problems" / "PRV083+1.p"),
+        )
+
+        assert "sk" in result["skolem_issues"]
+        assert any(
+            "quantified only universally" in reason
+            for reason in result["skolem_issues"]["sk"]
+        )
+
+    def test_prv084_reports_negative_polarity_existential(self):
+        result = check_proof_file(
+            str(ROOT / "ProoVer2026" / "PRV084+1.s"),
+            str(ROOT / "ProoVer2026" / "Problems" / "PRV084+1.p"),
+        )
+
+        assert "sk" in result["skolem_issues"]
+        assert any(
+            "negative polarity" in reason
+            for reason in result["skolem_issues"]["sk"]
+        )
+

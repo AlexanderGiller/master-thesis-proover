@@ -4,6 +4,8 @@ from pathlib import Path
 
 from lark import Lark, Transformer
 
+from src.deep_recursion import run_with_larger_stack
+
 from src.var_mapping import (
     BinaryConnective,
     FormulaRole,
@@ -322,8 +324,12 @@ class TPTPTransformer(Transformer):
 def parse_file(path: str) -> list[AnnotatedFormula | IncludeDirective]:
     parser = _get_parser()
     source = Path(path).read_text()
-    tree = parser.parse(source)
-    return TPTPTransformer().transform(tree)
+
+    def _parse_and_transform():
+        tree = parser.parse(source)
+        return TPTPTransformer().transform(tree)
+
+    return run_with_larger_stack(_parse_and_transform)
 
 
 def parse_file_pretty(path: str):

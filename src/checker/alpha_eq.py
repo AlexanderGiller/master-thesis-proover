@@ -62,13 +62,9 @@ def _alpha_eq(a, b, map1: dict, map2: dict) -> bool:
         mapped_to_2 = map1.get(n1)
         mapped_to_1 = map2.get(n2)
         if mapped_to_2 is not None or mapped_to_1 is not None:
-            # already bound on at least one side: must agree both ways
             return mapped_to_2 == n2 and mapped_to_1 == n1
-        # If neither variable is bound, they must have the same name (for free variables)
-        # We only establish new bindings when inside a quantified formula
         if n1 == n2:
             return True
-        # Different names, neither bound: not equivalent
         return False
 
     if isinstance(a, Constant):
@@ -106,7 +102,6 @@ def _alpha_eq(a, b, map1: dict, map2: dict) -> bool:
     if isinstance(a, JunctionFormula):
         if a.connective != b.connective or len(a.operands) != len(b.operands):
             return False
-        # NOTE: order-sensitive. See caveat below.
         return all(_alpha_eq(x, y, map1, map2) for x, y in zip(a.operands, b.operands))
 
     if isinstance(a, QuantifiedFormula):

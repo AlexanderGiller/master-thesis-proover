@@ -20,6 +20,42 @@ from src.parser.ast_nodes import (
 _MISSING = object()
 
 
+def collect_function_symbols(formula: object) -> set[str]:
+    """Collect all function/constant symbol names occurring in a formula.
+
+    Used to detect when a Skolem function/constant reuses a symbol that is
+    already defined elsewhere in the problem, which is required to be fresh.
+    """
+    symbols: set[str] = set()
+
+    def _walk(node: object) -> None:
+        if isinstance(node, Constant):
+            symbols.add(node.name)
+        elif isinstance(node, FunctionTerm):
+            symbols.add(node.functor)
+            for arg in node.args:
+                _walk(arg)
+        elif isinstance(node, Atom):
+            for arg in node.args:
+                _walk(arg)
+        elif isinstance(node, Equality):
+            _walk(node.left)
+            _walk(node.right)
+        elif isinstance(node, Negation):
+            _walk(node.formula)
+        elif isinstance(node, BinaryFormula):
+            _walk(node.left)
+            _walk(node.right)
+        elif isinstance(node, JunctionFormula):
+            for operand in node.operands:
+                _walk(operand)
+        elif isinstance(node, QuantifiedFormula):
+            _walk(node.formula)
+
+    _walk(formula)
+    return symbols
+
+
 def flatten_prefix(formula: object, quantifier: object) -> tuple[list[str], object]:
     """Flatten a leading chain of the same quantifier."""
     vars_: list[str] = []
