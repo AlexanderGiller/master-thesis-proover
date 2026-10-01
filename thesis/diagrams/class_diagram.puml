@@ -1,0 +1,120 @@
+@startuml
+' High-level class diagram for the proof checker project
+hide empty methods
+skinparam classAttributeIconSize 0
+
+package "src.parser.ast_nodes" {
+  class AnnotatedFormula {
+    +name: str
+    +role: FormulaRole
+    +formula: object
+    +inference: InferenceRecord?
+    +raw_source: FileSource | IntroducedSource?
+  }
+
+  class InferenceRecord {
+    +rule: InferenceRule
+    +info: list
+    +parents: list[str]
+    +status: InferenceStatus?
+    +new_symbols: list[str]?
+    +skolem_var: str?
+    +skolem_term: object?
+  }
+
+  class ProofFile {
+    +problem_ref: str
+    +steps: list[AnnotatedFormula]
+  }
+
+  class IncludeDirective {
+    +path: str
+    +selected_formulas: list[str]?
+  }
+
+  class StatusInfo
+  class NewSymbolsInfo
+  class SkolemizeInfo
+  class GeneralFunctionInfo
+
+  class Variable
+  class Constant
+  class FunctionTerm
+  class Atom
+  class Equality
+  class Negation
+  class BinaryFormula
+  class JunctionFormula
+  class QuantifiedFormula
+
+  class FileSource
+  class IntroducedSource
+}
+
+package "src.parser.parser" {
+  class TPTPTransformer
+  class ParserAPI <<module>> {
+    +parse_file(path): list[AnnotatedFormula | IncludeDirective]
+    +load_proof(proof_path): ProofFile
+  }
+}
+
+package "src.checker" {
+  class DependencyChecker <<module>>
+  class StructuralChecker <<module>>
+  class PropositionalChecker <<module>>
+  class ClausalChecker <<module>>
+  class InstantiateChecker <<module>>
+  class ExistentialGenChecker <<module>>
+  class JunctionChecker <<module>>
+  class SkolemChecker <<module>>
+  class NegatedConjectureChecker <<module>>
+  class ExternalATPChecker <<module>>
+  class FormulaUtils <<module>>
+  class AlphaEq <<module>>
+  class FileDir <<module>>
+}
+
+package "proof_checker_demo" {
+  class ProofCheckerDemo <<module>> {
+    +check_proof_file(proof_path, problem_path): dict
+    +check_proof_file_with_timeout(...): tuple[str, dict | str | None]
+    +report_proof_check(...): tuple[str, dict | None]
+  }
+}
+
+ParserAPI --> TPTPTransformer : uses
+ParserAPI --> AnnotatedFormula : creates
+ParserAPI --> IncludeDirective : creates
+ParserAPI --> ProofFile : creates
+
+AnnotatedFormula *-- InferenceRecord
+AnnotatedFormula o-- FileSource
+AnnotatedFormula o-- IntroducedSource
+ProofFile *-- "*" AnnotatedFormula
+InferenceRecord o-- "*" StatusInfo
+InferenceRecord o-- "*" NewSymbolsInfo
+InferenceRecord o-- "*" SkolemizeInfo
+InferenceRecord o-- "*" GeneralFunctionInfo
+
+ProofCheckerDemo --> ParserAPI : parse/load
+ProofCheckerDemo --> DependencyChecker
+ProofCheckerDemo --> FileDir
+ProofCheckerDemo --> NegatedConjectureChecker
+ProofCheckerDemo --> InstantiateChecker
+ProofCheckerDemo --> ExistentialGenChecker
+ProofCheckerDemo --> PropositionalChecker
+ProofCheckerDemo --> StructuralChecker
+ProofCheckerDemo --> JunctionChecker
+ProofCheckerDemo --> ClausalChecker
+ProofCheckerDemo --> SkolemChecker
+ProofCheckerDemo --> ExternalATPChecker
+
+StructuralChecker ..> AlphaEq
+StructuralChecker ..> FormulaUtils
+PropositionalChecker ..> FormulaUtils
+ClausalChecker ..> FormulaUtils
+SkolemChecker ..> FormulaUtils
+
+@enduml
+

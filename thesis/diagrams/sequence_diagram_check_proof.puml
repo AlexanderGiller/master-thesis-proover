@@ -1,0 +1,66 @@
+@startuml
+' Sequence diagram for a single proof check run
+autonumber
+
+actor User
+participant "proof_checker_demo\n(__main__)" as CLI
+participant "report_proof_check" as Report
+participant "check_proof_file_with_timeout" as TimeoutWrap
+participant "_check_proof_worker\n(subprocess)" as Worker
+participant "check_proof_file" as Checker
+participant "ParserAPI\n(parse_file/load_proof)" as Parser
+participant "DependencyChecker" as Dep
+participant "Rule-specific checkers" as RuleCheckers
+participant "ExternalATPChecker" as ATP
+
+User -> CLI : run with proof and problem
+CLI -> Report : report_proof_check(proof_path, problem_path, timeout)
+Report -> TimeoutWrap : check_proof_file_with_timeout(...)
+TimeoutWrap -> Worker : start process
+Worker -> Checker : run_with_larger_stack(check_proof_file)
+
+Checker -> Parser : parse_file(problem_path)
+Parser --> Checker : problem formulas
+Checker -> Parser : load_proof(proof_path)
+Parser --> Checker : ProofFile(steps)
+
+Checker -> Dep : check_no_circular_dependencies(steps)
+Dep --> Checker : dependency issues
+Checker -> Dep : check_conjecture_not_assumed(steps)
+Dep --> Checker : assumption issues
+
+loop for each step in proof.steps
+  alt role == axiom or conjecture
+    Checker -> RuleCheckers : check_axiom_provenance(...)
+    RuleCheckers --> Checker : issues
+  else role == negated_conjecture
+    Checker -> RuleCheckers : check_negated_conjecture(step, parent)
+    RuleCheckers --> Checker : issues
+  else supported inference rule
+    Checker -> RuleCheckers : call specific checker by inference.rule
+    RuleCheckers --> Checker : issues
+  else ATP allowed status
+    Checker -> ATP : validate_step_with_atp(step.formula, parent_formulas)
+    ATP --> Checker : valid / note
+  else unknown justification
+    Checker --> Checker : record external_atp_issues
+  end
+end
+
+Checker --> Worker : result dict (issues + all_ok)
+Worker --> TimeoutWrap : queue result
+
+alt timeout
+  TimeoutWrap --> Report : ("timeout", None)
+  Report --> CLI : status Timeout
+else runtime error
+  TimeoutWrap --> Report : ("error", message)
+  Report --> CLI : status VerifiedBad
+else normal result
+  TimeoutWrap --> Report : ("result", details)
+  Report --> CLI : VerifiedGood or VerifiedBad
+end
+
+CLI --> User : print SZS status and issue report
+@enduml
+
