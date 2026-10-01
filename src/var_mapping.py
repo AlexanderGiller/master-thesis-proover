@@ -33,10 +33,24 @@ class InferenceRule(StrEnum):
     EXISTENTIAL_GEN = "existential_gen"
     RESOLUTION = "resolution"
     PARAMODULATION = "paramodulation"
+    REFLEXIVITY = "reflexivity"
+    TRANSITIVITY = "transitivity"
+    REWRITE = "rewrite"
     SKOLEMIZE = "skolemize"  # NB: TPTP spells it with an 's'
     CNF_TRANSFORMATION = "cnf_transformation"
     RECTIFY = "rectify"
     FLATTENING = "flattening"
+    MODUS_PONENS = "modus_ponens"
+    CONJUNCTION = "conjunction"
+    SPLIT_CONJUNCT = "split_conjunct"
+    COPY = "copy"
+    DUPLICATE = "duplicate"
+    RENAME_VARIABLE = "rename_variable"
+    DOUBLE_NEGATION = "double_negation"
+    REMOVE_DOUBLE_NEGATION = "remove_double_negation"
+    WEAKEN = "weaken"
+    COMMUTE = "commute"
+    EXCLUDED_MIDDLE = "excluded_middle"
 
 
 class Quantifier(StrEnum):
