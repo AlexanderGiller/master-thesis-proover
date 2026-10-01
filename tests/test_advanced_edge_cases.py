@@ -462,9 +462,11 @@ class TestSkolemCheckerWrongArguments:
         issues = check_skolemization(child, parent)
         assert any("arguments" in issue.reason for issue in issues)
 
-    def test_wrong_order_in_skolem_arguments(self):
-        """Skolem arguments are in wrong order.
-        The checker should reject reordered dependencies."""
+    def test_reordered_skolem_arguments_are_accepted(self):
+        """Skolem arguments may appear in any order.
+        Argument order is semantically irrelevant for a Skolem function -
+        only the set of universally quantified variables in scope matters,
+        so a reordered dependency list should still be accepted."""
         parent = make_annotated(
             "step1",
             FormulaRole.AXIOM,
@@ -483,7 +485,8 @@ class TestSkolemCheckerWrongArguments:
             ),
         )
 
-        # Wrong: arguments in wrong order (Y, X instead of X, Y)
+        # Reordered but still valid: arguments (Y, X) instead of (X, Y) -
+        # the Skolem function still depends on exactly {X, Y}.
         child = make_annotated(
             "step2",
             FormulaRole.PLAIN,
@@ -514,7 +517,103 @@ class TestSkolemCheckerWrongArguments:
         )
 
         issues = check_skolemization(child, parent)
-        assert any("arguments" in issue.reason for issue in issues)
+        assert not any("arguments" in issue.reason for issue in issues)
+
+
+class TestSkolemCheckerNegatedUniversal:
+    """Test Skolemization where the eliminated variable is universally bound
+    but under an odd number of negations, making it semantically existential
+    (De Morgan: ~![X]: P(X) == ?[X]: ~P(X))."""
+
+    def test_negated_universal_is_skolemizable(self):
+        """~![X]: r(X) -> skolemize X -> ~r(sK0)."""
+        parent = make_annotated(
+            "neg",
+            FormulaRole.PLAIN,
+            Negation(QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], Atom("r", [Variable("X")]))),
+        )
+
+        child = make_annotated(
+            "sk",
+            FormulaRole.PLAIN,
+            Negation(Atom("r", [Constant("sK0")])),
+            make_inference(
+                InferenceRule.SKOLEMIZE,
+                InferenceStatus.ESA,
+                ["neg"],
+                new_symbols=["sK0"],
+                skolem_var="X",
+                skolem_term=Constant("sK0"),
+            ),
+        )
+
+        issues = check_skolemization(child, parent)
+        assert issues == []
+
+    def test_double_negated_universal_stays_universal(self):
+        """~~![X]: r(X) has even negation count, so X remains universal and
+        must NOT be treated as skolemizable."""
+        parent = make_annotated(
+            "negneg",
+            FormulaRole.PLAIN,
+            Negation(
+                Negation(QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], Atom("r", [Variable("X")])))
+            ),
+        )
+
+        child = make_annotated(
+            "sk",
+            FormulaRole.PLAIN,
+            Negation(Negation(Atom("r", [FunctionTerm("sK0", [])]))),
+            make_inference(
+                InferenceRule.SKOLEMIZE,
+                InferenceStatus.ESA,
+                ["negneg"],
+                new_symbols=["sK0"],
+                skolem_var="X",
+                skolem_term=Constant("sK0"),
+            ),
+        )
+
+        issues = check_skolemization(child, parent)
+        assert any("not found" in issue.reason for issue in issues)
+
+    def test_negated_universal_with_outer_universal_scope(self):
+        """![Y]: ~![X]: r(X, Y) -> skolemize X depending on Y -> ![Y]: ~r(sK0(Y), Y)."""
+        parent = make_annotated(
+            "neg",
+            FormulaRole.PLAIN,
+            QuantifiedFormula(
+                Quantifier.UNIVERSAL,
+                ["Y"],
+                Negation(
+                    QuantifiedFormula(
+                        Quantifier.UNIVERSAL, ["X"], Atom("r", [Variable("X"), Variable("Y")])
+                    )
+                ),
+            ),
+        )
+
+        child = make_annotated(
+            "sk",
+            FormulaRole.PLAIN,
+            QuantifiedFormula(
+                Quantifier.UNIVERSAL,
+                ["Y"],
+                Negation(Atom("r", [FunctionTerm("sK0", [Variable("Y")]), Variable("Y")])),
+            ),
+            make_inference(
+                InferenceRule.SKOLEMIZE,
+                InferenceStatus.ESA,
+                ["neg"],
+                new_symbols=["sK0"],
+                skolem_var="X",
+                skolem_term=FunctionTerm("sK0", [Variable("Y")]),
+            ),
+        )
+
+        issues = check_skolemization(child, parent)
+        assert issues == []
 
 
 class TestSkolemCheckerInComplexFormulas:

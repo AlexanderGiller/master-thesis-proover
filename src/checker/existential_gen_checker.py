@@ -47,18 +47,7 @@ def check_existential_gen(
         return issues
 
     def _matches_generalization(target_formula: object) -> bool:
-        """Check if child_body generalizes target_formula.
-
-        The child's leading existential prefix may contain extra variables
-        beyond the ones being newly generalized: if the target itself starts
-        with its own existential quantifier(s), those are simply carried
-        through (merged into the same leading quantifier block in TPTP
-        output) rather than being freshly abstracted. Only the leading
-        "new" variables (those beyond target's own existential count) are
-        treated as abstractable generalization variables; the remaining
-        (preserved) variables must line up 1:1 with target's own existential
-        variables via alpha-equivalent binding.
-        """
+        """Check if child_body generalizes target_formula."""
         target_vars, target_inner = flatten_prefix(target_formula, Quantifier.EXISTENTIAL)
         if len(existential_vars) <= len(target_vars):
             return False

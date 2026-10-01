@@ -108,7 +108,7 @@ inference_record: "inference" "(" inference_rule "," inference_info "," "[" pare
 
 inference_rule: LOWER_WORD | SINGLE_QUOTED
 
-inference_info: "[" inference_info_item ("," inference_info_item)* "]"
+inference_info: "[" (inference_info_item ("," inference_info_item)*)? "]"
 
 inference_info_item: status_info
                    | new_symbols_info
@@ -127,7 +127,7 @@ status_value: "thm"   -> thm
             | "unsat" -> unsat
             | "wth"   -> wth
 
-parent_list: parent_info ("," parent_info)*
+parent_list: (parent_info ("," parent_info)*)?
 parent_info: name | name ":" general_term
 
 // ── General terms (for annotations) ─────────────────────────────────

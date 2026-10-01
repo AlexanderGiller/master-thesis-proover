@@ -37,10 +37,12 @@ def check_axiom_provenance(
     expected_problem_path: str,
     *,
     strict_path_match: bool = False,
+    expected_role: FormulaRole = FormulaRole.AXIOM,
 ) -> list[ProvenanceIssue]:
-    """Checks that a proof-file axiom correctly cites the problem file it was
+    """Checks that a proof-file axiom (or, via ``expected_role``, another
+    formula such as a conjecture) correctly cites the problem file it was
     imported from, and that its formula content is alpha-equivalent to the
-    original axiom in that problem file."""
+    original formula in that problem file."""
     issues: list[ProvenanceIssue] = []
     name = proof_axiom.name
 
@@ -72,10 +74,12 @@ def check_axiom_provenance(
         )
         return issues
 
-    if original.role != FormulaRole.AXIOM:
+    if original.role != expected_role:
         issues.append(
             ProvenanceIssue(
-                name, f"'{lookup_name}' in problem file has role '{original.role}', not 'axiom'"
+                name,
+                f"'{lookup_name}' in problem file has role '{original.role}', "
+                f"not '{expected_role}'",
             )
         )
 

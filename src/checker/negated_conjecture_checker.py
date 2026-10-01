@@ -232,9 +232,6 @@ def check_negated_conjecture(
             )
         )
 
-    # Check that the formula is the correct negation.
-    # Some conjectures already start with a leading negation, and their
-    # negated_conjecture step is the body with bound variables renamed apart.
     parent_formula = parent_conj_step.formula
     if isinstance(parent_formula, Negation):
         expected_forms = [parent_formula.formula]
