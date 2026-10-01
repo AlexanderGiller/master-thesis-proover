@@ -1,11 +1,4 @@
 """Checkers for junction-reshaping and tautology-introduction proof steps.
-
-These cover ``weaken`` (OR-introduction), ``commute`` (swapping the two
-operands of a top-level conjunction/disjunction), and ``excluded_middle``
-(introducing a fresh ``phi | ~phi`` tautology). All three are purely
-syntactic/structural rules that can be verified quickly without delegating
-to an external ATP, which matters because these rules tend to appear many
-times within a single proof.
 """
 
 from dataclasses import dataclass
