@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from proof_checker_demo import check_proof_file
+from main import check_proof_file
 from src.checker.skolem_checker import check_skolemization
 from src.parser.ast_nodes import (
     AnnotatedFormula,
