@@ -3,7 +3,7 @@
 autonumber
 
 actor User
-participant "proof_checker_demo\n(__main__)" as CLI
+participant "main\n(__main__)" as CLI
 participant "report_proof_check" as Report
 participant "check_proof_file_with_timeout" as TimeoutWrap
 participant "_check_proof_worker\n(subprocess)" as Worker

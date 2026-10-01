@@ -75,8 +75,8 @@ package "src.checker" {
   class FileDir <<module>>
 }
 
-package "proof_checker_demo" {
-  class ProofCheckerDemo <<module>> {
+package "main" {
+  class Main <<module>> {
     +check_proof_file(proof_path, problem_path): dict
     +check_proof_file_with_timeout(...): tuple[str, dict | str | None]
     +report_proof_check(...): tuple[str, dict | None]
@@ -97,18 +97,18 @@ InferenceRecord o-- "*" NewSymbolsInfo
 InferenceRecord o-- "*" SkolemizeInfo
 InferenceRecord o-- "*" GeneralFunctionInfo
 
-ProofCheckerDemo --> ParserAPI : parse/load
-ProofCheckerDemo --> DependencyChecker
-ProofCheckerDemo --> FileDir
-ProofCheckerDemo --> NegatedConjectureChecker
-ProofCheckerDemo --> InstantiateChecker
-ProofCheckerDemo --> ExistentialGenChecker
-ProofCheckerDemo --> PropositionalChecker
-ProofCheckerDemo --> StructuralChecker
-ProofCheckerDemo --> JunctionChecker
-ProofCheckerDemo --> ClausalChecker
-ProofCheckerDemo --> SkolemChecker
-ProofCheckerDemo --> ExternalATPChecker
+Main --> ParserAPI : parse/load
+Main --> DependencyChecker
+Main --> FileDir
+Main --> NegatedConjectureChecker
+Main --> InstantiateChecker
+Main --> ExistentialGenChecker
+Main --> PropositionalChecker
+Main --> StructuralChecker
+Main --> JunctionChecker
+Main --> ClausalChecker
+Main --> SkolemChecker
+Main --> ExternalATPChecker
 
 StructuralChecker ..> AlphaEq
 StructuralChecker ..> FormulaUtils
