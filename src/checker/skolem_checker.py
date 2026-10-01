@@ -137,24 +137,25 @@ def _analyze_target_bindings(node: object, target_var: str, polarity: bool = Tru
         "syntactic_universal": 0,
         "effective_existential": 0,
         "effective_universal": 0,
+        "under_negation": 0,
     }
 
-    def walk(current: object, current_polarity: bool) -> None:
+    def walk(current: object, current_polarity: bool, negation_depth: int) -> None:
         if isinstance(current, Negation):
-            walk(current.formula, not current_polarity)
+            walk(current.formula, not current_polarity, negation_depth + 1)
             return
         if isinstance(current, BinaryFormula):
             # A => B is equivalent to ~A v B; only the left side flips polarity.
             if current.connective == "=>":
-                walk(current.left, not current_polarity)
-                walk(current.right, current_polarity)
+                walk(current.left, not current_polarity, negation_depth)
+                walk(current.right, current_polarity, negation_depth)
             else:
-                walk(current.left, current_polarity)
-                walk(current.right, current_polarity)
+                walk(current.left, current_polarity, negation_depth)
+                walk(current.right, current_polarity, negation_depth)
             return
         if isinstance(current, JunctionFormula):
             for operand in current.operands:
-                walk(operand, current_polarity)
+                walk(operand, current_polarity, negation_depth)
             return
         if isinstance(current, QuantifiedFormula):
             vars_iter = _normalize_variables(current.variables)
@@ -175,16 +176,18 @@ def _analyze_target_bindings(node: object, target_var: str, polarity: bool = Tru
                     stats["effective_existential"] += 1
                 else:
                     stats["effective_universal"] += 1
-            walk(current.formula, current_polarity)
+                if negation_depth > 0:
+                    stats["under_negation"] += 1
+            walk(current.formula, current_polarity, negation_depth)
             return
         if isinstance(current, Equality):
-            walk(current.left, current_polarity)
-            walk(current.right, current_polarity)
+            walk(current.left, current_polarity, negation_depth)
+            walk(current.right, current_polarity, negation_depth)
             return
         if isinstance(current, (Atom, FunctionTerm, Variable, Constant)):
             return
 
-    walk(node, polarity)
+    walk(node, polarity, 0)
     return stats
 
 
@@ -507,17 +510,25 @@ def check_skolemization(
                 f"variable '{skolemize_info.variable}' is not bound by any quantifier "
                 "in the parent formula"
             )
-        elif binding_stats["syntactic_existential"] == 0:
-            reason = (
-                f"variable '{skolemize_info.variable}' is quantified only universally "
-                "in the parent formula and cannot be eliminated by skolemize"
-            )
-        elif binding_stats["effective_existential"] == 0:
+        elif (
+            binding_stats["effective_existential"] == 0
+            and binding_stats["syntactic_existential"] > 0
+        ):
             reason = (
                 f"variable '{skolemize_info.variable}' occurs under a syntactic existential, "
                 "but only in negative polarity (effectively universal), so skolemize cannot "
                 "eliminate it"
             )
+        elif binding_stats["syntactic_existential"] == 0:
+            if binding_stats["under_negation"] > 0:
+                reason = (
+                    f"existential variable '{skolemize_info.variable}' not found in parent formula"
+                )
+            else:
+                reason = (
+                    f"variable '{skolemize_info.variable}' is quantified only universally "
+                    "in the parent formula and cannot be eliminated by skolemize"
+                )
         else:
             reason = (
                 f"existential variable '{skolemize_info.variable}' not found in parent formula"
