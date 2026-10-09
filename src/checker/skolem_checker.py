@@ -18,6 +18,7 @@ from src.parser.ast_nodes import (
     NewSymbolsInfo,
     QuantifiedFormula,
     SkolemizeInfo,
+    StatusInfo,
     Variable,
 )
 from src.var_mapping import InferenceRule, InferenceStatus, Quantifier
@@ -404,7 +405,8 @@ def _skolemize_formula(
 
 
 def check_skolemization(
-    skolem_step: AnnotatedFormula, parent_step: AnnotatedFormula
+    skolem_step: AnnotatedFormula,
+    parent_step: AnnotatedFormula
 ) -> list[SkolemizationIssue]:
     """Check if the skolem_step is a valid Skolemization of the parent_step."""
     issues: list[SkolemizationIssue] = []
@@ -429,9 +431,15 @@ def check_skolemization(
             )
         )
 
-    if inf.status != InferenceStatus.ESA:
-        issues.append(
-            SkolemizationIssue(skolem_step.name, f"status must be 'esa', got '{inf.status}'")
+    status_entries = [item.status for item in inf.info if isinstance(item, StatusInfo)]
+
+    for status_entry in status_entries:
+        if status_entry != InferenceStatus.ESA:
+            issues.append(
+                SkolemizationIssue(
+                    skolem_step.name,
+                    f"skolemize must be 'esa', got {(status_entry)}",
+                )
         )
 
     new_symbols_info = next((item for item in inf.info if isinstance(item, NewSymbolsInfo)), None)
