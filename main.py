@@ -41,6 +41,7 @@ from src.deep_recursion import run_with_larger_stack
 from src.parser.parser import load_proof, parse_file
 from src.var_mapping import FormulaRole, InferenceStatus
 from src.scoring.scoring import ProofScorer, print_scoring_summary
+from src.performance.performance import PerformanceTracker, print_performance_table
 
 PER_PROOF_TIMEOUT_SECONDS = 30.0
 
@@ -771,6 +772,8 @@ if __name__ == "__main__":
     expected_file = base / "PRV_expected.csv"
     scorer = ProofScorer(str(expected_file))
     
+    # Initialize performance tracker
+    tracker = PerformanceTracker()
     
     total = len(all_pairs)
     verified_count = 0
@@ -806,8 +809,10 @@ if __name__ == "__main__":
         print("No proof/problem pairs found in ProoVer2026")
     else:
         for proof_sub_path, problem_sub_path in all_pairs:
+            tracker.start()
             status, details = report_proof_check(proof_sub_path, problem_sub_path)
             proof_name = Path(proof_sub_path).name
+            tracker.stop(proof_name)
             
             prv_results.append((proof_name, status, details))
             
@@ -881,6 +886,40 @@ if __name__ == "__main__":
     print(f"  Skolemization: {skolem_failure_count}")
     print(f"  External ATP: {external_atp_failure_count}")
     print_prv_results_table(prv_results)
+    
+    # Print performance summary
+    if tracker.get_all_measurements():
+        print(f"\n{'='*70}")
+        print("PERFORMANCE SUMMARY")
+        print(f"{'='*70}")
+        
+        overall = tracker.get_overall_summary()
+        print(f"Total proofs checked:  {overall['total_measurements']}")
+        print(f"Av. WC Time:           {overall['avg_wc_time']:.4f} seconds")
+        print(f"Av. CPU Time:          {overall['avg_cpu_time']:.4f} seconds")
+        print(f"Total WC Time:         {overall['total_wc_time']:.2f} seconds")
+        print(f"Total CPU Time:        {overall['total_cpu_time']:.2f} seconds")
+        print(f"Min WC Time:           {overall['min_wc_time']:.4f} seconds")
+        print(f"Max WC Time:           {overall['max_wc_time']:.4f} seconds")
+        
+        # Calculate overhead
+        total_overhead = overall['total_wc_time'] - overall['total_cpu_time']
+        overhead_pct = (total_overhead / overall['total_wc_time'] * 100) if overall['total_wc_time'] > 0 else 0
+        print(f"Total Overhead:        {total_overhead:.2f} seconds ({overhead_pct:.1f}%)")
+        print(f"{'='*70}\n")
+        
+        # Print detailed performance table
+        print_performance_table(tracker)
+        
+        # Export performance data to CSV
+        perf_csv_file = base / "src" / "results" / "performance_results.csv"
+        with open(perf_csv_file, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['Proof', 'WC Time (s)', 'CPU Time (s)', 'Overhead (s)'])
+            for m in tracker.get_all_measurements():
+                overhead = m.wc_time - m.cpu_time
+                writer.writerow([m.operation_name, f"{m.wc_time:.4f}", f"{m.cpu_time:.4f}", f"{overhead:.4f}"])
+        print(f"Performance data exported to: {perf_csv_file}\n")
 
     # Print scoring summary
     if scoring_results:
