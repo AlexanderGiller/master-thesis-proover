@@ -23,8 +23,6 @@ from src.parser.ast_nodes import (
 )
 from src.var_mapping import BinaryConnective, InferenceStatus, Quantifier
 
-ATP_TIMEOUT_SECONDS = 30.0
-
 
 def _quote_symbol(name: str) -> str:
     if re.fullmatch(r"[a-z][A-Za-z0-9_]*", name):
@@ -136,7 +134,7 @@ def _maybe_translate_path_for_command(command: list[str], path: Path) -> Path:
 def validate_step_with_atp(
     step_formula: object,
     premise_formulas: list[object],
-    timeout_seconds: float = ATP_TIMEOUT_SECONDS,
+    timeout_seconds: float,
 ) -> tuple[bool, str]:
     """Validate a step using an external ATP and only the step's premises."""
     problem_text = _render_problem(premise_formulas, step_formula)

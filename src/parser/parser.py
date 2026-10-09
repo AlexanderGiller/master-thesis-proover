@@ -79,7 +79,7 @@ def _extract_functor_and_args(items: list) -> tuple[str, list]:
 def _get_parser():
     """Get or create the Lark parser (cached)."""
     grammar = GRAMMAR_PATH.read_text()
-    return Lark(grammar, parser="earley", ambiguity="resolve")
+    return Lark(grammar, parser="lalr", cache=True)
 
 
 class TPTPTransformer(Transformer):

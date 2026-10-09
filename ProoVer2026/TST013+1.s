@@ -1,0 +1,26 @@
+%------------------------------------------------------------------------------
+% File     : TST013+1.s : ProoVer 2026
+% Proof    : Problems/TST013+1.p
+% Test     : sk06_extra_variable_not_in_scope - Skolem-Term haengt von nicht gebundener Variable W ab
+% Expected : INCORRECT
+%------------------------------------------------------------------------------
+% SZS output start Proof
+fof(a1, axiom, ![X]: ?[Y]: r(X,Y), file('Problems/TST013+1.p', a1)).
+
+fof(a2, axiom, ![X]: ![Y]: (r(X,Y) => s(X)), file('Problems/TST013+1.p', a2)).
+
+fof(c1, conjecture, ![X]: s(X), file('Problems/TST013+1.p', c1)).
+
+fof(nc1, negated_conjecture, ~![X]: s(X), inference(negated_conjecture, [status(cth)], [c1])).
+
+fof(s1, plain, ![X]: r(X, sK0(X,W)), inference(skolemize, [status(esa), new_symbols(skolem, [sK0]), skolemize(Y, sK0(X,W))], [a1])).
+
+fof(s2, plain, ~s(sK1), inference(skolemize, [status(esa), new_symbols(skolem, [sK1]), skolemize(X, sK1)], [nc1])).
+
+fof(f1, plain, r(sK1, sK0(sK1)), inference(instantiate, [status(thm)], [s1])).
+
+fof(f2, plain, s(sK1), inference(modus_ponens, [status(thm)], [a2, f1])).
+
+fof(f3, plain, $false, inference(consequence, [status(thm)], [f2, s2])).
+
+% SZS output end Proof

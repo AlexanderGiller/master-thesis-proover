@@ -1,0 +1,11 @@
+Category,Av. WC Time (s),Av. CPU Time (s),Count
+Axiom Verification,0.0021,0.0011,5
+Conjunction,0.0807,0.0570,5
+Copy,0.0049,0.0038,5
+Double Negation,0.0108,0.0103,5
+External ATP Call,2.2303,1.8532,5
+Instantiate,0.2207,0.1751,5
+Modus Ponens,0.1491,0.1259,5
+Resolution,0.3272,0.2874,5
+Skolemization Check,0.4647,0.3799,5
+Weaken,0.0362,0.0306,5

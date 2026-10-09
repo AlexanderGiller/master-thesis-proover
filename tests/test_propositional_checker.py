@@ -1,4 +1,4 @@
-from proof_checker_demo import check_proof_file
+from main import check_proof_file
 from src.checker.propositional_checker import (
     check_conjunction,
     check_modus_ponens,

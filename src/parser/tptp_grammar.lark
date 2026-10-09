@@ -25,7 +25,6 @@ formula_role: "axiom"             -> axiom
 ?fof_formula: fof_logic_formula
 
 ?fof_logic_formula: fof_binary_formula
-                 | fof_unary_formula
                  | fof_unit_formula
 
 ?fof_binary_formula: fof_binary_nonassoc
