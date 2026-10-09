@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from proof_checker_demo import check_proof_file
+from main import check_proof_file
 from src.checker.existential_gen_checker import check_existential_gen
 from src.checker.instantiate_checker import check_instantiate
 from src.parser.ast_nodes import (
@@ -81,6 +81,24 @@ class TestInstantiateChecker:
 
         issues = check_instantiate(child, parent)
         assert issues
+
+    def test_instantiate_with_de_morgans_negated_existential(self):
+        """Test instantiation of ~∃X. P, which is equivalent to ∀X. ¬P"""
+        from src.parser.ast_nodes import Negation
+
+        parent = make_annotated(
+            "p",
+            FormulaRole.PLAIN,
+            Negation(QuantifiedFormula(Quantifier.EXISTENTIAL, ["X"], Atom("q", [Variable("X")]))),
+        )
+        child = make_annotated(
+            "c",
+            FormulaRole.PLAIN,
+            Negation(Atom("q", [Constant("a")])),
+            make_inference(InferenceRule.INSTANTIATE, InferenceStatus.THM, ["p"]),
+        )
+
+        assert check_instantiate(child, parent) == []
 
 
 class TestExistentialGenChecker:

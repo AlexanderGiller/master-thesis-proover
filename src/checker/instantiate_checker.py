@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from itertools import combinations
 
 from src.checker.formula_utils import flatten_prefix, match_template_to_instance, substitute_node
-from src.parser.ast_nodes import AnnotatedFormula
+from src.parser.ast_nodes import AnnotatedFormula, Negation, QuantifiedFormula
 from src.var_mapping import InferenceRule, InferenceStatus, Quantifier
 
 
@@ -31,7 +31,26 @@ def check_instantiate(step: AnnotatedFormula, parent_step: AnnotatedFormula) -> 
     if inf.status != InferenceStatus.THM:
         issues.append(InstantiateIssue(step.name, f"status must be 'thm', got '{inf.status}'"))
 
-    parent_vars, parent_body = flatten_prefix(parent_step.formula, Quantifier.UNIVERSAL)
+    # Handle De Morgan's laws: ~∃X. P ≡ ∀X. ¬P
+    # This generalizes to multiple existential quantifiers: ~∃X. ∃Y. P ≡ ∀X. ∀Y. ¬P
+    parent_formula = parent_step.formula
+    if isinstance(parent_formula, Negation) and isinstance(parent_formula.formula, QuantifiedFormula):
+        inner = parent_formula.formula
+        if inner.quantifier == Quantifier.EXISTENTIAL:
+            # Collect all leading existential quantifiers
+            all_vars = []
+            current = inner
+            while isinstance(current, QuantifiedFormula) and current.quantifier == Quantifier.EXISTENTIAL:
+                all_vars.extend(current.variables)
+                current = current.formula
+            # Convert ~∃X.∃Y.... P to ∀X.∀Y.... ¬P
+            parent_formula = QuantifiedFormula(
+                quantifier=Quantifier.UNIVERSAL,
+                variables=all_vars,
+                formula=Negation(current),
+            )
+
+    parent_vars, parent_body = flatten_prefix(parent_formula, Quantifier.UNIVERSAL)
     child_vars, child_body = flatten_prefix(step.formula, Quantifier.UNIVERSAL)
 
     if len(child_vars) > len(parent_vars):
@@ -44,7 +63,7 @@ def check_instantiate(step: AnnotatedFormula, parent_step: AnnotatedFormula) -> 
         return issues
 
     if not parent_vars and not child_vars:
-        if not match_template_to_instance(parent_step.formula, step.formula, set()):
+        if not match_template_to_instance(parent_formula, step.formula, set()):
             issues.append(
                 InstantiateIssue(
                     step.name,

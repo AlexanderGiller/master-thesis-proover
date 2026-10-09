@@ -4,7 +4,7 @@ from typing import Callable
 
 import pytest
 
-from proof_checker_demo import check_proof_file
+from main import check_proof_file
 from src.var_mapping import (
     BinaryConnective,
     FormulaRole,
