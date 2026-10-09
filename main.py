@@ -1,6 +1,7 @@
 """Comprehensive proof checker for selected proof-step validations."""
 
 import argparse
+import csv
 from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
@@ -39,6 +40,7 @@ from src.checker.structural_checker import (
 from src.deep_recursion import run_with_larger_stack
 from src.parser.parser import load_proof, parse_file
 from src.var_mapping import FormulaRole, InferenceStatus
+from src.scoring.scoring import ProofScorer, print_scoring_summary
 
 PER_PROOF_TIMEOUT_SECONDS = 30.0
 
@@ -765,6 +767,11 @@ if __name__ == "__main__":
     all_pairs = collect_example_pairs(prover_directory)
     all_pairs.sort(key=lambda pair: Path(pair[0]).name)
 
+    # Initialize scorer with expected results
+    expected_file = base / "PRV_expected.csv"
+    scorer = ProofScorer(str(expected_file))
+    
+    
     total = len(all_pairs)
     verified_count = 0
     not_verified_count = 0
@@ -793,13 +800,21 @@ if __name__ == "__main__":
     skolem_failure_count = 0
     external_atp_failure_count = 0
     prv_results = []
+    scoring_results = []
 
     if total == 0:
         print("No proof/problem pairs found in ProoVer2026")
     else:
         for proof_sub_path, problem_sub_path in all_pairs:
             status, details = report_proof_check(proof_sub_path, problem_sub_path)
-            prv_results.append((Path(proof_sub_path).name, status, details))
+            proof_name = Path(proof_sub_path).name
+            
+            prv_results.append((proof_name, status, details))
+            
+            # Score the proof
+            score_result = scorer.score_proof(proof_name, status, details)
+            scoring_results.append(score_result)
+            
             if status == "VerifiedGood":
                 verified_count += 1
             elif status == "Timeout":
@@ -866,3 +881,13 @@ if __name__ == "__main__":
     print(f"  Skolemization: {skolem_failure_count}")
     print(f"  External ATP: {external_atp_failure_count}")
     print_prv_results_table(prv_results)
+
+    # Print scoring summary
+    if scoring_results:
+        scoring_summary = scorer.calculate_score_summary(scoring_results)
+        print_scoring_summary(scoring_summary)
+        
+        # Export results to CSV
+        output_csv = base / "src" / "results" / "ProoVer2026_results.csv"
+        scorer.export_results_to_csv(scoring_results, str(output_csv))
+        print(f"\nScoring results exported to: {output_csv}")
