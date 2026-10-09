@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import time
 from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
@@ -44,7 +45,11 @@ from src.scoring.scoring import ProofScorer, print_scoring_summary
 from src.performance.performance import PerformanceTracker, print_performance_table
 
 PER_PROOF_TIMEOUT_SECONDS = 30.0
+DEBUG_PROOF_FLOW = True
 
+def _dbg(msg: str) -> None:
+    if DEBUG_PROOF_FLOW:
+        print(f"[DBG] {msg}")
 
 def _build_step_index(steps):
     index = {}
@@ -78,6 +83,10 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
     for issue in check_conjecture_not_assumed(proof.steps):
         circular_dependency_issues.setdefault(issue.step_name, []).append(issue.reason)
 
+    atp_calls = 0
+    atp_total_seconds = 0.0
+    branch_hits: dict[str, int] = {}
+
     axiom_issues = {}
     conjecture_issues = {}
     negated_conjecture_issues = {}
@@ -102,6 +111,10 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
     skolem_issues = {}
     external_atp_issues = {}
 
+    def hit(branch: str, step_name: str, rule: str | None, status: str | None, parent_count: int) -> None:
+        branch_hits[branch] = branch_hits.get(branch, 0) + 1
+        _dbg(f"{step_name}: branch={branch}, rule={rule}, status={status}, parents={parent_count}")
+
     # Track conjectures for negation checking
     conjectures = {name: step for name, step in steps_by_name.items() if step.role == "conjecture"}
 
@@ -115,10 +128,14 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
     seen_skolem_symbols: set[str] = set()
 
     for step in proof.steps:
+        rule = step.inference.rule if step.inference else None
+        status = str(step.inference.status) if step.inference else None
+        parent_count = len(step.inference.parents) if (step.inference and step.inference.parents) else 0
         if step.role == "axiom":
             issues = check_axiom_provenance(step, problem_formulas, problem_path)
             if issues:
                 axiom_issues[step.name] = [it.reason for it in issues]
+            hit("axiom", step.name, rule, status, parent_count)
 
         elif step.role == "conjecture":
             issues = check_axiom_provenance(
@@ -126,6 +143,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             )
             if issues:
                 conjecture_issues[step.name] = [it.reason for it in issues]
+            hit("conjecture", step.name, rule, status, parent_count)
 
         elif step.role == "negated_conjecture":
             # Find the parent conjecture
@@ -144,6 +162,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 negated_conjecture_issues[step.name] = [
                     "No parent conjecture specified in inference"
                 ]
+            hit("negated conjecture", step.name, rule, status, parent_count)
         elif step.inference and step.inference.rule == "instantiate":
             if not step.inference.parents:
                 instantiate_issues[step.name] = ["No parent specified for instantiate step"]
@@ -156,6 +175,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             issues = check_instantiate(step, parent)
             if issues:
                 instantiate_issues[step.name] = [it.reason for it in issues]
+            hit("instantiate", step.name, rule, status, parent_count)
         elif step.inference and step.inference.rule == "existential_gen":
             if not step.inference.parents:
                 existential_gen_issues[step.name] = [
@@ -170,6 +190,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             issues = check_existential_gen(step, parent)
             if issues:
                 existential_gen_issues[step.name] = [it.reason for it in issues]
+            hit("existential_gen", step.name, rule, status, parent_count)
         elif step.inference and step.inference.rule in {
             "modus_ponens",
             "conjunction",
@@ -201,6 +222,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 issues = check_split_conjunct(step, parents[0])
             if issues:
                 target_issues[step.name] = [it.reason for it in issues]
+            hit("modus_ponens/conjunction/split_conjunct", step.name, rule, status, parent_count)
         elif step.inference and step.inference.rule in {
             "copy",
             "duplicate",
@@ -240,7 +262,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 issues = check_remove_double_negation(step, parents[0])
             if issues:
                 target_issues[step.name] = [it.reason for it in issues]
+            hit("copy/duplicate/rename_variable/double_negation/remove_double_negation", step.name, rule, status, parent_count)
         elif step.inference and step.inference.rule == "excluded_middle":
+            hit("excluded_middle", step.name, rule, status, parent_count)
             issues = check_excluded_middle(step)
             metadata_ok = step.inference.rule == "excluded_middle" and step.inference.status == InferenceStatus.THM
             if issues and metadata_ok:
@@ -249,12 +273,18 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 # several disjuncts). Fall back to the external ATP before
                 # reporting a failure so unusual-but-valid variants aren't
                 # rejected as false negatives.
-                valid, note = validate_step_with_atp(step.formula, [])
+                start = time.perf_counter()
+                valid, note = validate_step_with_atp(step.formula, [], timeout_seconds=PER_PROOF_TIMEOUT_SECONDS)
+                elapsed = time.perf_counter() - start
+                atp_calls += 1
+                atp_total_seconds += elapsed
+                _dbg(f"{step.name}: ATP call took {elapsed:.3f}s, valid={valid}, note={note}")
                 if not valid:
                     excluded_middle_issues[step.name] = [it.reason for it in issues]
             elif issues:
                 excluded_middle_issues[step.name] = [it.reason for it in issues]
         elif step.inference and step.inference.rule in {"weaken", "commute"} and len(step.inference.parents) == 1:
+            hit("weaken/commute", step.name, rule, status, parent_count)
             rule = step.inference.rule
             target_issues = {"weaken": weaken_issues, "commute": commute_issues}[rule]
             parent_name = step.inference.parents[0]
@@ -270,7 +300,14 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 # external ATP for the rarer, more general uses (e.g. weaken used
                 # for existential generalization) before reporting a failure, so
                 # we don't produce false negatives on valid but unusual steps.
-                valid, note = validate_step_with_atp(step.formula, [parent.formula])
+                start = time.perf_counter()
+                valid, note = validate_step_with_atp(step.formula,
+                                                     [parent.formula],
+                                                     timeout_seconds=PER_PROOF_TIMEOUT_SECONDS)
+                elapsed = time.perf_counter() - start
+                atp_calls += 1
+                atp_total_seconds += elapsed
+                _dbg(f"{step.name}: ATP call took {elapsed:.3f}s, valid={valid}, note={note}")
                 if not valid:
                     target_issues[step.name] = [it.reason for it in issues]
             elif issues:
@@ -280,6 +317,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             and step.inference.rule == "resolution"
             and len(step.inference.parents) == 2
         ):
+            hit("resolution", step.name, rule, status, parent_count)
             parent_names = step.inference.parents
             parents = [steps_by_name.get(name) for name in parent_names]
             if any(parent is None for parent in parents):
@@ -294,6 +332,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             and step.inference.rule == "paramodulation"
             and len(step.inference.parents) == 2
         ):
+            hit("paramodulation", step.name, rule, status, parent_count)
             parent_names = step.inference.parents
             parents = [steps_by_name.get(name) for name in parent_names]
             if any(parent is None for parent in parents):
@@ -308,6 +347,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             and step.inference.rule == "reflexivity"
             and len(step.inference.parents) == 1
         ):
+            hit("reflexivity", step.name, rule, status, parent_count)
             parent = steps_by_name.get(step.inference.parents[0])
             if parent is None:
                 reflexivity_issues[step.name] = [f"Parent step '{step.inference.parents[0]}' not found"]
@@ -322,6 +362,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
         ):
             parent_names = step.inference.parents
             parents = [steps_by_name.get(name) for name in parent_names]
+            hit("transitivity", step.name, rule, status, parent_count)
             if any(parent is None for parent in parents):
                 missing = [name for name, parent in zip(parent_names, parents) if parent is None]
                 transitivity_issues[step.name] = [f"Parent step(s) not found: {', '.join(missing)}"]
@@ -334,6 +375,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             and step.inference.rule == "rewrite"
             and len(step.inference.parents) == 1
         ):
+            hit("rewrite", step.name, rule, status, parent_count)
             parent = steps_by_name.get(step.inference.parents[0])
             if parent is None:
                 rewrite_issues[step.name] = [f"Parent step '{step.inference.parents[0]}' not found"]
@@ -344,6 +386,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 # Skolemization steps: often role is 'plain' but inference.rule == 'skolemize'
         elif step.inference and step.inference.rule == "skolemize":
             # Find parent step by name (first parent)
+            hit("skolemize", step.name, rule, status, parent_count)
             if not step.inference.parents:
                 skolem_issues[step.name] = ["No parent specified for skolemize step"]
                 continue
@@ -380,6 +423,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 skolem_issues[step.name] = [it.reason for it in issues]
 
         elif step.inference and status_allows_atp(step.inference.status):
+            hit("external_atp", step.name, rule, status, parent_count)
             parent_names = step.inference.parents or []
             parent_steps = []
             missing_parents = []
@@ -394,7 +438,12 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                     f"Parent step(s) not found: {', '.join(missing_parents)}"
                 ]
             else:
-                valid, note = validate_step_with_atp(step.formula, parent_steps)
+                start = time.perf_counter()
+                valid, note = validate_step_with_atp(step.formula, premise_formulas=parent_steps, timeout_seconds=PER_PROOF_TIMEOUT_SECONDS)
+                elapsed = time.perf_counter() - start
+                atp_calls += 1
+                atp_total_seconds += elapsed
+                _dbg(f"{step.name}: ATP call took {elapsed:.3f}s, valid={valid}, note={note}")
                 if not valid:
                     external_atp_issues[step.name] = [f"External ATP rejected step: {note}"]
         elif step.inference:
@@ -433,6 +482,11 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
         and not skolem_issues
         and not external_atp_issues
     )
+    if DEBUG_PROOF_FLOW:
+        _dbg("---- proof flow summary ----")
+        _dbg(f"ATP calls: {atp_calls}, ATP total: {atp_total_seconds:.3f}s")
+        for b, n in sorted(branch_hits.items(), key=lambda x: x[0]):
+            _dbg(f"branch {b}: {n}")
 
     return {
         "circular_dependency_issues": circular_dependency_issues,
@@ -769,8 +823,12 @@ if __name__ == "__main__":
     all_pairs.sort(key=lambda pair: Path(pair[0]).name)
 
     # Initialize scorer with expected results
-    expected_file = base / "PRV_expected.csv"
+    expected_file = base / "src" / "scoring" / "PRV_expected.csv"
     scorer = ProofScorer(str(expected_file))
+    if scorer.expected:
+        print(f"✓ Loaded {len(scorer.expected)} expected results from {expected_file}")
+    else:
+        print(f"⚠ Warning: No expected results loaded from {expected_file}")
     
     # Initialize performance tracker
     tracker = PerformanceTracker()
@@ -810,7 +868,7 @@ if __name__ == "__main__":
     else:
         for proof_sub_path, problem_sub_path in all_pairs:
             tracker.start()
-            status, details = report_proof_check(proof_sub_path, problem_sub_path)
+            status, details = report_proof_check(proof_sub_path, problem_sub_path, args.timeout)
             proof_name = Path(proof_sub_path).name
             tracker.stop(proof_name)
             
@@ -912,7 +970,7 @@ if __name__ == "__main__":
         print_performance_table(tracker)
         
         # Export performance data to CSV
-        perf_csv_file = base / "src" / "results" / "performance_results.csv"
+        perf_csv_file = base / "results" / "performance_results.csv"
         with open(perf_csv_file, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(['Proof', 'WC Time (s)', 'CPU Time (s)', 'Overhead (s)'])
@@ -927,6 +985,6 @@ if __name__ == "__main__":
         print_scoring_summary(scoring_summary)
         
         # Export results to CSV
-        output_csv = base / "src" / "results" / "ProoVer2026_results.csv"
+        output_csv = base / "results" / "ProoVer2026_results.csv"
         scorer.export_results_to_csv(scoring_results, str(output_csv))
         print(f"\nScoring results exported to: {output_csv}")

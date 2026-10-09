@@ -213,6 +213,18 @@ class TestSkolemCheckerExamples:
 
         assert result["skolem_issues"] == {}
 
+    def test_prv058_reports_multiple_status_in_skolemize(self):
+        result = check_proof_file(
+            str(ROOT / "ProoVer2026" / "PRV058+1.s"),
+            str(ROOT / "ProoVer2026" / "Problems" / "PRV058+1.p"),
+        )
+
+        assert "s1" in result["skolem_issues"]
+        assert any(
+            "exactly one status" in reason
+            for reason in result["skolem_issues"]["s1"]
+        )
+
     def test_prv080_reports_existential_dependency_in_skolem_term(self):
         result = check_proof_file(
             str(ROOT / "ProoVer2026" / "PRV080+1.s"),
