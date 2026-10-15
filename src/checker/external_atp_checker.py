@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Literal
 
 from src.parser.ast_nodes import (
     Atom,
@@ -23,7 +24,8 @@ from src.parser.ast_nodes import (
 )
 from src.var_mapping import BinaryConnective, InferenceStatus, Quantifier
 
-ATP_TIMEOUT_SECONDS = 30.0
+
+ATPValidation = bool | Literal["unknown"]
 
 
 def _quote_symbol(name: str) -> str:
@@ -136,9 +138,15 @@ def _maybe_translate_path_for_command(command: list[str], path: Path) -> Path:
 def validate_step_with_atp(
     step_formula: object,
     premise_formulas: list[object],
-    timeout_seconds: float = ATP_TIMEOUT_SECONDS,
-) -> tuple[bool, str]:
-    """Validate a step using an external ATP and only the step's premises."""
+    timeout_seconds: float,
+) -> tuple[ATPValidation, str]:
+    """Validate a step with an external ATP.
+
+    Returns:
+        (True, status) when the ATP confirms validity,
+        (False, status) when the ATP refutes validity,
+        ("unknown", reason) when validation is unresolved.
+    """
     problem_text = _render_problem(premise_formulas, step_formula)
     command = _resolve_atp_command() + [
         "--mode",
@@ -161,14 +169,14 @@ def validate_step_with_atp(
                 check=False,
             )
         except FileNotFoundError:
-            return True, f"ATP executable not found: {command[0]}"
+            return "unknown", f"ATP executable not found: {command[0]}"
         except subprocess.TimeoutExpired:
-            return False, "ATP timed out"
+            return "unknown", "ATP timed out"
 
     output = f"{completed.stdout}\n{completed.stderr}"
     match = re.search(r"%\s*SZS status\s+([A-Za-z0-9_]+)", output)
     if not match:
-        return True, "ATP output did not contain an SZS status"
+        return "unknown", "ATP output did not contain an SZS status"
 
     status = match.group(1)
     if status in {"Theorem", "Unsatisfiable", "ContradictoryAxioms"}:

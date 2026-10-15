@@ -1,6 +1,7 @@
-from proof_checker_demo import check_proof_file
+from main import check_proof_file
 from src.checker.propositional_checker import (
     check_conjunction,
+    check_instantiate_mp,
     check_modus_ponens,
     check_split_conjunct,
 )
@@ -50,6 +51,25 @@ def test_modus_ponens_rejects_missing_or_wrong_premise():
     conclusion = annotated("result", Atom("q"), inference(InferenceRule.MODUS_PONENS, ["rule", "premise"]))
 
     assert check_modus_ponens(conclusion, implication, premise)
+
+
+def test_instantiate_mp_accepts_universal_implication_and_premise():
+    implication = annotated(
+        "rule",
+        QuantifiedFormula(
+            Quantifier.UNIVERSAL,
+            ["X"],
+            BinaryFormula(BinaryConnective.IMPLIES, Atom("p", [Variable("X")]), Atom("q", [Variable("X")]))
+        ),
+    )
+    premise = annotated("premise", Atom("p", [Constant("a")]))
+    conclusion = annotated(
+        "result",
+        Atom("q", [Constant("a")]),
+        inference("instantiate_mp", ["rule", "premise"]),
+    )
+
+    assert check_instantiate_mp(conclusion, implication, premise) == []
 
 
 def test_conjunction_and_split_conjunct():
@@ -123,3 +143,22 @@ def test_integration_prv014_nary_conjunction_flattening():
     )
 
     assert result["conjunction_issues"] == {}
+
+
+def test_integration_prv018_s3_no_longer_uses_external_atp(monkeypatch):
+    calls: list[str] = []
+
+    def _fake_validate(step_formula, premise_formulas, timeout_seconds):
+        calls.append(repr(step_formula))
+        return "unknown", "mock"
+
+    monkeypatch.setattr("main.validate_step_with_atp", _fake_validate)
+
+    result = check_proof_file(
+        "ProoVer2026/PRV018+1.s",
+        "ProoVer2026/Problems/PRV018+1.p",
+    )
+
+    assert "s3" not in result["external_atp_issues"]
+    assert calls == ["$false"]
+

@@ -1,0 +1,10 @@
+%------------------------------------------------------------------------------
+% File     : TST048+1.p : ProoVer 2026
+% Source   : ProoVer 2026
+% Status   : Unknown
+%------------------------------------------------------------------------------
+% SZS output start ListOfFormulae
+fof(a1, axiom, (p(a) & ?[X]: q(X))).
+
+fof(c1, conjecture, ?[X]: q(X)).
+% SZS output end ListOfFormulae

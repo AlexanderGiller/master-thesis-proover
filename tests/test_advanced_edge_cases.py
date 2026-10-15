@@ -576,7 +576,7 @@ class TestSkolemCheckerNegatedUniversal:
         )
 
         issues = check_skolemization(child, parent)
-        assert any("not found" in issue.reason for issue in issues)
+        assert any("cannot be eliminated by skolemize" in issue.reason for issue in issues)
 
     def test_negated_universal_with_outer_universal_scope(self):
         """![Y]: ~![X]: r(X, Y) -> skolemize X depending on Y -> ![Y]: ~r(sK0(Y), Y)."""

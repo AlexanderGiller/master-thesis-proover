@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from proof_checker_demo import check_proof_file
+from main import check_proof_file
 
 ROOT = Path(__file__).resolve().parents[1]
 

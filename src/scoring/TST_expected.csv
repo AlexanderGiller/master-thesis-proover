@@ -1,0 +1,77 @@
+proof,test_id,expected,description
+TST001+1.s,c01_basic_modus_ponens,CORRECT,Einfacher korrekter Beweis ohne Skolemisierung
+TST002+1.s,c02_skolem_existential_axiom,CORRECT,Skolem-Konstante fuer Axiom ?[X] und negierte Konjunktur ~?[X]
+TST003+1.s,c03_skolem_dependent_on_universal,CORRECT,Skolem-Funktion sK0(X) + Skolem-Konstante aus negierter Konjunktur
+TST004+1.s,c04_skolem_all_universals_in_scope,CORRECT,"Skolem-Term haengt von ALLEN Allquantoren im Scope ab (X,Z), auch wenn Z nicht vorkommt"
+TST005+1.s,c05_two_independent_skolem_symbols,CORRECT,Zwei Skolemisierungen mit verschiedenen neuen Symbolen
+TST006+1.s,c06_alpha_equivalence_renamed_steps,CORRECT,Axiome alpha-aequivalent (umbenannte Variablen) und andere Schrittnamen als in Problemdatei
+TST007+1.s,c07_unordered_steps,CORRECT,Schritte in beliebiger Reihenfolge (Vorwaertsreferenzen erlaubt)
+TST008+1.s,sk01_status_not_esa,INCORRECT,skolemize mit Status thm statt esa
+TST009+1.s,sk02_missing_new_symbols,INCORRECT,"new_symbols(skolem,[..]) fehlt"
+TST010+1.s,sk03_skolem_symbol_reused,INCORRECT,Skolem-Symbol sK0 in zweitem Skolemschritt erneut als 'neu' deklariert
+TST011+1.s,sk04_missing_dependency,INCORRECT,"Skolem-Konstante statt sK0(X), obwohl X im Scope"
+TST012+1.s,sk05_vacuous_universal_omitted,INCORRECT,"Edge (laut Regel 'exakt'): sK0(X) statt sK0(X,Z); Z ist im Scope, kommt aber nicht vor"
+TST013+1.s,sk06_extra_variable_not_in_scope,INCORRECT,Skolem-Term haengt von nicht gebundener Variable W ab
+TST014+1.s,sk07_wrong_variable_in_skolemize,INCORRECT,"skolemize(Z, sK0): Z ist nicht die eliminierte Variable"
+TST015+1.s,sk08_wrong_resulting_formula,INCORRECT,"Ergebnisformel vertauscht Argumente: r(sK0(X),X)"
+TST016+1.s,sk09_parent_without_existential,INCORRECT,Skolemisierung einer rein universellen Formel (zusaetzlicher Schritt)
+TST017+1.s,sk10_wrong_polarity,INCORRECT,~?[X]:q(X) wird wie ein positives Existenz-Axiom skolemisiert (~q(sK1)) - unsound
+TST018+1.s,sk11_two_symbols_in_one_step,INCORRECT,new_symbols deklariert zwei Symbole in einem Schritt
+TST019+1.s,sk12_missing_skolemize_term,INCORRECT,"skolemize(Var, Term) fehlt"
+TST020+1.s,sk13_wrong_rule_name,INCORRECT,"Regelname 'skolem' statt 'skolemize' (unspezifiziert, Status esa nicht per ATP pruefbar)"
+TST021+1.s,nc01_status_not_cth,INCORRECT,negated_conjecture mit Status thm
+TST022+1.s,nc02_parent_is_axiom,INCORRECT,Zusaetzlicher negated_conjecture-Schritt mit Axiom als Parent
+TST023+1.s,nc03_not_negated,INCORRECT,Formel ist nicht negiert (q(a))
+TST024+1.s,nc04_negation_of_other_formula,INCORRECT,Negation einer anderen Formel (~q(b))
+TST025+1.s,nc05_wrong_rule_name,INCORRECT,Regelname 'negate_conjecture' statt 'negated_conjecture'
+TST026+1.s,nc06_wrong_role,INCORRECT,Rolle plain statt negated_conjecture
+TST027+1.s,nc07_missing_parent,INCORRECT,Parent c1 existiert im Beweis nicht
+TST028+1.s,ax01_formula_modified,INCORRECT,Axiom weicht von Problemdatei ab (r statt q)
+TST029+1.s,ax02_nonexistent_name,INCORRECT,file-Direktive verweist auf nicht existierendes Axiom a9
+TST030+1.s,ax03_axiom_role_points_to_conjecture,INCORRECT,"Rolle axiom, verweist aber auf die Konjunktur c1"
+TST031+1.s,ax04_conjecture_role_points_to_axiom,INCORRECT,"Rolle conjecture, verweist aber auf Axiom a2"
+TST032+1.s,ax05_not_alpha_equivalent_swap,INCORRECT,Implikationsrichtung vertauscht (nicht alpha-aequivalent)
+TST033+1.s,ax06_quantifier_changed,INCORRECT,![X]:p(X) statt ?[X]:p(X)
+TST034+1.s,ax07_conjecture_modified,INCORRECT,Konjunktur q(b) statt q(a)
+TST035+1.s,ax08_missing_file_directive,INCORRECT,Axiom ohne file-Direktive
+TST036+1.s,st01_no_false,INCORRECT,Beweis endet nicht in $false
+TST037+1.s,st02_invalid_thm_step,INCORRECT,thm-Schritt q(b) folgt nicht aus Praemissen (ATP muss scheitern)
+TST038+1.s,st03_insufficient_premises,INCORRECT,q(a) folgt nur mit a2; a2 fehlt in Praemissen
+TST039+1.s,st04_esa_on_non_skolem_step,INCORRECT,Status esa fuer unspezifizierte Regel
+TST040+1.s,st05_unknown_status,INCORRECT,Ungueltiger Status (unk)
+TST041+1.s,st06_cyclic_dependency,INCORRECT,Zyklische Abhaengigkeit f1 <-> f2
+TST042+1.s,st07_undefined_premise,INCORRECT,Praemisse a7 existiert nicht
+TST043+1.s,st08_monolithic_step,INCORRECT,Ein Schritt $false aus Axiomen+nc (faktisch Re-Check der ganzen Konjunktur; Granularitaet)
+TST044+1.s,st09_duplicate_step_name,INCORRECT,Zwei Schritte heissen f1
+TST045+1.s,st10_no_inference_record,INCORRECT,plain-Formel ohne inference-Annotation
+TST046+1.s,st11_cth_on_non_negated_conjecture,INCORRECT,Status cth fuer normalen Inferenzschritt
+TST047+1.s,c08_nested_alternating_quantifiers,CORRECT,"![X]?[Y]![Z]?[W]: sK0(X) fuer Y, sK1(X,Z) fuer W (Y schon eliminiert)"
+TST048+1.s,c09_skolem_inside_conjunction,CORRECT,Skolemisierung eines Existenzquantors tief in einer Konjunktion (positive Polaritaet)
+TST049+1.s,c10_nested_existentials_outer_first,CORRECT,"?[X]?[Y]: aeusserer zuerst, zwei Skolem-Konstanten in zwei Schritten"
+TST050+1.s,c11_skolem_arg_order_edge,CORRECT,"Edge: sK1(Z,X) statt sK1(X,Z) - Reihenfolge der Argumente ist in den Regeln nicht festgelegt"
+TST051+1.s,c12_negated_conjecture_equivalent_form,CORRECT,"Edge: negierte Konjunktur als ![X]: ~q(X) (logisch aequivalent, nur per ATP/Normalisierung pruefbar)"
+TST052+1.s,c13_empty_premises_tautology,CORRECT,Schritt mit leerer Praemissenliste und Tautologie (zusaetzlicher Schritt)
+TST053+1.s,sk14_missing_scope_var_Z,INCORRECT,"sK1(X) statt sK1(X,Z): Z ist fuer W im Scope"
+TST054+1.s,sk15_dependency_on_eliminated_var,INCORRECT,"sK1(X,Y): Y wurde bereits skolemisiert und ist keine Allvariable im Scope"
+TST055+1.s,sk16_dependency_on_inner_var,INCORRECT,"sK0(X,Z) fuer Y: Z wird erst NACH Y quantifiziert, ist nicht im Scope"
+TST056+1.s,sk17_arity_inconsistent,INCORRECT,"sK0 einmal als Funktion sK0(X), spaeter als Konstante sK0 verwendet"
+TST057+1.s,sk18_term_functor_differs_from_new_symbol,INCORRECT,"new_symbols deklariert sK0, der Skolem-Term benutzt aber sK7"
+TST058+1.s,sk19_symbol_clash_with_problem,INCORRECT,Skolem-Symbol 'a' kollidiert mit Konstante a aus Axiom a3 - fuehrt zu unsoundem $false
+TST059+1.s,sk20_result_without_skolem_symbol,INCORRECT,"Ergebnisformel unveraendert (?[X]: p(X)), Skolem-Symbol kommt nicht vor"
+TST060+1.s,sk21_two_variables_in_one_step,INCORRECT,"?[X]?[Y] in einem Schritt eliminiert, aber nur ein Symbol/eine Variable angegeben"
+TST061+1.s,sk22_skolemize_conjecture,INCORRECT,Skolemisierung der KONJUNKTUR (statt der Negation) - beweist die Konjunktur zirkulaer
+TST062+1.s,sk23_two_parents,INCORRECT,"skolemize mit zwei Parents [a1,a2]"
+TST063+1.s,sk24_zero_parents,INCORRECT,skolemize mit leerer Parent-Liste
+TST064+1.s,sk25_existential_in_antecedent,INCORRECT,?[X] im Antezedens (negative Polaritaet): p(sK0) => q ist keine korrekte Skolemisierung (zusaetzlicher Schritt)
+TST065+1.s,nc08_no_negated_conjecture,INCORRECT,Kein negated_conjecture-Schritt; $false wird aus q(a) 'abgeleitet'
+TST066+1.s,nc09_not_equivalent_negation,INCORRECT,?[X]: ~q(X) ist nicht die Negation von ?[X]: q(X)
+TST067+1.s,nc10_parent_is_plain_step,INCORRECT,Zusaetzlicher negated_conjecture-Schritt mit plain-Schritt f1 als Parent
+TST068+1.s,nc11_two_negated_conjectures,EDGE,Edge: zwei (korrekte) negated_conjecture-Schritte fuer dieselbe Konjunktur
+TST069+1.s,cp01_conjecture_used_as_premise_for_false,INCORRECT,"$false direkt aus [c1, nc1]: Konjunktur als Praemisse (zirkulaer, ATP-seitig gueltig)"
+TST070+1.s,cp02_conjecture_used_as_premise_in_step,INCORRECT,q(a) per copy aus der Konjunktur c1 abgeleitet
+TST071+1.s,cp03_inconsistent_axioms_without_negc,EDGE,"Edge: Axiome widerspruechlich, $false ohne negierte Konjunktur (Regeln fordern Refutation der Konjunktur?)"
+TST072+1.s,ax09_role_hypothesis,INCORRECT,Rolle hypothesis statt axiom
+TST073+1.s,ax10_path_dot_slash,EDGE,Edge: file('./Problems/..') statt 'Problems/..' (strict_path_match)
+TST074+1.s,ax11_quantifier_block_swapped,EDGE,"Edge: ![Y]:![X]: statt ![X]:![Y]: - logisch aequivalent, nicht alpha-aequivalent"
+TST075+1.s,st12_empty_premises_non_tautology,INCORRECT,"Leere Praemissenliste, aber Formel q(b) ist keine Tautologie (zusaetzlicher Schritt)"
+TST076+1.s,st13_free_variable_in_step,EDGE,Edge: Schrittformel mit freier Variable q(X)

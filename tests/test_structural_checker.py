@@ -1,4 +1,4 @@
-from proof_checker_demo import check_proof_file
+from main import check_proof_file
 from src.checker.structural_checker import (
     check_copy,
     check_double_negation,

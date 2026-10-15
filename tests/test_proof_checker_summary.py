@@ -1,4 +1,4 @@
-from proof_checker_demo import print_prv_results_table, summarize_issues
+from main import print_prv_results_table, summarize_issues
 
 
 def test_summarize_issues_lists_failed_check_types():
