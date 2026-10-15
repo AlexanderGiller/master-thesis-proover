@@ -41,6 +41,28 @@ def _flatten_conjuncts(formula: object) -> list:
     return [formula]
 
 
+def _forms_implication_application(
+    conclusion_formula: object, first_parent_formula: object, second_parent_formula: object
+) -> bool:
+    """Return True if parents can derive conclusion by implication application.
+
+    Supports both parent orders and universally quantified implications.
+    """
+    parents = (first_parent_formula, second_parent_formula)
+    for implication, premise in (parents, (parents[1], parents[0])):
+        variables, body = flatten_prefix(implication, Quantifier.UNIVERSAL)
+        if not isinstance(body, BinaryFormula) or body.connective != BinaryConnective.IMPLIES:
+            continue
+        substitutions: dict[str, object] = {}
+        if match_template_to_instance(
+            body.left, premise, set(variables), substitutions=substitutions
+        ) and match_template_to_instance(
+            body.right, conclusion_formula, set(variables), substitutions=substitutions
+        ):
+            return True
+    return False
+
+
 def check_conjunction(
     step: AnnotatedFormula, left_parent: AnnotatedFormula, right_parent: AnnotatedFormula
 ) -> list[PropositionalIssue]:
@@ -96,17 +118,9 @@ def check_modus_ponens(
 ) -> list[PropositionalIssue]:
     """Check modus ponens, allowing either parent order and universal instantiation."""
     issues = _check_inference_metadata(step, InferenceRule.MODUS_PONENS)
-    parents = (first_parent.formula, second_parent.formula)
+    if _forms_implication_application(step.formula, first_parent.formula, second_parent.formula):
+        return issues
 
-    for implication, premise in (parents, (parents[1], parents[0])):
-        variables, body = flatten_prefix(implication, Quantifier.UNIVERSAL)
-        if not isinstance(body, BinaryFormula) or body.connective != BinaryConnective.IMPLIES:
-            continue
-        substitutions: dict[str, object] = {}
-        if match_template_to_instance(body.left, premise, set(variables), substitutions) and match_template_to_instance(
-            body.right, step.formula, set(variables), substitutions
-        ):
-            return issues
 
     issues.append(
         PropositionalIssue(
@@ -115,3 +129,33 @@ def check_modus_ponens(
         )
     )
     return issues
+
+
+def check_instantiate_mp(
+    step: AnnotatedFormula, first_parent: AnnotatedFormula, second_parent: AnnotatedFormula
+) -> list[PropositionalIssue]:
+    """Check instantiate_mp using the same semantics as instantiated modus ponens."""
+    issues: list[PropositionalIssue] = []
+    if step.inference is None:
+        return [PropositionalIssue(step.name, "instantiate_mp step must have an inference record")]
+    if step.inference.rule != "instantiate_mp":
+        issues.append(
+            PropositionalIssue(step.name, f"rule must be 'instantiate_mp', got '{step.inference.rule}'")
+        )
+    if step.inference.status != InferenceStatus.THM:
+        issues.append(
+            PropositionalIssue(step.name, f"status must be 'thm', got '{step.inference.status}'")
+        )
+
+    if _forms_implication_application(step.formula, first_parent.formula, second_parent.formula):
+        return issues
+
+    issues.append(
+        PropositionalIssue(
+            step.name,
+            "parents and conclusion do not form a valid instantiate_mp step",
+        )
+    )
+    return issues
+
+
