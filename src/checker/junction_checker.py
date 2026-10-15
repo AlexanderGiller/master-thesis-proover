@@ -4,7 +4,7 @@
 from dataclasses import dataclass
 
 from src.checker.alpha_eq import is_alpha_equivalent
-from src.parser.ast_nodes import AnnotatedFormula, JunctionFormula, Negation
+from src.parser.ast_nodes import AnnotatedFormula, Equality, JunctionFormula, Negation
 from src.var_mapping import BinaryConnective, InferenceRule, InferenceStatus
 
 
@@ -39,6 +39,23 @@ def _flatten(formula: object, connective: BinaryConnective) -> list:
     if isinstance(formula, JunctionFormula) and formula.connective == connective:
         return list(formula.operands)
     return [formula]
+
+
+def _are_complements(left: object, right: object) -> bool:
+    """Return True iff left/right form a complementary pair phi and ~phi."""
+    if isinstance(left, Negation) and is_alpha_equivalent(left.formula, right):
+        return True
+    if isinstance(right, Negation) and is_alpha_equivalent(right.formula, left):
+        return True
+
+    if isinstance(left, Equality) and isinstance(right, Equality):
+        if left.negated == right.negated:
+            return False
+        return is_alpha_equivalent(left.left, right.left) and is_alpha_equivalent(
+            left.right, right.right
+        )
+
+    return False
 
 
 def check_weaken(step: AnnotatedFormula, parent: AnnotatedFormula) -> list[JunctionIssue]:
@@ -133,6 +150,11 @@ def check_excluded_middle(step: AnnotatedFormula) -> list[JunctionIssue]:
     operands = _flatten(step.formula, BinaryConnective.OR)
     if len(operands) < 2:
         issues.append(JunctionIssue(step.name, "excluded_middle formula must be a disjunction"))
+        return issues
+
+    # Standard excluded-middle forms, including parser-level "!=" representation
+    # of negated equality, are binary disjunctions of complements.
+    if len(operands) == 2 and _are_complements(operands[0], operands[1]):
         return issues
 
     for index, operand in enumerate(operands):

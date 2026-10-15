@@ -234,6 +234,22 @@ class TestAlphaEquivalenceJunctionFormulas:
         )
         assert not is_alpha_equivalent(j1, j2)
 
+    def test_nested_or_parenthesization_is_equivalent(self):
+        """Nested OR-parenthesization should not break equivalence checks."""
+        left_nested = JunctionFormula(
+            BinaryConnective.OR,
+            [
+                JunctionFormula(BinaryConnective.OR, [Atom("p", args=[]), Atom("q", args=[])]),
+                Atom("r", args=[]),
+            ],
+        )
+        right_flat = JunctionFormula(
+            BinaryConnective.OR,
+            [Atom("p", args=[]), Atom("q", args=[]), Atom("r", args=[])],
+        )
+
+        assert is_alpha_equivalent(left_nested, right_flat)
+
 
 class TestAlphaEquivalenceQuantifiedFormulas:
     """Test alpha-equivalence for quantified formulas."""

@@ -66,6 +66,29 @@ class TestInstantiateChecker:
 
         assert check_instantiate(child, parent) == []
 
+    def test_valid_instantiation_with_kept_universal_variable(self):
+        parent = make_annotated(
+            "p",
+            FormulaRole.PLAIN,
+            QuantifiedFormula(
+                Quantifier.UNIVERSAL,
+                ["X", "Y"],
+                Atom("r", [Variable("X"), Variable("Y")]),
+            ),
+        )
+        child = make_annotated(
+            "c",
+            FormulaRole.PLAIN,
+            QuantifiedFormula(
+                Quantifier.UNIVERSAL,
+                ["Y"],
+                Atom("r", [Constant("a"), Variable("Y")]),
+            ),
+            make_inference(InferenceRule.INSTANTIATE, InferenceStatus.THM, ["p"]),
+        )
+
+        assert check_instantiate(child, parent) == []
+
     def test_invalid_instantiation(self):
         parent = make_annotated(
             "p",
