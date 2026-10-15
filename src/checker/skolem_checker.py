@@ -432,14 +432,19 @@ def check_skolemization(
         )
 
     status_entries = [item.status for item in inf.info if isinstance(item, StatusInfo)]
-
-    for status_entry in status_entries:
-        if status_entry != InferenceStatus.ESA:
-            issues.append(
-                SkolemizationIssue(
-                    skolem_step.name,
-                    f"skolemize must be 'esa', got {(status_entry)}",
-                )
+    if len(status_entries) != 1:
+        issues.append(
+            SkolemizationIssue(
+                skolem_step.name,
+                f"skolemize must contain exactly one status, got {len(status_entries)}",
+            )
+        )
+    elif status_entries[0] != InferenceStatus.ESA:
+        issues.append(
+            SkolemizationIssue(
+                skolem_step.name,
+                f"skolemize must be 'esa', got {status_entries[0]}",
+            )
         )
 
     new_symbols_info = next((item for item in inf.info if isinstance(item, NewSymbolsInfo)), None)
@@ -527,16 +532,11 @@ def check_skolemization(
                 "but only in negative polarity (effectively universal), so skolemize cannot "
                 "eliminate it"
             )
-        elif binding_stats["syntactic_existential"] == 0:
-            if binding_stats["under_negation"] > 0:
-                reason = (
-                    f"existential variable '{skolemize_info.variable}' not found in parent formula"
-                )
-            else:
-                reason = (
-                    f"variable '{skolemize_info.variable}' is quantified only universally "
-                    "in the parent formula and cannot be eliminated by skolemize"
-                )
+        elif binding_stats["effective_existential"] == 0:
+            reason = (
+                f"variable '{skolemize_info.variable}' is quantified only universally "
+                "in the parent formula and cannot be eliminated by skolemize"
+            )
         else:
             reason = (
                 f"existential variable '{skolemize_info.variable}' not found in parent formula"
