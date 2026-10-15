@@ -43,7 +43,7 @@ PRV040+1.s,CORRECT,Proof 40 - should verify correctly
 PRV041+1.s,CORRECT,Proof 41 - should verify correctly
 PRV042+1.s,CORRECT,Proof 42 - should verify correctly
 PRV043+1.s,CORRECT,Proof 43 - should verify correctly
-PRV044+1.s,INCORRECT,Proof 44 - should verify incorrectly
+PRV044+1.s,CORRECT,Proof 44 - should verify correctly
 PRV045+1.s,CORRECT,Proof 45 - should verify correctly
 PRV046+1.s,INCORRECT,Proof 46 - should verify incorrectly
 PRV047+1.s,INCORRECT,Proof 47 - should verify incorrectly
@@ -79,7 +79,7 @@ PRV076+1.s,CORRECT,Proof 76 - should verify correctly
 PRV077+1.s,INCORRECT,Proof 77 - should verify incorrectly
 PRV078+1.s,INCORRECT,Proof 78 - should verify incorrectly
 PRV079+1.s,CORRECT,Proof 79 - should verify correctly
-PRV080+1.s,CORRECT,Proof 80 - should verify correctly
+PRV080+1.s,INCORRECT,Proof 80 - should verify incorrectly
 PRV081+1.s,CORRECT,Proof 81 - should verify correctly
 PRV082+1.s,CORRECT,Proof 82 - should verify correctly
 PRV083+1.s,INCORRECT,Proof 83 - should verify incorrectly

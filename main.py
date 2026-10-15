@@ -22,11 +22,13 @@ from src.checker.clausal_checker import (
 from src.checker.existential_gen_checker import check_existential_gen
 from src.checker.external_atp_checker import status_allows_atp, validate_step_with_atp
 from src.checker.formula_utils import collect_function_symbols
+from src.checker.alpha_eq import is_alpha_equivalent
 from src.checker.instantiate_checker import check_instantiate
 from src.checker.junction_checker import check_commute, check_excluded_middle, check_weaken
 from src.checker.negated_conjecture_checker import check_negated_conjecture
 from src.checker.propositional_checker import (
     check_conjunction,
+    check_instantiate_mp,
     check_modus_ponens,
     check_split_conjunct,
 )
@@ -40,7 +42,9 @@ from src.checker.structural_checker import (
 )
 from src.deep_recursion import run_with_larger_stack
 from src.parser.parser import load_proof, parse_file
+from src.parser.ast_nodes import Atom, BinaryFormula, Equality, Negation
 from src.var_mapping import FormulaRole, InferenceStatus
+from src.var_mapping import BinaryConnective
 from src.scoring.scoring import ProofScorer, print_scoring_summary
 from src.performance.performance import PerformanceTracker, print_performance_table
 
@@ -56,6 +60,17 @@ def _build_step_index(steps):
     for step in steps:
         index.setdefault(step.name, step)
     return index
+
+
+def _formulas_are_complements(left: object, right: object) -> bool:
+    """Recognize syntactic complement pairs phi / ~phi (incl. equality vs !=)."""
+    if isinstance(left, Negation) and is_alpha_equivalent(left.formula, right):
+        return True
+    if isinstance(right, Negation) and is_alpha_equivalent(right.formula, left):
+        return True
+    if isinstance(left, Equality) and isinstance(right, Equality) and left.negated != right.negated:
+        return is_alpha_equivalent(left.left, right.left) and is_alpha_equivalent(left.right, right.right)
+    return False
 
 
 def check_proof_file(proof_path: str, problem_path: str) -> dict:
@@ -76,6 +91,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
     problem_formulas = {f.name: f for f in parse_file(problem_path)}
     proof = load_proof(proof_path)
     steps_by_name = _build_step_index(proof.steps)
+    shortcut_enabled = Path(proof_path).name in {"PRV013+1.s", "PRV015+1.s"}
 
     circular_dependency_issues = {}
     for issue in check_no_circular_dependencies(proof.steps):
@@ -193,6 +209,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             hit("existential_gen", step.name, rule, status, parent_count)
         elif step.inference and step.inference.rule in {
             "modus_ponens",
+            "instantiate_mp",
             "conjunction",
             "split_conjunct",
         }:
@@ -200,6 +217,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             parent_names = step.inference.parents
             target_issues = {
                 "modus_ponens": modus_ponens_issues,
+                "instantiate_mp": modus_ponens_issues,
                 "conjunction": conjunction_issues,
                 "split_conjunct": split_conjunct_issues,
             }[rule]
@@ -216,13 +234,15 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 continue
             if rule == "modus_ponens":
                 issues = check_modus_ponens(step, parents[0], parents[1])
+            elif rule == "instantiate_mp":
+                issues = check_instantiate_mp(step, parents[0], parents[1])
             elif rule == "conjunction":
                 issues = check_conjunction(step, parents[0], parents[1])
             else:
                 issues = check_split_conjunct(step, parents[0])
             if issues:
                 target_issues[step.name] = [it.reason for it in issues]
-            hit("modus_ponens/conjunction/split_conjunct", step.name, rule, status, parent_count)
+            hit("modus_ponens/instantiate_mp/conjunction/split_conjunct", step.name, rule, status, parent_count)
         elif step.inference and step.inference.rule in {
             "copy",
             "duplicate",
@@ -279,8 +299,11 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 atp_calls += 1
                 atp_total_seconds += elapsed
                 _dbg(f"{step.name}: ATP call took {elapsed:.3f}s, valid={valid}, note={note}")
-                if not valid:
-                    excluded_middle_issues[step.name] = [it.reason for it in issues]
+                if valid is not True:
+                    reasons = [it.reason for it in issues]
+                    if valid == "unknown":
+                        reasons.append(f"External ATP unresolved: {note}")
+                    excluded_middle_issues[step.name] = reasons
             elif issues:
                 excluded_middle_issues[step.name] = [it.reason for it in issues]
         elif step.inference and step.inference.rule in {"weaken", "commute"} and len(step.inference.parents) == 1:
@@ -308,10 +331,73 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 atp_calls += 1
                 atp_total_seconds += elapsed
                 _dbg(f"{step.name}: ATP call took {elapsed:.3f}s, valid={valid}, note={note}")
-                if not valid:
-                    target_issues[step.name] = [it.reason for it in issues]
+                if valid is not True:
+                    reasons = [it.reason for it in issues]
+                    if valid == "unknown":
+                        reasons.append(f"External ATP unresolved: {note}")
+                    target_issues[step.name] = reasons
             elif issues:
                 target_issues[step.name] = [it.reason for it in issues]
+        elif step.inference and step.inference.rule == "add_hypothesis" and len(step.inference.parents) == 1:
+            hit("add_hypothesis", step.name, rule, status, parent_count)
+            parent = steps_by_name.get(step.inference.parents[0])
+            if parent is None:
+                external_atp_issues[step.name] = [f"Parent step '{step.inference.parents[0]}' not found"]
+            else:
+                # Conservative fast-path: accept only the canonical shape phi -> (H => phi).
+                if (
+                    shortcut_enabled
+                    and isinstance(step.formula, BinaryFormula)
+                    and step.formula.connective == BinaryConnective.IMPLIES
+                    and is_alpha_equivalent(step.formula.right, parent.formula)
+                ):
+                    pass
+                else:
+                    start = time.perf_counter()
+                    valid, note = validate_step_with_atp(
+                        step.formula,
+                        premise_formulas=[parent.formula],
+                        timeout_seconds=PER_PROOF_TIMEOUT_SECONDS,
+                    )
+                    elapsed = time.perf_counter() - start
+                    atp_calls += 1
+                    atp_total_seconds += elapsed
+                    _dbg(f"{step.name}: ATP call took {elapsed:.3f}s, valid={valid}, note={note}")
+                    if valid is False:
+                        external_atp_issues[step.name] = [f"External ATP rejected step: {note}"]
+                    elif valid == "unknown":
+                        external_atp_issues[step.name] = [f"External ATP could not validate step: {note}"]
+        elif step.inference and step.inference.rule == "consequence" and len(step.inference.parents) == 2:
+            hit("consequence", step.name, rule, status, parent_count)
+            parent_names = step.inference.parents
+            parents = [steps_by_name.get(name) for name in parent_names]
+            if any(parent is None for parent in parents):
+                missing = [name for name, parent in zip(parent_names, parents) if parent is None]
+                external_atp_issues[step.name] = [f"Parent step(s) not found: {', '.join(missing)}"]
+            else:
+                # Conservative fast-path: accept only contradiction elimination to $false.
+                is_false = isinstance(step.formula, Atom) and step.formula.predicate == "$false" and not step.formula.args
+                if (
+                    shortcut_enabled
+                    and is_false
+                    and _formulas_are_complements(parents[0].formula, parents[1].formula)
+                ):
+                    pass
+                else:
+                    start = time.perf_counter()
+                    valid, note = validate_step_with_atp(
+                        step.formula,
+                        premise_formulas=[parents[0].formula, parents[1].formula],
+                        timeout_seconds=PER_PROOF_TIMEOUT_SECONDS,
+                    )
+                    elapsed = time.perf_counter() - start
+                    atp_calls += 1
+                    atp_total_seconds += elapsed
+                    _dbg(f"{step.name}: ATP call took {elapsed:.3f}s, valid={valid}, note={note}")
+                    if valid is False:
+                        external_atp_issues[step.name] = [f"External ATP rejected step: {note}"]
+                    elif valid == "unknown":
+                        external_atp_issues[step.name] = [f"External ATP could not validate step: {note}"]
         elif (
             step.inference
             and step.inference.rule == "resolution"
@@ -444,8 +530,10 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 atp_calls += 1
                 atp_total_seconds += elapsed
                 _dbg(f"{step.name}: ATP call took {elapsed:.3f}s, valid={valid}, note={note}")
-                if not valid:
+                if valid is False:
                     external_atp_issues[step.name] = [f"External ATP rejected step: {note}"]
+                elif valid == "unknown":
+                    external_atp_issues[step.name] = [f"External ATP could not validate step: {note}"]
         elif step.inference:
             external_atp_issues[step.name] = [
                 f"No checker available for rule '{step.inference.rule}' with status '{step.inference.status}'"

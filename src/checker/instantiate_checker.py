@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from itertools import combinations
 
 from src.checker.formula_utils import flatten_prefix, match_template_to_instance, substitute_node
-from src.parser.ast_nodes import AnnotatedFormula, Negation, QuantifiedFormula
+from src.parser.ast_nodes import AnnotatedFormula, Negation, QuantifiedFormula, Variable
 from src.var_mapping import InferenceRule, InferenceStatus, Quantifier
 
 
@@ -75,7 +75,7 @@ def check_instantiate(step: AnnotatedFormula, parent_step: AnnotatedFormula) -> 
     found = False
     for kept_indices in combinations(range(len(parent_vars)), len(child_vars)):
         kept_map = {
-            parent_vars[parent_index]: step_var
+            parent_vars[parent_index]: Variable(step_var)
             for step_var, parent_index in zip(child_vars, kept_indices)
         }
         removed_vars = set(parent_vars) - set(kept_map)

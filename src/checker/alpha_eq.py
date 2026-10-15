@@ -10,8 +10,20 @@ from src.parser.ast_nodes import (
     QuantifiedFormula,
     Variable,
 )
+from src.var_mapping import BinaryConnective
 
 _MISSING = object()
+
+
+def _flatten_associative_junction(node: JunctionFormula) -> list[object]:
+    """Flatten nested JunctionFormula nodes of the same connective."""
+    flattened: list[object] = []
+    for operand in node.operands:
+        if isinstance(operand, JunctionFormula) and operand.connective == node.connective:
+            flattened.extend(_flatten_associative_junction(operand))
+        else:
+            flattened.append(operand)
+    return flattened
 
 
 def _normalize_quantifiers(node):
@@ -36,10 +48,14 @@ def _normalize_quantifiers(node):
             right=_normalize_quantifiers(node.right),
         )
     if isinstance(node, JunctionFormula):
-        return JunctionFormula(
-            connective=node.connective,
-            operands=[_normalize_quantifiers(op) for op in node.operands],
-        )
+        normalized_ops = [_normalize_quantifiers(op) for op in node.operands]
+        normalized = JunctionFormula(connective=node.connective, operands=normalized_ops)
+        if node.connective in {BinaryConnective.AND, BinaryConnective.OR}:
+            return JunctionFormula(
+                connective=node.connective,
+                operands=_flatten_associative_junction(normalized),
+            )
+        return normalized
     if isinstance(node, Equality):
         return Equality(
             left=_normalize_quantifiers(node.left),
