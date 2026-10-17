@@ -1,0 +1,20 @@
+\babel@toc {german}{}\relax 
+\babel@toc {english}{}\relax 
+\contentsline {table}{\numberline {1}{\ignorespaces Systems entered in ProoVer 2026, as described in their system descriptions. ``Ext.'' lists external tools the system relies on at run time.}}{9}{table.1}%
+\contentsline {table}{\numberline {2}{\ignorespaces Comparison of the closest related systems with this thesis. [TODO: fill in the last column according to the implementation; verify the other entries against the system descriptions.]}}{10}{table.2}%
+\contentsline {table}{\numberline {3}{\ignorespaces Functional requirements.}}{13}{table.3}%
+\contentsline {table}{\numberline {4}{\ignorespaces Non-functional requirements.}}{14}{table.4}%
+\contentsline {table}{\numberline {5}{\ignorespaces Traceability from requirements to modules and tests.}}{15}{table.5}%
+\contentsline {table}{\numberline {6}{\ignorespaces Rule families and the principle of their checks.}}{17}{table.6}%
+\contentsline {table}{\numberline {7}{\ignorespaces Inference rules occurring in \texttt {PRV010+1.s} and their intended reading. }}{18}{table.7}%
+\contentsline {table}{\numberline {8}{\ignorespaces Verdicts, printed SZS status, and score under the ProoVer 2026 scheme.}}{19}{table.8}%
+\contentsline {table}{\numberline {9}{\ignorespaces Main design decisions and the alternatives considered.}}{20}{table.9}%
+\contentsline {table}{\numberline {10}{\ignorespaces Module structure of the implementation (approximate line counts).}}{21}{table.10}%
+\contentsline {table}{\numberline {11}{\ignorespaces Groups of the TST set.}}{26}{table.11}%
+\contentsline {table}{\numberline {12}{\ignorespaces Verdicts on the ProoVer set (number of proofs) and resulting score.}}{27}{table.12}%
+\contentsline {table}{\numberline {13}{\ignorespaces Results on the TST set by group (agreeing / total).}}{27}{table.13}%
+\contentsline {table}{\numberline {14}{\ignorespaces Rules in the ProoVer set and how their steps were decided.}}{28}{table.14}%
+\contentsline {table}{\numberline {15}{\ignorespaces Size and test coverage of the checker modules.}}{28}{table.15}%
+\contentsline {table}{\numberline {16}{\ignorespaces Preliminary average run time per check category (five proofs each; to be repeated on the final version and the final hardware).}}{29}{table.16}%
+\contentsline {table}{\numberline {17}{\ignorespaces Mutation operators and kill rates.}}{30}{table.17}%
+\contentsline {table}{\numberline {18}{\ignorespaces Causes of suboptimal verdicts on the ProoVer set.}}{30}{table.18}%

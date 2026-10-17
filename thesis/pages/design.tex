@@ -1,0 +1,285 @@
+% Benötigt: \usepackage{booktabs,array,amsmath,tikz}; \usetikzlibrary{positioning,arrows.meta,fit,backgrounds}
+% Zielzustand der Architektur. "CODE:" markiert Stellen, an denen der aktuelle Code abweicht (Registry, Fail-closed, dreiwertiges Verdikt).
+
+\section{Design}
+\label{sec:design}
+
+This chapter presents the architecture of the verifier.
+It describes components, data model, and decision rules independently of implementation details, which follow in Chapter~\ref{sec:implementation}.
+
+\subsection{Design Principles}
+\label{subsec:design-principles}
+
+Four principles guide the design, each derived from the requirements of Chapter~\ref{sec:requirements}.
+
+\begin{description}
+  \item[Fail closed (NFR1).] Acceptance is the only outcome that requires positive evidence. Every error, absence of a tool, or unknown construct leads to rejection or abstention, never to acceptance.
+  \item[Rule locality (NFR6, NFR7).] Each inference rule is checked by a separate function that sees only the step and its parents and returns a list of issues. Rule checkers do not know of each other.
+  \item[Cheap checks first (NFR2).] Syntactic checks run before any external tool is called. An ATP is only a fallback for steps that cannot be validated syntactically.
+  \item[Diagnostics as data (NFR5).] Checkers return structured issues instead of printing or raising, so that reports, summaries, and tests use the same information.
+\end{description}
+
+\subsection{Architecture Overview}
+\label{subsec:design-overview}
+
+Figure~\ref{fig:architecture} shows the processing pipeline.
+A proof is processed in a separate worker process with a wall-clock limit.
+The parser produces a proof model; global checks validate provenance and the dependency graph; a dispatcher then routes each step to the checker of its rule, with the ATP as fallback; and the verdict aggregation combines all issues into one of three verdicts.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  node distance=9mm,
+  box/.style={draw, rounded corners, minimum height=9mm, minimum width=24mm, align=center, font=\small},
+  outbox/.style={draw, rounded corners, fill=gray!15, minimum height=9mm, minimum width=24mm, align=center, font=\small},
+  arr/.style={-{Stealth[length=2mm]}}]
+  \node[box] (parse) {Parser};
+  \node[box, right=12mm of parse] (global) {Global\\checks};
+  \node[box, right=12mm of global] (disp) {Step\\dispatcher};
+  \node[box, below=of disp] (rules) {Rule\\checkers};
+  \node[box, right=30mm of rules] (atp) {External ATP\\(fallback)};
+  \node[box, below=of rules] (agg) {Verdict\\aggregation};
+  \node[outbox, left=12mm of agg] (verdict) {verified /\\failed /\\uncertain};
+  \draw[arr] (parse) -- (global);
+  \draw[arr] (global) -- (disp);
+  \draw[arr] (disp) -- (rules);
+  \draw[arr] (rules) -- (atp) node[midway, above, font=\scriptsize, align=center] {no checker or\\syntactic check failed};
+  \draw[arr] (rules) -- (agg);
+  \draw[arr] (atp.south) |- (agg.east);
+  \draw[arr] (agg) -- (verdict);
+  \begin{scope}[on background layer]
+    \node[draw, dashed, rounded corners, inner sep=4mm, fit=(parse)(global)(disp)(rules)(atp)(agg)(verdict),
+          label={[font=\scriptsize]above:worker process with wall-clock limit}] {};
+  \end{scope}
+\end{tikzpicture}
+\caption{Architecture of the verifier. Parsing, checking, and aggregation run in a worker process with a wall-clock limit. [TODO: redraw in the diagrams folder, add issue flow if desired.]}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Data Model}
+\label{subsec:design-model}
+
+The parser turns each file into a list of annotated formulas.
+An \emph{annotated formula} has a name, a role, a formula, and a justification, which is either a source (a \texttt{file} reference to the problem) or an \emph{inference record}.
+An inference record consists of the rule name, a list of parent names, and a list of additional information items: the status, the \texttt{new\_symbols} declaration, and, for Skolemization, the eliminated variable with its Skolem term.
+Formulas are represented as immutable abstract syntax trees with nodes for variables, constants, function terms, atoms, equalities, negations, binary connectives, n-ary conjunctions and disjunctions, and quantified formulas.
+The use of n-ary conjunctions and disjunctions makes flattening of nested connectives explicit and simplifies the junction and clausal checks.
+Roles, statuses, and rule names are enumerations, so that unknown values are detected at parse time or at dispatch time instead of silently ignored.
+
+\subsection{Global Checks}
+\label{subsec:design-global}
+
+Three checks involve the whole proof and run before the step checks.
+
+\paragraph{Provenance (FR2).}
+Each \texttt{axiom} and \texttt{conjecture} step cites a problem file and a formula name.
+The checker looks up the formula in the problem file and compares it with the step's formula up to alpha-equivalence, i.e.\ up to consistent renaming of bound variables, and compares the roles.
+Alpha-equivalence is implemented as a simultaneous traversal of both trees with two mappings between the bound variables of the two formulas, so that no renaming of the trees is necessary.
+Before the traversal, consecutive quantifiers of the same kind are merged into one prefix and nested conjunctions and disjunctions are flattened.
+
+\paragraph{Dependency graph (FR4, FR5).}
+The graph with an edge from each step to its parents must be acyclic.
+Cycles are detected with a depth-first search with three colors; dangling references are reported by the step checks.
+In a second pass, no step except the negation step may cite a \texttt{conjecture}.
+Otherwise the proof would assume the statement it has to refute.
+
+\paragraph{Termination (FR9).}
+The derivation must contain a step with formula \texttt{\$false} that depends, directly or indirectly, on the negated conjecture.
+% CODE (Stand Repo): nicht implementiert, ergänzen (Test TST036 st01_no_false). Die Bedingung 'hängt vom negierten Conjecture ab' schließt den Edge-Case TST071 (cp03, widersprüchliche Axiome) aus; mit den Organisatoren-Regeln abgleichen.
+
+\subsection{Step Dispatch and the Checker Interface}
+\label{subsec:design-dispatch}
+
+All step checkers have the same shape: they take the step and its parents and return a list of issues.
+An issue contains the step name and a reason.
+A checker never throws for invalid proofs; exceptions indicate defects of the verifier and lead to abstention.
+The dispatcher selects the checker by the rule name of the step and performs the checks common to all rules before calling it: the number of parents must match the rule's arity, every parent must exist, and the status must be the one the rule requires.
+Rule checkers therefore need to concentrate on the logical content.
+
+Dispatch is implemented as a registry that maps rule names to checkers together with their arity and required status.
+Adding a rule means registering one entry and writing one function (NFR6).
+% CODE (Stand Repo): Der Dispatcher ist eine if/elif-Kette in main.py::check_proof_file (ca. 500 Zeilen); die Registry ist der geplante Umbau.
+
+\subsection{Rule Checkers}
+\label{subsec:design-rules}
+
+Table~\ref{tab:rule-families} groups the supported rules into families.
+Most families reduce to alpha-equivalence and structural matching, which keeps them simple and fast.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Rule families and the principle of their checks.}
+\label{tab:rule-families}
+\begin{tabular}{@{}l p{0.30\linewidth} p{0.42\linewidth}@{}}
+\toprule
+Family & Rules & Principle \\
+\midrule
+Structural & \texttt{copy}, \texttt{duplicate}, \texttt{rename\_variable}, \texttt{double\_negation}, \texttt{remove\_double\_negation} & Conclusion is alpha-equivalent to the (possibly negation-wrapped or unwrapped) parent. \\
+Propositional & \texttt{modus\_ponens}, \texttt{conjunction}, \texttt{split\_conjunct} & Conclusion matches a conjunct of the parents or the consequent of an implication, also after universal instantiation. \\
+Quantifier & \texttt{instantiate}, \texttt{existential\_gen} & Template matching with abstract variables: conclusion is a substitution instance (resp.\ generalization) of the parent. \\
+Junction & \texttt{weaken}, \texttt{commute}, \texttt{excluded\_middle} & Shape check after flattening of conjunctions and disjunctions; ATP fallback for unusual variants. \\
+Clausal / equational & \texttt{resolution}, \texttt{paramodulation}, \texttt{reflexivity}, \texttt{transitivity}, \texttt{rewrite} & Unification of literals or terms, construction of the expected resolvent or rewritten clause, comparison up to alpha-equivalence and quantifier permutation. \\
+Negated conjecture & \texttt{negated\_conjecture} & Conclusion is the negation of the parent conjecture, up to renaming of bound variables. \\
+Skolemization & \texttt{skolemize} & See Section~\ref{subsec:design-skolem}. \\
+ATP-delegated & \texttt{consequence}, \texttt{add\_hypothesis}, and every other rule with status \texttt{thm} or \texttt{cth} & Entailment from the step's premises by an external ATP (Section~\ref{subsec:design-atp}). \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\small
+\caption{Inference rules occurring in \texttt{PRV010+1.s} and their intended reading. % TODO: verify each entry against the ProoVer 2026 specification and add the step status.
+}
+\label{tab:rules}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Rule & Intended reading \\
+\midrule
+\texttt{excluded\_middle} & introduces $\varphi \vee \neg\varphi$ \\
+\texttt{double\_negation} / \texttt{remove\_double\_negation} & introduces / removes $\neg\neg\varphi$ \\
+\texttt{instantiate} & replaces a universal variable by a term \\
+\texttt{existential\_gen} & generalizes a term to an existential quantifier \\
+\texttt{split\_conjunct} & derives one conjunct from a conjunction \\
+\texttt{reflexivity} & introduces $t = t$ \\
+\texttt{rename\_variable} & renames a bound variable \\
+\texttt{commute} & swaps the operands of a commutative connective \\
+\texttt{weaken} / \texttt{add\_hypothesis} & [TODO: verify; the code treats \texttt{add\_hypothesis} as $\varphi \Rightarrow (H \Rightarrow \varphi)$ and delegates it to the ATP] \\
+\texttt{skolemize} & replaces an existential variable by a fresh Skolem term \\
+\texttt{consequence} & [TODO: verify; in the code, entailment of the conclusion from the listed parents] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Checking Skolemization}
+\label{subsec:design-skolem}
+
+Skolemization cannot be validated by entailment (Section~\ref{subsec:normal-forms}).
+The checker instead validates the following conditions, which together imply that the step is an instance of Skolemization:
+\begin{enumerate}
+  \item The rule is \texttt{skolemize}, the step has exactly one parent, and its status is \texttt{esa}.
+  \item The step declares exactly one new symbol of kind \texttt{skolem}.
+  \item The Skolem term is a constant or a function applied to variables only, and these variables are exactly the universally quantified variables in whose scope the eliminated existential quantifier occurs.
+  \item Replacing the existential quantifier and its variable by the Skolem term in the parent formula yields the conclusion, up to alpha-equivalence.
+  \item The Skolem symbol is fresh: it neither occurs in the problem file nor was introduced by an earlier Skolemization step.
+\end{enumerate}
+Conditions~3 and~5 are the side conditions that make the transformation equisatisfiability-preserving.
+Without the freshness condition, two steps could use the same symbol for different witnesses, which is unsound.
+
+\paragraph{Polarity.}
+Whether an existential quantifier may be eliminated, and which universal variables are in its scope, depends on its polarity.
+An existential quantifier in the antecedent of an implication or under a negation is effectively universal, so replacing it by a Skolem term would be unsound.
+The checker therefore tracks the polarity while it traverses the parent formula and rejects Skolemizations of quantifiers in negative position.
+% CODE: gegen skolem_checker.py::_analyze_target_bindings und die Tests TST sk10_wrong_polarity / sk25_existential_in_antecedent abgleichen.
+
+\paragraph{Herbrand symbols.}
+Some \texttt{instantiate} steps carry a \texttt{new\_symbols} annotation of kind \texttt{herbrand}.
+Instantiating a universal formula with an arbitrary term is entailed by that formula, so such a step is sound without a freshness condition and is validated like any other \texttt{thm} step.
+% TODO: mit der ProoVer-Spezifikation abgleichen, ob Herbrand-Symbole zusätzliche Bedingungen haben. Der Code behandelt sie aktuell nicht gesondert.
+
+\subsection{Delegation to an External ATP}
+\label{subsec:design-atp}
+
+Steps that have no rule-specific checker are validated by an external ATP, in accordance with the competition rules.
+The same fallback applies to the junction rules if the syntactic check fails, to avoid false rejections of valid but unusual variants.
+The delegation obeys the following policy:
+
+\begin{itemize}
+  \item \textbf{Eligibility.} Only steps with status \texttt{thm} or \texttt{cth} are delegated. Other statuses, in particular \texttt{esa}, are never delegated.
+  \item \textbf{Isolation.} The ATP receives exactly the premises of the step as axioms and the step's formula as conjecture. It never sees the original conjecture or the rest of the proof.
+  \item \textbf{Interpretation.} The answer is read from the SZS status line of the output. The statuses \texttt{Theorem}, \texttt{Unsatisfiable}, and \texttt{ContradictoryAxioms} confirm the step. Statuses such as \texttt{CounterSatisfiable} reject it.
+  \item \textbf{Failure.} If the ATP is not found, times out, fails, or returns no SZS status, the step is \emph{unresolved}. An unresolved step makes the verdict \emph{uncertain}, never \emph{verified}.
+  \item \textbf{Failed syntactic check.} For rules with an ATP fallback (the junction rules), a failing syntactic check does not make the step invalid, since the check covers only the standard shapes of the rule. The step stays unresolved until the ATP has decided. For all other rules, a failing check makes the step invalid.
+  \item \textbf{Budget.} An ATP call may not use more than the remaining wall-clock budget of the proof.
+\end{itemize}
+
+% CODE (Stand Repo): validate_step_with_atp ist bereits dreiwertig (True / False / "unknown" bei fehlendem ATP, Timeout, fehlendem SZS-Status).
+% ABER: main.py wertet "unknown" als Issue -> all_ok=False -> VerifiedBad (statt uncertain), und jeder ATP-Aufruf bekommt PER_PROOF_TIMEOUT_SECONDS (30 s) statt des Rest-Budgets.
+% Vor der Evaluation anpassen: unknown -> eigene Kategorie 'unresolved' -> Verdikt uncertain.
+
+\subsection{Verdicts and Soundness Argument}
+\label{subsec:design-verdict}
+
+Each step ends in one of three states: \emph{valid} (positively validated), \emph{invalid} (a concrete defect was found), or \emph{unresolved} (a required check could not be completed).
+The verdict of the proof is determined by the following rule, in this order:
+\begin{enumerate}
+  \item If any step is invalid, or a global check fails, the verdict is \emph{failed}.
+  \item Otherwise, if any step is unresolved, a timeout occurred, or an internal error occurred, the verdict is \emph{uncertain}.
+  \item Otherwise the verdict is \emph{verified}.
+\end{enumerate}
+This implements the policy derived in Section~\ref{subsec:req-scoring}.
+Table~\ref{tab:verdicts} relates the verdicts to the SZS status printed by the verifier and to the score.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Verdicts, printed SZS status, and score under the ProoVer 2026 scheme.}
+\label{tab:verdicts}
+\begin{tabular}{@{}l l c c@{}}
+\toprule
+Verdict & SZS output & Score if proof valid & Score if proof invalid \\
+\midrule
+verified & \texttt{VerifiedGood} & $+1$ & $-10$ \\
+failed & \texttt{VerifiedBad} & $-1$ & $+2$ \\
+uncertain & \texttt{Timeout} [TODO: check which status is expected for giving up] & $0$ & $0$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Soundness argument.}
+Suppose the verdict is \emph{verified}.
+Then (i) every axiom and conjecture is faithful to the problem, (ii) the negated conjecture is the negation of the conjecture, (iii) the dependency graph is acyclic, (iv) the derivation ends in \texttt{\$false}, and (v) every other step is validated either by a rule check that shows entailment from the parents, by the Skolemization conditions, or by an ATP confirmation of entailment.
+Let $\Gamma$ consist of the axioms and the negated conjecture, and let $\Gamma_i$ be $\Gamma$ together with the formulas of the first $i$ steps in a topological order of the dependency graph.
+We show by induction that $\Gamma_i$ is satisfiable whenever $\Gamma$ is.
+The case $i=0$ is trivial.
+If step $i$ has status \texttt{thm}, its conclusion is entailed by its premises, which belong to $\Gamma_{i-1}$, so every model of $\Gamma_{i-1}$ is a model of $\Gamma_i$.
+If step $i$ is a Skolemization, its Skolem symbol is fresh, and its conclusion arises from the parent by replacing the existential variable by a Skolem term over the universal variables in scope; hence every model of $\Gamma_{i-1}$ can be extended by a suitable interpretation of the Skolem symbol (a choice function) to a model of $\Gamma_i$.
+The last step derives \texttt{\$false}, so $\Gamma_n$ is unsatisfiable, and hence so is $\Gamma$.
+Since $\Gamma$ consists of the axioms and the negation of the conjecture, Equation~\ref{eq:refutation} shows that the conjecture follows from the axioms.
+The argument holds under the assumptions that the rule checkers are correct and that the ATP is sound; the thesis reduces the first by testing (Chapter~\ref{sec:evaluation}) and makes the second explicit,
+because the competition rules require the use of an ATP.
+
+\subsection{Resource Control}
+\label{subsec:design-resources}
+
+The wall-clock limit is enforced by running each proof in a separate worker process that is terminated when the limit is exceeded.
+The verdict is then \emph{uncertain}.
+Process isolation also contains crashes and memory exhaustion of a single proof.
+Formulas in the benchmark can be deeply nested; since all tree traversals are recursive, the worker runs in a thread with a 64\,MB stack and a recursion limit of 100\,000.
+The dependency analysis, which operates on the whole graph rather than on a formula, uses an iterative search to be independent of proof length.
+
+\subsection{Diagnostics}
+\label{subsec:design-diagnostics}
+
+Every issue records the step name and a reason in plain language, for example that a copied formula does not match its parent.
+The report lists issues grouped by check and finishes with a summary line in the SZS format required by the competition.
+Because issues are data, the same information drives the console report, the summary table over many proofs, and the assertions in the tests.
+
+\subsection{Design Decisions and Alternatives}
+\label{subsec:design-alternatives}
+
+\begin{table}[t]
+\centering
+\small
+\caption{Main design decisions and the alternatives considered.}
+\label{tab:design-decisions}
+\begin{tabular}{@{}p{0.22\linewidth} p{0.25\linewidth} p{0.40\linewidth}@{}}
+\toprule
+Decision & Alternative & Rationale \\
+\midrule
+Syntactic checks first, ATP as fallback & ATP for every step & Faster and independent of an external tool for the vast majority of steps; the ATP is only needed for rare or unspecified rules. \\
+Rule-local checker functions & One generic entailment check & Precise diagnostics and testable units; a generic check can neither explain failures nor handle \texttt{esa} steps. \\
+Own AST with grammar-based parser & Reuse of an existing TPTP parser & Full control over annotations such as \texttt{new\_symbols} and \texttt{skolemize} and over the AST with n-ary junctions; an LALR grammar with cached tables keeps parsing fast. [TODO: name the existing parsers considered and why they were not used]. \\
+Three-valued verdict & Binary verdict & Matches the scoring asymmetry (Section~\ref{subsec:req-scoring}). \\
+Process isolation per proof & In-process timeout & Reliable termination of non-cooperative code and containment of crashes. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Summary}
+\label{subsec:design-summary}
+
+The design translates the requirements into a pipeline of parsing, global checks, rule-local step checks with a restricted ATP fallback, and a verdict rule that is derived from the competition's scoring.
+Its central property is that acceptance requires positive evidence for every step, which makes the soundness argument of Section~\ref{subsec:design-verdict} possible.
+Chapter~\ref{sec:implementation} describes how the components are implemented in Python.

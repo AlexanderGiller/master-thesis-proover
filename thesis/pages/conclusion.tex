@@ -1,0 +1,44 @@
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+\subsection{Summary}
+
+This thesis designed and implemented a Python-based verifier for TSTP derivations for the ProoVer 2026 competition.
+The starting point was the observation that the competition's scoring scheme is highly asymmetric: a wrongly accepted proof costs ten points, a correct acceptance gains one.
+From the expected score of the three possible answers, we derived a fail-closed policy with a three-valued verdict: the verifier accepts only if every step is validated positively, rejects only if it has found a concrete defect, and abstains otherwise.
+The verifier realizes this policy as a modular pipeline: a parser, global checks of provenance, dependencies, and the negated conjecture, rule-local checkers for structural, propositional, quantifier, and clausal rules, a dedicated check for Skolemization including the freshness of the introduced symbols, and a restricted fallback to an external prover for the remaining steps.
+A soundness argument shows that acceptance implies unsatisfiability of the axioms together with the negated conjecture, under the assumption that the rule checkers are correct and the prover is sound.
+
+\subsection{Answers to the Research Questions}
+
+\paragraph{RQ1: Which rules and fragments must be supported?}
+The ProoVer 2026 benchmarks use [N] distinct inference rules.
+Of these, [A] are checked internally, which covers [X\,\%] of all steps; the remaining [B] rules, among them \texttt{consequence}, are delegated to the prover.
+Skolemization is the one rule that has to be checked internally, since it preserves only satisfiability and cannot be validated by entailment, and the checks for quantifier scope, polarity, and freshness are needed to reject the subtle errors in the invalid proofs.
+
+\paragraph{RQ2: How does modularity keep the trusted part small and extensible?}
+Every rule check is a function of a step and its parents and returns structured issues.
+The checkers can be tested in isolation, which is reflected in a test suite of about 250 tests with a coverage of [C\,\%], and an error can be attributed to a step and a reason.
+The trusted part consists of the parser, the alpha-equivalence check, the rule checkers, the serialization to the prover, and the verdict aggregation, in total about [L] lines, plus the external prover as an assumption (Section~\ref{subsec:disc-tcb}).
+[Extending the verifier by a rule required [k] lines in [m] files.]
+
+\paragraph{RQ3: How do correctness, run time, and memory behave?}
+On the ProoVer set, the verifier reaches [S] of 153 points with [W] wrong acceptances, a median run time of [t\,s], and a maximum of [t$_{\max}$\,s]; [T] proofs hit the time limit.
+The mutation experiment kills [M\,\%] of [N] mutants, and with the prover removed the verifier still makes no wrong acceptance, which confirms the fail-closed property empirically.
+Run time is dominated by the calls to the external prover, not by the internal checks.
+
+\subsection{Contributions Revisited}
+
+The thesis contributes (i) a verdict policy for proof checking derived from the scoring scheme, together with a soundness argument that accounts for the different semantics of \texttt{thm} and \texttt{esa} steps; (ii) a modular architecture and its implementation with a dedicated Skolem check and a restricted ATP fallback; and (iii) an evaluation on the competition benchmark and on a suite of mutated and hand-written proofs that measures correctness, coverage, run time, and robustness, with an analysis of the remaining limitations.
+
+\subsection{Future Work}
+
+Several directions follow from the limitations of Section~\ref{subsec:disc-limitations}.
+\begin{itemize}
+  \item \textbf{Registry-based dispatch.} Replace the \texttt{if}/\texttt{elif} dispatcher by the registry of the design, so that adding a rule needs one entry and one function.
+  \item \textbf{Stronger checks for weak rules.} Reconstruct the missing demodulating equation of \texttt{rewrite} steps, or validate them against a prover, and add checks for Herbrand symbols once their meaning is fixed by the specification.
+  \item \textbf{Counter-model search.} Use a model finder to reject steps that are not entailed, as N\"orgler does, which would turn more unresolved steps into defects and thereby recover the $+2$ for invalid proofs.
+  \item \textbf{Parallel and budgeted prover calls.} Run the prover calls for independent steps in parallel under a shared time budget, and cache results across steps.
+  \item \textbf{Smaller trusted base.} Validate the internal checks themselves, for example by formalizing the Skolem conditions in a proof assistant, or produce certificates that a small kernel can check, following the approaches discussed in Chapter~\ref{sec:related-work}.
+  \item \textbf{Broader input.} Support CNF proofs and further rule vocabularies, and compare the verifier with GDV and N\"orgler on a common benchmark.
+\end{itemize}

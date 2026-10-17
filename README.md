@@ -1,93 +1,202 @@
-# master-thesis-proover
+# ProoVer Thesis Proof Checker
 
+Dieses Projekt ist ein Proof-Checker fuer TPTP/TSTP-nahe Beweise aus dem ProoVer-2026-Setting.
+Er verifiziert einzelne Inferenzschritte, kann bei Bedarf ein externes ATP (hier: Vampire) nutzen und erzeugt Ergebnis- und Scoring-Reports.
 
+## Kontext
 
-## Getting started
+Dieses Projekt ist im Rahmen einer Masterarbeit an der Ludwig-Maximilians-Universitaet Muenchen (LMU) entstanden.
+Entsprechend liegt der Fokus auf nachvollziehbarer Verifikation, reproduzierbaren Experimenten und einer klaren Trennung zwischen Proof-Suche und Proof-Checking.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Inhalt
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- [Voraussetzungen](#voraussetzungen)
+- [Installation unter Linux](#installation-unter-linux)
+- [Installation unter Windows-mit-wsl](#installation-unter-windows-mit-wsl)
+- [Externe ATP-Integration-vampire](#externe-atp-integration-vampire)
+- [CLI-Nutzung](#cli-nutzung)
+- [Ausgaben und Ergebnisse](#ausgaben-und-ergebnisse)
+- [Tests und Entwicklung](#tests-und-entwicklung)
+- [Troubleshooting](#troubleshooting)
 
-## Add your files
+## Voraussetzungen
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+- Python 3.11+ (empfohlen: 3.12)
+- `pip`
+- Optional fuer Entwicklungs-Workflow: `pytest`, `black`, `isort`, `flake8` (ueber `requirements-dev.txt`)
+- Fuer alle ATP-basierten Schrittpruefungen: **Vampire** als externes ATP
 
+Wichtig:
+
+- Ohne externes ATP laufen nur die rein internen Regelpruefungen vollstaendig.
+- Fuer manche Schritte (z. B. allgemeine `thm`/`cth`-Validierung) wird ein ATP-Aufruf benoetigt.
+
+## Installation unter Linux
+
+Im Projekt-Root (`master-thesis-proover`) ausfuehren:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
 ```
-cd existing_repo
-git remote add origin https://gitlab.lrz.de/masters2026/master-thesis-proover.git
-git branch -M main
-git push -uf origin main
+
+## Installation unter Windows mit WSL
+
+Fuer dieses Projekt ist auf Windows aktuell **WSL noetig**, wenn du ATP-Checks mit Vampire nutzen willst.
+Empfehlung: Das Projekt direkt in einer WSL-Shell (z. B. Ubuntu) ausfuehren.
+
+### 1) WSL vorbereiten (einmalig)
+
+PowerShell als Admin:
+
+```powershell
+wsl --install
 ```
 
-## Integrate with your tools
+Danach Windows neu starten und eine Distribution (z. B. Ubuntu) initial einrichten.
 
-* [Set up project integrations](https://gitlab.lrz.de/masters2026/master-thesis-proover/-/settings/integrations)
+### 2) Projekt in WSL verwenden
 
-## Collaborate with your team
+In der WSL-Shell:
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+```bash
+cd /mnt/c/Git/master-thesis-proover
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
+```
 
-## Test and Deploy
+Hinweis zum Editor:
 
-Use the built-in continuous integration in GitLab.
+- Der Code kann in einem Windows-Editor bearbeitet werden.
+- Die ATP-relevanten Runs solltest du aber im WSL-Terminal starten, nicht als reinen nativen Windows-Run.
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+## Externe ATP-Integration (Vampire)
 
-***
+Der Checker sucht standardmaessig nach `vampire` im `PATH`.
+Optional koennen folgende Variablen gesetzt werden:
 
-# Editing this README
+- `EXTERNAL_ATP_BINARY` (nur Binary-Name/Pfad)
+- `EXTERNAL_ATP_COMMAND` (vollstaendiger Aufruf als Kommando)
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+Beispiele:
 
-## Suggestions for a good README
+```bash
+export EXTERNAL_ATP_BINARY=/usr/local/bin/vampire
+```
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+oder:
 
-## Name
-Choose a self-explaining name for your project.
+```bash
+export EXTERNAL_ATP_COMMAND="vampire --mode casc"
+```
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Falls du Python aus Windows startest und Vampire in WSL liegt, kann ein WSL-Wrapper genutzt werden:
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```powershell
+$env:EXTERNAL_ATP_COMMAND = "wsl vampire"
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+Empfehlung bleibt trotzdem: alles direkt in WSL laufen lassen.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## CLI-Nutzung
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+Alle Beispiele vom Projekt-Root aus.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### 1) Alle ProoVer2026-Proofs pruefen
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+```bash
+python main.py
+```
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+Das durchsucht `ProoVer2026/*.s`, mappt automatisch auf `ProoVer2026/Problems/*.p`, prueft alle Proofs und erzeugt Summary + Scoring-CSV.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+### 2) Einzelnen Proof pruefen
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+```bash
+python main.py ProoVer2026/PRV000+1.s
+```
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+Die Problemdatei wird dann automatisch als `ProoVer2026/Problems/PRV000+1.p` angenommen.
 
-## License
-For open source projects, say how it is licensed.
+### 3) Einzelnen Proof mit expliziter Problemdatei pruefen
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+```bash
+python main.py ProoVer2026/PRV000+1.s -p ProoVer2026/Problems/PRV000+1.p
+```
+
+### 4) Timeout pro Proof erhoehen
+
+Default ist aktuell `30` Sekunden pro Proof (Wall-Clock).
+
+Alle Proofs mit hoeherem Limit:
+
+```bash
+python main.py -t 120
+```
+
+Einzelproof mit hoeherem Limit:
+
+```bash
+python main.py ProoVer2026/PRV010+1.s -t 90
+```
+
+### 5) CLI-Hilfe anzeigen
+
+```bash
+python main.py -h
+```
+
+## Ausgaben und Ergebnisse
+
+Beim Lauf von `main.py` bekommst du:
+
+- SZS-nahe Status je Proof (`VerifiedGood`, `VerifiedBad`, `Timeout`)
+- Zusammenfassung ueber alle Proofs
+- Performance-Report (Wall-Clock/CPU)
+- Scoring-Zusammenfassung
+
+Datei-Ausgaben:
+
+- `results/ProoVer2026_results.csv` (Scoring/Ergebnisse)
+- `results/performance_results.csv` (Performance pro Proof)
+
+Zusaetzliches Scoring-Skript:
+
+```bash
+python src/scoring/score_proofs.py
+```
+
+Mit Optionen:
+
+```bash
+python src/scoring/score_proofs.py -h
+```
+
+## Tests und Entwicklung
+
+Tests aus dem Projekt-Root:
+
+```bash
+pytest
+```
+
+Format/Lint (optional):
+
+```bash
+black .
+isort .
+flake8
+```
+
+## Troubleshooting
+
+- `ATP executable not found`: Vampire nicht installiert oder nicht im `PATH`.
+- ATP-Aufrufe schlagen unter Windows fehl: Run im WSL-Terminal starten.
+- `Proof file not found` oder `Problem file not found`: Pfade pruefen, vom Projekt-Root starten.
+- Viele Timeouts: `-t` erhoehen (z. B. `-t 120`) und pruefen, ob Vampire korrekt erreichbar ist.

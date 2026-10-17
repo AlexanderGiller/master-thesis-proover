@@ -1,0 +1,8 @@
+\babel@toc {german}{}\relax 
+\babel@toc {english}{}\relax 
+\contentsline {figure}{\numberline {1}{\ignorespaces The ProoVer 2026 proof \texttt {PRV000+1.s} (comments and SZS delimiters omitted). Axiom and conjecture are imported from the problem file, \texttt {neg} negates the conjecture, and one \texttt {consequence} step derives \texttt {\$false} from \texttt {neg} and \texttt {a1}.}}{5}{figure.1}%
+\contentsline {figure}{\numberline {2}{\ignorespaces Expected score of accepting, rejecting, and abstaining as a function of the probability $p$ that the proof is valid, under the ProoVer 2026 scoring scheme. Accepting beats abstaining only for $p>10/11$, rejecting only for $p<2/3$.}}{12}{figure.2}%
+\contentsline {figure}{\numberline {3}{\ignorespaces Architecture of the verifier. Parsing, checking, and aggregation run in a worker process with a wall-clock limit. [TODO: redraw in the diagrams folder, add issue flow if desired.]}}{16}{figure.3}%
+\contentsline {figure}{\numberline {4}{\ignorespaces Structure of the alpha-equivalence check (pseudocode, simplified).}}{23}{figure.4}%
+\contentsline {figure}{\numberline {5}{\ignorespaces Result mapping of the ATP fallback.}}{24}{figure.5}%
+\contentsline {figure}{\numberline {6}{\ignorespaces Wall-clock time per proof of the ProoVer set against the number of steps.}}{29}{figure.6}%

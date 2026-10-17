@@ -1,0 +1,84 @@
+% Werte in [eckigen Klammern] nach der Evaluation eintragen. Absätze mit "% FALLS" je nach Stand des Codes beibehalten oder streichen.
+
+\section{Discussion}
+\label{sec:discussion}
+
+This chapter interprets the results of Chapter~\ref{sec:evaluation}, discusses what the verifier does and does not guarantee, and lists its limitations.
+
+\subsection{Interpretation of the Results}
+\label{subsec:disc-results}
+
+The verifier reaches a score of [S] of 153 points on the ProoVer set and does not accept any invalid proof [confirm].
+The second property matters more than the first: with a penalty of $-10$ for a wrong acceptance, a single such error costs as much as ten correct acceptances.
+The verdict matrix shows where the remaining points are lost.
+[Interpretation: most losses are abstentions on valid proofs, caused by [rule / timeout / ATP], and not wrong rejections.]
+This is the intended behavior of the fail-closed policy of Section~\ref{subsec:req-scoring}: when the verifier loses points, it loses them in the cheap direction.
+
+The ablation of the verdict rule (Section~\ref{subsec:eval-ablation}) quantifies this: a binary verdict that treats unresolved steps as failures would have changed the score by [D] points, because [it turns abstentions on invalid proofs into lucky rejections but also turns abstentions on valid proofs into wrong rejections].
+The comparison also shows that the benefit of abstaining depends on the benchmark: it pays off when unresolved steps are rare but dangerous, and it is worth little when almost every proof can be decided.
+
+The rule coverage (Section~\ref{subsec:eval-coverage}) shows that [X\,\%] of the steps are decided by internal checks, and only [Y\,\%] need the external prover.
+At the same time, the run times (Section~\ref{subsec:eval-runtime}) are dominated by the ATP calls: a single call takes about two seconds in our preliminary measurements, while all internal checks of a proof together take [milliseconds to a few hundred milliseconds].
+For this reason, the order ``cheap checks first'' is not only a design preference but the main lever for the run time, and it is the reason why the verifier stays within the 30\,s limit on [Z] of the proofs.
+
+\subsection{Scoring Policy and Its Limits}
+\label{subsec:disc-scoring}
+
+The policy of Section~\ref{subsec:req-scoring} follows from the scoring scheme, but it rests on assumptions that deserve a comment.
+The probability $p$ that a proof is valid is not observable, so the thresholds $2/3$ and $10/11$ cannot be applied literally; the verifier approximates them by the discrete rule that acceptance requires positive evidence for every step and rejection requires a concrete defect.
+This is conservative on both sides.
+It would be possible to accept proofs with a small unresolved remainder if the remainder is judged harmless, but this requires a calibrated estimate of $p$ that the verifier does not have.
+The policy is also tied to this competition: with a different penalty the optimal behavior changes, and in a setting where a wrong acceptance is not much worse than a wrong rejection, abstention would be less attractive.
+Finally, the policy trades points for safety when the external prover is missing or too slow: invalid proofs whose defect is only visible to the prover become \emph{uncertain} instead of being rejected, and the verifier forgoes the $+2$ for them.
+
+\subsection{Trusted Computing Base and Soundness}
+\label{subsec:disc-tcb}
+
+The soundness argument of Section~\ref{subsec:design-verdict} is conditional: it holds if the rule checkers are correct and the external prover is sound.
+In terms of the trusted computing base (Section~\ref{subsec:atp-certification}), the following components therefore have to be trusted for the property that every accepted proof is valid:
+\begin{itemize}
+  \item the \emph{parser and normalization}, since a parse error that changes the meaning of a formula would change what is checked;
+  \item the \emph{alpha-equivalence} check, which also merges quantifier prefixes and flattens junctions before it compares, and which therefore equates formulas that are not literally identical;
+  \item the \emph{rule checkers}, in particular the Skolem checker, the largest module, and the clausal checker;
+  \item the \emph{serialization of formulas to TPTP} for the external prover, because a defect there would make the prover validate a different formula than the one in the proof;
+  \item the \emph{external prover} and its interpretation through the SZS status line; and
+  \item the \emph{verdict aggregation}, which decides how the individual results are combined.
+\end{itemize}
+Compared with a checker that sends every step to a prover, this list is longer, because the internal checks are part of it; compared with the prover that produced the proof, it is much shorter.
+This is the trade-off stated in Section~\ref{subsec:rw-positioning}: the thesis exchanges a larger trusted checker for less dependence on the prover and for better diagnostics.
+The evaluation supports the correctness of the checkers by tests, by the mutation experiment, and by the benchmark, but it does not prove it.
+A way to reduce the trusted part further would be to restrict the internal checks to the rules where they are simple (structural, propositional, and the Skolem conditions) and to delegate the rest, or to validate the checks themselves against a proof assistant.
+
+\subsection{Design Trade-offs}
+\label{subsec:disc-tradeoffs}
+
+\paragraph{Internal checks and ATP fallback.}
+The competition rules allow any step except Skolemization and the import steps to be checked by an external prover.
+A single step that derives \texttt{\$false} directly from the axioms and the negated conjecture is then delegated completely (the test group \texttt{st08} contains such a ``monolithic'' step).
+For such proofs the verifier is exactly as strong as the prover, and the internal checks contribute only the global conditions.
+This is correct with respect to the rules, but it shows that the quality of the verifier on such inputs lies in the global checks, not in the step checks.
+
+\paragraph{Modularity.}
+Rule-local checkers made it possible to test each rule in isolation and to attribute every error to a step and a reason.
+The price is that some knowledge, such as the freshness of Skolem symbols, cannot be local to one step and lives in the driver.
+The size of the dispatcher in \texttt{main.py} is a sign that the modular idea has been applied to the checkers but not yet to the dispatch; the registry of Section~\ref{subsec:design-dispatch} addresses this.
+
+\paragraph{Python.}
+The implementation language favors readability and fast development, which was valuable for a thesis with many rules.
+It costs run time for the internal checks and complicates deep recursion, which needed a dedicated thread with a larger stack.
+The measurements show that the ATP, not Python, dominates the run time of the proofs that need it; the pure Python cost matters for the large proofs, where [parsing / checks] take [x\,s].
+
+\paragraph{Process isolation.}
+Running each proof in its own process makes timeouts and crashes harmless and enforces the time limit, but it adds a startup cost per proof and makes sharing state, such as a cache of ATP results, harder.
+
+\subsection{Limitations}
+\label{subsec:disc-limitations}
+
+\begin{itemize}
+  \item \textbf{Logic and format.} The verifier handles FOF problems and TSTP proofs with the rule vocabulary of the ProoVer 2026 benchmarks. CNF, typed, and higher-order input are out of scope, and rules outside the supported set are delegated to the prover or lead to abstention.
+  \item \textbf{Weak rule checks.} The \texttt{rewrite} rule is checked only for the shapes observed in the benchmark, because the demodulating equation may be missing in the proof. Since this check is weaker than the logical meaning of the rule, an accepted \texttt{rewrite} step is less well justified than the other steps. % FALLS rewrite an den ATP delegiert bzw. unresolved wird: diesen Punkt streichen.
+  \item \textbf{Symbols from instantiation.} Annotations of Herbrand symbols are parsed but not checked separately. This is sound for \texttt{thm} steps, since instantiation with an arbitrary term is entailed by the parent, but it means that the annotation carries no checked information. % FALLS im Code behandelt: anpassen.
+  \item \textbf{Sequential prover calls.} Each unresolved step starts its own prover process, one after another. Proofs with many such steps are therefore slow. Parallel calls and a shared time budget would help.
+  \item \textbf{Benchmark.} The ProoVer set contains 100 proofs and the TST set 76 proofs written by the author. This is enough to find defects, but not to estimate rare failure rates, and the results do not carry over to proofs from other provers (Section~\ref{subsec:eval-threats}).
+  \item \textbf{Trust in tests.} Correctness of the checkers is supported by tests and mutations, not proved.
+\end{itemize}

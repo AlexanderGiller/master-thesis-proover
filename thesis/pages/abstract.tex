@@ -1,0 +1,16 @@
+\section*{Abstract}
+
+Nowadays automated theorem provers (ATPs) are highly effective, but the trustworthiness of their results depends on independent validation of the proof objects they produce.
+This thesis presents the design and implementation of a Python-based proof verifier for TPTP/TSTP derivations, developed according to the specifications for ProoVer 2026, which is the proof checking competition held as part of the FLoC Olympics 2026 in Lisbon~\citep{proover-competition}.
+
+Due to the fact, that false positives are by far the worst outcome in automated theorem proving, the competition's scoring scheme also punishes a wrongly accepted proof ten times harder than it rewards a correct acceptance~\citep{proover-competition}.
+From the expected score a fail-closed policy is derived, where the verifier accepts a proof only if every step has been validated positively.
+Furthermore it only rejects the proof if it has found a concrete defect, and abstains otherwise.
+The verifier implements this policy as a modular pipeline of parsing and normalization, structural and dependency validation, and rule-specific inference checking.
+Structural, propositional, quantifier, and clausal rules and Skolemization (including freshness of the introduced symbols) are checked internally and produce diagnostics for each failing step.
+All remaining steps, that could not be verified internally are delegated to an external prover - in this case vampire - that only sees the premises of the step but not the whole proof.
+
+The evaluation on 91 problem/proof pairs given by the ProoVer2026 competition committee verifies 91 of 91 proofs within the 30 seconds wall clock time limit for each proof, correctly rejects all 47 invalid proofs, accepts all 44 valid proofs and never wrongly accepts or rejects a proof.
+This thesis contributes a scoring-derived verdict policy with a soundness argument, a modular verification architecture, a practical implementation, and an empirical analysis of its performance and robustness under simulated competition conditions.
+
+\textbf{Keywords}: Automated Theorem Proving, Proof Verification, TPTP, TSTP, Fail-Closed Checking, Skolemization, ProoVer 2026.

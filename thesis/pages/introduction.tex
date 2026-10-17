@@ -1,0 +1,66 @@
+% Keys: alle TODO-* durch echte Bib-Keys ersetzen (tptp-derivations, proover-competition existieren bereits).
+\section{Introduction}
+\label{sec:introduction}
+
+\subsection{Motivation and Problem}
+\label{subsec:motivation}
+
+Automated theorem proving (ATP) is a key technology for formal reasoning in mathematics, software verification, and knowledge-based systems~\citep{TODO-atp-survey}.
+As ATP systems grow more sophisticated, they also become more likely to contain bugs, so a bare answer such as ``the conjecture is a theorem'' is hard to trust.
+A common countermeasure is to let the prover emit a \emph{proof object}, a derivation that justifies its answer step by step, and to validate it with a separate and much simpler program, the \emph{proof checker}.
+Trust is thereby moved from a large, fast-changing prover to a small and well-understood checker.
+
+In the TPTP ecosystem~\citep{Sut24}, derivations are exchanged in the TSTP format~\citep{Sut10, Sut07-CSR}.
+A TSTP derivation is a directed acyclic graph of formulas, where each node records the inference rule that produced it and the premises it depends on.
+Provers differ, in the rules they use, in how precisely they annotate steps, and in how they treat transformations such as clausification and Skolemization.
+A checker must therefore be sound, in that it never accepts an invalid step, while also covering the rules that occur in real prover output and staying within strict time and memory limits.
+The challenge can be divided into two separate parts.
+For one logical correctness at the step level has to be ensured and on the other hand engineering robustness at the workload level has to be maintained.
+
+The established checker for TSTP derivations is GDV~\citep{Sut06-FLAIRS, Sut06, Sut06-CASC-J3, Sut06-CASC}, where the inference verifications use external trusted ATP systems, which verify each individual inference step based on the SZS status~\citep{Sut08-KEAPPA}.
+This makes it general, but also slow and dependent on external systems.
+Therefore newer checkers address this issue by treating frequent inference rules and transformations internally and by rejecting wrong steps with model finders (Chapter~\ref{sec:related-work}).
+What is still missing is a systematic account of how a checker should behave when it cannot decide a step, because the cost of a wrong answer is not symmetric.
+This thesis derives such a policy from the scoring scheme of a proof checking competition and builds a checker around it.
+
+\subsection{The ProoVer 2026 Competition}
+\label{subsec:proover}
+
+This work is carried out in the context of ProoVer 2026, the first edition of this proof checking competition held as part of the FLoC Olympics 2026 in Lisbon~\citep{proover-competition}.
+Like the CASC competition for provers~\citep{Sut16}, ProoVer focuses on the TPTP ecosystem, but the systems under evaluation are checkers: they receive a FOF problem and a TSTP proof and must classify the proof as valid or invalid, or give up.
+Some of the proofs contain deliberate, subtle errors.
+Correct answers are rewarded, and wrongly accepting an invalid proof is penalized most heavily\citep{proover-competition}.
+The task, the scoring scheme, and the resource limits are described in detail in Chapter~\ref{sec:requirements}, and the structure of the benchmark files in Section~\ref{subsec:proover2026}.
+In this thesis, \emph{competitive} means that the verifier achieves a high total score under the ProoVer 2026 scoring scheme (Section~\ref{subsec:req-scoring}) within the per-proof time limit, with the average run time as a secondary criterion.
+
+\subsection{Objective, Research Questions, and Scope}
+\label{subsec:rq}
+
+The objective of this thesis is to design and implement a Python-based verifier for TSTP derivations that is sound and competitive in this sense.
+Soundness means that each accepted inference step is justified by the formal semantics of its rule.
+The verifier ensures this by syntactic rule checks, dedicated checks for multiple steps, with the focus lying on Skolemization.
+For the remaining steps, an external prover, namely Vampire 5.0.1, is used, and it accepts a proof only if every step has been validated positively.
+It is organized as a modular pipeline of parsing and normalization, dependency and structural validation, and rule-specific inference checking.
+Furthermore, it only targets FOF problems and the inference rules occurring in the ProoVer 2026 benchmarks.
+Steps with rules outside the supported set are delegated to the external prover, and if that is impossible they lead to abstention rather than acceptance.
+This research is structured around three central research questions.
+
+
+\begin{description}
+  \item[RQ1] Which inference rules and formula fragments must a verifier support to cover the ProoVer 2026 benchmarks? \emph{Measure:} share of steps that are validated internally, by the external prover, or not at all.
+  \item[RQ2] How can a modular architecture keep the trusted part of the verifier small while remaining extensible? \emph{Measure:} size and test coverage of the individual checkers, and the amount of work required to add a rule.
+  \item[RQ3] How do correctness, running time, and memory consumption behave on realistic and on malformed or inconsistent derivations? \emph{Measure:} score, verdict matrix, and run time on the benchmark set and on mutated proofs.
+\end{description}
+
+\subsection{Contributions and Structure}
+\label{subsec:contributions}
+
+The contributions of this thesis are:
+(i) a verdict policy for proof checking that is derived from the competition's scoring scheme and results in a three-valued, fail-closed verdict (Chapters~\ref{sec:requirements} and~\ref{sec:design});
+(ii) a modular verification pipeline for TSTP derivations with rule-local checkers, a dedicated Skolemization check, and a restricted ATP fallback, together with its Python implementation and diagnostics that identify failed steps (Chapters~\ref{sec:design} and~\ref{sec:implementation}); and
+(iii) an evaluation on the ProoVer 2026 benchmarks and a suite of mutated proofs showing [TODO: key result, e.g.\ $X$ of $Y$ proofs verified within the limits, no wrong acceptance, and the achieved score], together with an analysis of the remaining limitations (Chapters~\ref{sec:evaluation} and~\ref{sec:discussion}).
+
+The remainder of the thesis is organized as follows.
+Chapter~\ref{sec:background} introduces the background on first-order logic and the TPTP/TSTP formats, and Chapter~\ref{sec:related-work} discusses related work.
+Chapter~\ref{sec:requirements} derives the requirements, Chapters~\ref{sec:design} and~\ref{sec:implementation} present the architecture and its implementation, and Chapter~\ref{sec:evaluation} reports the experimental results.
+Chapter~\ref{sec:discussion} discusses implications and limitations, and Chapter~\ref{sec:conclusion} answers the research questions and concludes with future work.

@@ -432,6 +432,16 @@ def check_skolemization(
         )
 
     status_entries = [item.status for item in inf.info if isinstance(item, StatusInfo)]
+
+    for status in status_entries:
+        if status != InferenceStatus.ESA:
+            issues.append(
+                SkolemizationIssue(
+                    skolem_step.name,
+                    f"skolemize must be 'esa', got {status}",
+                )
+            )
+    """
     if len(status_entries) != 1:
         issues.append(
             SkolemizationIssue(
@@ -446,7 +456,7 @@ def check_skolemization(
                 f"skolemize must be 'esa', got {status_entries[0]}",
             )
         )
-
+    """
     new_symbols_info = next((item for item in inf.info if isinstance(item, NewSymbolsInfo)), None)
     if (
         new_symbols_info is None
