@@ -183,8 +183,8 @@ class TestExistentialGenChecker:
 class TestCheckerIntegrationExamples:
     def test_prv008_example_contains_new_steps(self):
         result = check_proof_file(
-            str(ROOT / "ProoVer2026" / "PRV008+1.s"),
-            str(ROOT / "ProoVer2026" / "Problems" / "PRV008+1.p"),
+            str(ROOT / "ProoVer2026" / "PRV" / "PRV008+1.s"),
+            str(ROOT / "ProoVer2026" / "PRV" / "Problems" / "PRV008+1.p"),
         )
 
         assert result["instantiate_issues"] == {}

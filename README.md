@@ -108,26 +108,51 @@ Empfehlung bleibt trotzdem: alles direkt in WSL laufen lassen.
 
 Alle Beispiele vom Projekt-Root aus.
 
-### 1) Alle ProoVer2026-Proofs pruefen
+### 1) Verzeichnisstruktur und Kommandos
 
-```bash
-python main.py
+```
+ProoVer2026/
+  PRV/          offizielle ProoVer-Beweise (91) + Problems/
+  Deprecated/   9 fruehere Beispielbeweise (PRV005, ...) + Problems/
+  Test/         eigene Testbeweise (TST) + Problems/
+  Extra/        generierte Regeltests (EXT) + Problems/
 ```
 
-Das durchsucht `ProoVer2026/*.s`, mappt automatisch auf `ProoVer2026/Problems/*.p`, prueft alle Proofs und erzeugt Summary + Scoring-CSV.
+| Ziel | Kommando |
+|---|---|
+| Einen Proof pruefen | `python main.py PROOF [-p PROBLEM]` |
+| Alle Proofs eines Verzeichnisses pruefen und bewerten | `python main.py -d VERZEICHNIS` |
+| Experimente der Thesis (Laufzeit, Ablation, Mutation, Abdeckung, Tabellen) | `python scripts/eval_all.py --parts all` |
+| Vorhandene Ergebnis-CSV neu bewerten | `python src/scoring/score_proofs.py` |
 
-### 2) Einzelnen Proof pruefen
+`main.py` ist das Werkzeug zum Pruefen und Bewerten; `scripts/eval_all.py` ist das Experiment-Skript der Thesis und fuer die normale Nutzung nicht noetig.
+
+### 2) Alle Proofs eines Verzeichnisses pruefen (Batch)
+
+Ohne Proof-Argument durchsucht `main.py` das Verzeichnis nach `*.s`, mappt auf `Problems/*.p`, prueft alles und erzeugt Summary und Scoring-CSV.
+Die erwarteten Ergebnisse werden aus dem Verzeichnisnamen gewaehlt (`src/scoring/`); mit `-e` kann eine andere CSV angegeben werden.
 
 ```bash
-python main.py ProoVer2026/PRV000+1.s
+python main.py                        # Standard: ProoVer2026/PRV (offizielle Beweise)
+python main.py -d ProoVer2026/Test    # eigene Testbeweise (TST_expected.csv)
+python main.py -d ProoVer2026/Extra   # generierte Regeltests (EXT_expected.csv)
+python main.py -d ProoVer2026/Deprecated   # fruehere Beispielbeweise
+python main.py -d ProoVer2026/PRV --prefix PRV01   # nur Dateien mit diesem Praefix
 ```
 
-Die Problemdatei wird dann automatisch als `ProoVer2026/Problems/PRV000+1.p` angenommen.
+Die Ergebnisse stehen in `results/<Verzeichnisname>_results.csv` (z. B. `PRV_results.csv`, `Test_results.csv`, `Extra_results.csv`), die Laufzeiten in `results/<Verzeichnisname>_performance.csv`.
 
-### 3) Einzelnen Proof mit expliziter Problemdatei pruefen
+### 3) Einzelnen Proof pruefen
 
 ```bash
-python main.py ProoVer2026/PRV000+1.s -p ProoVer2026/Problems/PRV000+1.p
+python main.py ProoVer2026/PRV/PRV000+1.s
+```
+
+Die Problemdatei wird dann automatisch als `ProoVer2026/PRV/Problems/PRV000+1.p` angenommen.
+Mit expliziter Problemdatei:
+
+```bash
+python main.py ProoVer2026/PRV/PRV000+1.s -p ProoVer2026/PRV/Problems/PRV000+1.p
 ```
 
 ### 4) Timeout pro Proof erhoehen
@@ -143,7 +168,7 @@ python main.py -t 120
 Einzelproof mit hoeherem Limit:
 
 ```bash
-python main.py ProoVer2026/PRV010+1.s -t 90
+python main.py ProoVer2026/PRV/PRV010+1.s -t 90
 ```
 
 ### 5) CLI-Hilfe anzeigen
@@ -156,15 +181,17 @@ python main.py -h
 
 Beim Lauf von `main.py` bekommst du:
 
-- SZS-nahe Status je Proof (`VerifiedGood`, `VerifiedBad`, `Timeout`)
+- SZS-nahe Status je Proof (`VerifiedGood`, `VerifiedBad`, `Unknown`, `Timeout`)
+  - `Unknown` (dreiwertiges Verdikt): kein Fehler gefunden, aber mindestens ein Schritt blieb unentscheidbar (Prover-Timeout/keine Antwort oder keine Pruefregel). Das Tool enthaelt sich (0 Punkte).
+  - `--binary-verdict` gibt stattdessen `VerifiedBad` aus (zweiwertige Ausgabe).
 - Zusammenfassung ueber alle Proofs
 - Performance-Report (Wall-Clock/CPU)
 - Scoring-Zusammenfassung
 
 Datei-Ausgaben:
 
-- `results/ProoVer2026_results.csv` (Scoring/Ergebnisse)
-- `results/performance_results.csv` (Performance pro Proof)
+- `results/<Verzeichnisname>_results.csv` (Scoring/Ergebnisse, z. B. `PRV_results.csv`)
+- `results/<Verzeichnisname>_performance.csv` (Performance pro Proof)
 
 Zusaetzliches Scoring-Skript:
 

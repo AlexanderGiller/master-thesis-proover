@@ -7,8 +7,13 @@ It assumes the verification results are already stored in a CSV file.
 
 import argparse
 import csv
+import sys
 from pathlib import Path
-from src.scoring import ProofScorer, ScoringResult, print_scoring_summary
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
+from src.scoring.scoring import ProofScorer, ScoringResult, print_scoring_summary
 
 
 def load_verification_results(results_csv: str) -> dict:
@@ -36,22 +41,22 @@ def main():
     )
     parser.add_argument(
         "-e", "--expected",
-        default="PRV_expected.csv",
-        help="CSV file with expected results (default: PRV_expected.csv)"
+        default="src/scoring/PRV_expected.csv",
+        help="CSV file with expected results (default: src/scoring/PRV_expected.csv)"
     )
     parser.add_argument(
         "-r", "--results",
-        default="ProoVer2026_results.csv",
-        help="CSV file with verification results (default: ProoVer2026_results.csv)"
+        default="results/PRV_results.csv",
+        help="CSV file with verification results (default: results/PRV_results.csv)"
     )
     parser.add_argument(
         "-o", "--output",
-        default="scoring_report.csv",
-        help="Output file for scoring report (default: scoring_report.csv)"
+        default="results/scoring_report.csv",
+        help="Output file for scoring report (default: results/scoring_report.csv)"
     )
 
     args = parser.parse_args()
-    base = Path(__file__).parent
+    base = ROOT
 
     expected_file = base / args.expected
     results_file = base / args.results

@@ -128,8 +128,8 @@ def test_conjunction_rejects_wrong_operand_count():
 
 def test_integration_uses_rule_specific_checkers():
     result = check_proof_file(
-        "ProoVer2026/PRV011+1.s",
-        "ProoVer2026/Problems/PRV011+1.p",
+        "ProoVer2026/PRV/PRV011+1.s",
+        "ProoVer2026/PRV/Problems/PRV011+1.p",
     )
 
     assert result["conjunction_issues"] == {}
@@ -138,8 +138,8 @@ def test_integration_uses_rule_specific_checkers():
 
 def test_integration_prv014_nary_conjunction_flattening():
     result = check_proof_file(
-        "ProoVer2026/PRV014+1.s",
-        "ProoVer2026/Problems/PRV014+1.p",
+        "ProoVer2026/PRV/PRV014+1.s",
+        "ProoVer2026/PRV/Problems/PRV014+1.p",
     )
 
     assert result["conjunction_issues"] == {}
@@ -155,10 +155,11 @@ def test_integration_prv018_s3_no_longer_uses_external_atp(monkeypatch):
     monkeypatch.setattr("main.validate_step_with_atp", _fake_validate)
 
     result = check_proof_file(
-        "ProoVer2026/PRV018+1.s",
-        "ProoVer2026/Problems/PRV018+1.p",
+        "ProoVer2026/PRV/PRV018+1.s",
+        "ProoVer2026/PRV/Problems/PRV018+1.p",
     )
 
     assert "s3" not in result["external_atp_issues"]
-    assert calls == ["$false"]
+    # the final $false step has complementary parents and is handled by the sound fast path
+    assert calls == []
 

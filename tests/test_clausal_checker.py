@@ -271,21 +271,21 @@ class TestResolution:
 
 class TestIntegrationAgainstRealProofs:
     def test_prv018_transitivity_and_paramodulation(self):
-        result = check_proof_file("ProoVer2026/PRV018+1.s", "ProoVer2026/Problems/PRV018+1.p")
+        result = check_proof_file("ProoVer2026/PRV/PRV018+1.s", "ProoVer2026/PRV/Problems/PRV018+1.p")
         assert result["transitivity_issues"] == {}
         assert result["paramodulation_issues"] == {}
 
     def test_prv020_resolution(self):
-        result = check_proof_file("ProoVer2026/PRV020+1.s", "ProoVer2026/Problems/PRV020+1.p")
+        result = check_proof_file("ProoVer2026/PRV/PRV020+1.s", "ProoVer2026/PRV/Problems/PRV020+1.p")
         assert result["resolution_issues"] == {}
 
     def test_prv021_resolution_and_paramodulation(self):
-        result = check_proof_file("ProoVer2026/PRV021+1.s", "ProoVer2026/Problems/PRV021+1.p")
+        result = check_proof_file("ProoVer2026/PRV/PRV021+1.s", "ProoVer2026/PRV/Problems/PRV021+1.p")
         assert result["resolution_issues"] == {}
         assert result["paramodulation_issues"] == {}
 
     def test_prv007_reflexivity_ok_but_paramodulation_unsound(self):
-        result = check_proof_file("ProoVer2026/PRV007+1.s", "ProoVer2026/Problems/PRV007+1.p")
+        result = check_proof_file("ProoVer2026/PRV/PRV007+1.s", "ProoVer2026/PRV/Problems/PRV007+1.p")
         assert result["reflexivity_issues"] == {}
         # The proof's "s" step generalizes a rewritten ground fact into a
         # fresh universally quantified variable, which is not a logically
@@ -294,7 +294,7 @@ class TestIntegrationAgainstRealProofs:
         assert result["paramodulation_issues"] != {}
 
     def test_prv067_resolution_is_unsound(self):
-        result = check_proof_file("ProoVer2026/PRV067+1.s", "ProoVer2026/Problems/PRV067+1.p")
+        result = check_proof_file("ProoVer2026/PRV/PRV067+1.s", "ProoVer2026/PRV/Problems/PRV067+1.p")
         # a1, a2 do not entail r(a) | t(b) under independent instantiation of
         # the shared pivot variable X; this must be flagged as invalid.
         assert result["resolution_issues"] != {}

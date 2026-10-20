@@ -1,0 +1,109 @@
+EXT001+1.s,resolution_base,CORRECT,Binary resolution on p(X)
+EXT002+1.s,resolution_wrong_conclusion_and,INCORRECT,Resolvent is a conjunction q & r (unsound)
+EXT003+1.s,resolution_dropped_literal,INCORRECT,Literal r(X) dropped from the resolvent (unsound)
+EXT004+1.s,resolution_not_complementary,INCORRECT,Parents have no complementary literals
+EXT005+1.s,resolution_status_cth,INCORRECT,cth is reserved for the negated conjecture
+EXT006+1.s,resolution_missing_parent,INCORRECT,Second parent does not exist
+EXT007+1.s,resolution_ground,CORRECT,Ground resolution
+EXT008+1.s,resolution_ground_wrong_atom,INCORRECT,Resolvent mentions an atom (s) that occurs in no parent
+EXT009+1.s,resolution_swapped_literal_order,EDGE,Sound resolvent with the literals in the other order; a strict syntactic matcher may reject it
+EXT010+1.s,paramodulation_base,CORRECT,Rewrite f(a) to g(a) with an instance of a universally quantified equation
+EXT011+1.s,paramodulation_wrong_instance,INCORRECT,Rewritten to g(b) instead of g(a)
+EXT012+1.s,paramodulation_wrong_symbol,INCORRECT,"Rewritten to h(a), which the equation does not give"
+EXT013+1.s,paramodulation_wrong_predicate,INCORRECT,Predicate changed from p to q during rewriting
+EXT014+1.s,paramodulation_wrong_equation,INCORRECT,Equation used is f(X)=h(X) but the conclusion contains g(a)
+EXT015+1.s,paramodulation_same_parent_twice,INCORRECT,Both parents are the atom p(f(a)); no equation available
+EXT016+1.s,paramodulation_status_cth,INCORRECT,cth is reserved for the negated conjecture
+EXT017+1.s,paramodulation_under_quantifier,CORRECT,Rewrite below a universal quantifier
+EXT018+1.s,paramodulation_under_quantifier_wrong,INCORRECT,Rewrite below a universal quantifier produces f(c)
+EXT019+1.s,paramodulation_one_occurrence,CORRECT,Rewrite exactly one of two occurrences
+EXT020+1.s,paramodulation_one_occurrence_wrong,INCORRECT,Second argument rewritten to the unrelated term g(b)
+EXT021+1.s,reflexivity_base,CORRECT,t = t
+EXT022+1.s,reflexivity_not_reflexive,INCORRECT,Conclusion f(a) = f(b) is not reflexive
+EXT023+1.s,reflexivity_negated_equality,INCORRECT,Conclusion f(a) != f(a) is false
+EXT024+1.s,reflexivity_not_an_equation,INCORRECT,"Conclusion is p(a), not an equation"
+EXT025+1.s,reflexivity_status_cth,INCORRECT,cth is reserved for the negated conjecture
+EXT026+1.s,transitivity_base,CORRECT,"a=b, b=c |- a=c"
+EXT027+1.s,transitivity_fresh_constant,INCORRECT,Conclusion c = d relates a constant that is not chained
+EXT028+1.s,transitivity_no_common_term,INCORRECT,Parents a=b and d=e share no term
+EXT029+1.s,transitivity_negated_parent,INCORRECT,Second parent is the disequation b != c
+EXT030+1.s,transitivity_status_cth,INCORRECT,cth is reserved for the negated conjecture
+EXT031+1.s,rewrite_identity,CORRECT,Rewrite step whose conclusion is its parent (the only form seen in the corpus)
+EXT032+1.s,rewrite_unjustified_rewrite,INCORRECT,p(a) rewritten to p(b) although the equation a=b is not cited as a parent
+EXT033+1.s,rewrite_unrelated_conclusion,INCORRECT,Conclusion q(a) does not follow from the parent
+EXT034+1.s,weaken_base,CORRECT,p(a) |- p(a) | q(a)
+EXT035+1.s,weaken_not_a_disjunction,INCORRECT,Conclusion p(a) & q(a) is stronger than the parent
+EXT036+1.s,weaken_parent_missing,INCORRECT,Disjunction q(a) | r(a) does not contain the parent
+EXT037+1.s,weaken_plain_atom,INCORRECT,Conclusion q(a) is unrelated to the parent
+EXT038+1.s,weaken_new_disjunct_first,EDGE,Sound weakening with the new disjunct in front; a strict prefix check may reject it
+EXT039+1.s,commute_conjunction,CORRECT,Swap of the operands of a conjunction
+EXT040+1.s,commute_conjunction_new_operand,INCORRECT,Swap with an unrelated operand r(a)
+EXT041+1.s,commute_conjunction_three_operands,INCORRECT,Extra operand added while swapping
+EXT042+1.s,commute_disjunction,CORRECT,Swap of the operands of a disjunction
+EXT043+1.s,commute_disjunction_new_operand,INCORRECT,Swap with an unrelated operand r(a)
+EXT044+1.s,excluded_middle_base,CORRECT,phi | ~phi
+EXT045+1.s,excluded_middle_different_atoms,INCORRECT,q(a) | ~r(a) is not a tautology
+EXT046+1.s,excluded_middle_no_negation,INCORRECT,q(a) | q(a) is not a tautology
+EXT047+1.s,excluded_middle_contradiction,INCORRECT,q(a) & ~q(a) is a contradiction
+EXT048+1.s,excluded_middle_status_cth,INCORRECT,cth is reserved for the negated conjecture
+EXT049+1.s,existential_gen_base,CORRECT,p(a) |- ?X p(X)
+EXT050+1.s,existential_gen_other_predicate,INCORRECT,?X q(X) does not follow from p(a)
+EXT051+1.s,existential_gen_universal_instead,INCORRECT,Universal generalization !X p(X) is unsound
+EXT052+1.s,existential_gen_no_quantifier,INCORRECT,No existential quantifier introduced; the term is replaced by b
+EXT053+1.s,existential_gen_two_variables,CORRECT,"r(a,b) |- ?X,Y r(X,Y)"
+EXT054+1.s,existential_gen_diagonal,INCORRECT,"?X r(X,X) would need a = b"
+EXT055+1.s,instantiate_base,CORRECT,!X p(X) |- p(a)
+EXT056+1.s,instantiate_wrong_predicate,INCORRECT,q(a) does not follow from !X p(X)
+EXT057+1.s,instantiate_partial,CORRECT,Instantiate one of two universal variables
+EXT058+1.s,instantiate_same_variable,CORRECT,Both occurrences get the same instance
+EXT059+1.s,instantiate_inconsistent_instance,INCORRECT,Occurrences of X replaced by different terms
+EXT060+1.s,instantiate_generalisation,INCORRECT,Direction reversed: p(a) does not give !X p(X)
+EXT061+1.s,modus_ponens_base,CORRECT,"p => q, p |- q"
+EXT062+1.s,modus_ponens_affirming_consequent,INCORRECT,"p => q, q |- p is unsound"
+EXT063+1.s,modus_ponens_wrong_conclusion,INCORRECT,r(a) does not follow
+EXT064+1.s,modus_ponens_status_cth,INCORRECT,cth is reserved for the negated conjecture
+EXT065+1.s,modus_ponens_universal,CORRECT,Universally quantified implication instantiated by the premise
+EXT066+1.s,modus_ponens_universal_wrong_instance,INCORRECT,q(b) does not follow from p(a)
+EXT067+1.s,conjunction_base,CORRECT,"p, q |- p & q"
+EXT068+1.s,conjunction_unsupported_operand,INCORRECT,r(a) is not among the parents
+EXT069+1.s,conjunction_single_parent_repeated,INCORRECT,q(a) is not derivable from the single parent p(a)
+EXT070+1.s,conjunction_swapped_order,EDGE,Sound conclusion q & p with the operands in the other order; strict operand order may reject it
+EXT071+1.s,split_conjunct_base,CORRECT,p & q |- q
+EXT072+1.s,split_conjunct_not_a_conjunct,INCORRECT,r(a) is not a conjunct of the parent
+EXT073+1.s,split_conjunct_parent_is_disjunction,INCORRECT,"Parent is p | q, from which q does not follow"
+EXT074+1.s,double_negation_base,CORRECT,p |- ~~p
+EXT075+1.s,double_negation_single_negation,INCORRECT,"~p(a) is the negation, not a double negation"
+EXT076+1.s,double_negation_wrong_atom,INCORRECT,~~q(a) does not follow from p(a)
+EXT077+1.s,remove_double_negation_base,CORRECT,~~p |- p
+EXT078+1.s,remove_double_negation_single_negation_parent,INCORRECT,Parent ~p(a) is not a double negation
+EXT079+1.s,remove_double_negation_wrong_atom,INCORRECT,q(a) does not follow from ~~p(a)
+EXT080+1.s,copy_base,CORRECT,Copy of an axiom
+EXT081+1.s,copy_changed_formula,INCORRECT,Copy changes p(a) to q(a)
+EXT082+1.s,copy_negated_copy,INCORRECT,Copy changes p(a) to ~p(a)
+EXT083+1.s,duplicate_base,CORRECT,Duplicate of the same premise
+EXT084+1.s,duplicate_different_parents,INCORRECT,Parents p(a) and q(a) differ
+EXT085+1.s,duplicate_changed_formula,INCORRECT,Conclusion q(a) differs from the duplicated formula
+EXT086+1.s,rename_variable_base,CORRECT,Consistent renaming of bound variables
+EXT087+1.s,rename_variable_swapped_arguments,INCORRECT,Renaming also swaps the arguments
+EXT088+1.s,rename_variable_variable_capture,INCORRECT,Both variables renamed to the same name (capture)
+EXT089+1.s,add_hypothesis_base,CORRECT,p |- q => p
+EXT090+1.s,add_hypothesis_wrong_consequent,INCORRECT,q => r does not follow from p
+EXT091+1.s,resolution_needs_unifier,CORRECT,Resolution needs the unifier X := a
+EXT092+1.s,resolution_wrong_unifier,INCORRECT,Resolvent uses X := b instead of the unifier X := a
+EXT093+1.s,resolution_variables_standardised_apart,CORRECT,"Both parents use X; the unifier is X1 := a, X2 := c"
+EXT094+1.s,resolution_variables_conflated,INCORRECT,Resolvent identifies the two variables X (q(a) | r(a))
+EXT095+1.s,resolution_occurs_check,INCORRECT,"p(X,X) and p(Y,f(Y)) are not unifiable (occurs check)"
+EXT096+1.s,paramodulation_reverse_orientation,CORRECT,Equation used right to left
+EXT097+1.s,paramodulation_rewrites_all_occurrences,EDGE,"Sound, but two rewrite steps in one inference; a one-position check rejects it"
+EXT098+1.s,paramodulation_target_needs_instantiation,EDGE,"Sound (superposition unifies X := a in the target), but the target variable is not instantiated by a one-sided matcher"
+EXT099+1.s,instantiate_under_existential,CORRECT,Instantiate X := a below the universal prefix
+EXT100+1.s,instantiate_variable_capture,INCORRECT,Instantiating X := Y would be captured by ?[Y]
+EXT101+1.s,modus_ponens_repeated_variable,CORRECT,Both occurrences of X receive the same instance
+EXT102+1.s,modus_ponens_inconsistent_instance,INCORRECT,"q(a,b) uses different instances for the two occurrences of X"
+EXT103+1.s,split_conjunct_below_quantifier,EDGE,"Sound, but the parent is a quantified conjunction, not a conjunction at top level"
+EXT104+1.s,excluded_middle_quantified,EDGE,Sound tautology below a universal quantifier; the rule's shape check expects a top-level disjunction
+EXT105+1.s,reflexivity_quantified,EDGE,"Sound, but the conclusion is a quantified equation, not t = t"
+EXT106+1.s,transitivity_shared_right_term,CORRECT,"a=b, c=b |- a=c (common term on the right)"
+EXT107+1.s,weaken_two_new_disjuncts,CORRECT,Two disjuncts added at once
+EXT108+1.s,commute_nested_operand,CORRECT,Swap with a compound operand
+EXT109+1.s,consequence_bot_unrelated,INCORRECT,Final $false uses an unrelated derived step (r(a)) instead of the proof of the conjecture

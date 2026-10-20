@@ -44,12 +44,12 @@ def _run_mutation_case(tmp_path: Path, case: MutationCase):
         ], f"Expected issues in bucket {case.expected_issue_bucket}, got: {result}"
 
 
-SEED_COR001 = ROOT / "examples" / "correct" / "COR001+1.s"
-PROBLEM_COR001 = ROOT / "examples" / "correct" / "Problems" / "COR001+1.p"
-SEED_COR002 = ROOT / "examples" / "correct" / "COR002+1.s"
-PROBLEM_COR002 = ROOT / "examples" / "correct" / "Problems" / "COR002+1.p"
-SEED_COR003 = ROOT / "examples" / "correct" / "COR003+1.s"
-PROBLEM_COR003 = ROOT / "examples" / "correct" / "Problems" / "COR003+1.p"
+SEED_COR001 = ROOT / "tests" / "fixtures" / "examples" / "correct" / "COR001+1.s"
+PROBLEM_COR001 = ROOT / "tests" / "fixtures" / "examples" / "correct" / "Problems" / "COR001+1.p"
+SEED_COR002 = ROOT / "tests" / "fixtures" / "examples" / "correct" / "COR002+1.s"
+PROBLEM_COR002 = ROOT / "tests" / "fixtures" / "examples" / "correct" / "Problems" / "COR002+1.p"
+SEED_COR003 = ROOT / "tests" / "fixtures" / "examples" / "correct" / "COR003+1.s"
+PROBLEM_COR003 = ROOT / "tests" / "fixtures" / "examples" / "correct" / "Problems" / "COR003+1.p"
 
 
 CASES = [

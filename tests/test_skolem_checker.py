@@ -177,16 +177,16 @@ class TestSkolemCheckerUnit:
 class TestSkolemCheckerExamples:
     def test_cor003_reports_no_skolem_issues(self):
         result = check_proof_file(
-            str(ROOT / "examples" / "correct" / "COR003+1.s"),
-            str(ROOT / "examples" / "correct" / "Problems" / "COR003+1.p"),
+            str(ROOT / "tests" / "fixtures" / "examples" / "correct" / "COR003+1.s"),
+            str(ROOT / "tests" / "fixtures" / "examples" / "correct" / "Problems" / "COR003+1.p"),
         )
 
         assert result["skolem_issues"] == {}
 
     def test_evl003_reports_duplicate_skolem_symbol(self):
         result = check_proof_file(
-            str(ROOT / "examples" / "incorrect" / "EVL003+1.s"),
-            str(ROOT / "examples" / "incorrect" / "Problems" / "EVL003+1.p"),
+            str(ROOT / "tests" / "fixtures" / "examples" / "incorrect" / "EVL003+1.s"),
+            str(ROOT / "tests" / "fixtures" / "examples" / "incorrect" / "Problems" / "EVL003+1.p"),
         )
 
         assert "groom" in result["skolem_issues"]
@@ -196,8 +196,8 @@ class TestSkolemCheckerExamples:
 
     def test_evl004_reports_incorrect_resulting_formula(self):
         result = check_proof_file(
-            str(ROOT / "examples" / "incorrect" / "EVL004+1.s"),
-            str(ROOT / "examples" / "incorrect" / "Problems" / "EVL004+1.p"),
+            str(ROOT / "tests" / "fixtures" / "examples" / "incorrect" / "EVL004+1.s"),
+            str(ROOT / "tests" / "fixtures" / "examples" / "incorrect" / "Problems" / "EVL004+1.p"),
         )
 
         assert "groom" in result["skolem_issues"]
@@ -205,37 +205,18 @@ class TestSkolemCheckerExamples:
             "not a correct Skolemization" in reason for reason in result["skolem_issues"]["groom"]
         )
 
-    def test_prv005_reports_no_skolem_issues(self):
-        result = check_proof_file(
-            str(ROOT / "ProoVer2026" / "PRV005+1.s"),
-            str(ROOT / "ProoVer2026" / "Problems" / "PRV005+1.p"),
-        )
-
-        assert result["skolem_issues"] == {}
-
-    def test_prv080_reports_existential_dependency_in_skolem_term(self):
-        result = check_proof_file(
-            str(ROOT / "ProoVer2026" / "PRV080+1.s"),
-            str(ROOT / "ProoVer2026" / "Problems" / "PRV080+1.p"),
-        )
-
-        assert "sk" in result["skolem_issues"]
-        assert any(
-            "Skolem term arguments" in reason for reason in result["skolem_issues"]["sk"]
-        )
-
     def test_prv085_reports_no_skolem_issues(self):
         result = check_proof_file(
-            str(ROOT / "ProoVer2026" / "PRV085+1.s"),
-            str(ROOT / "ProoVer2026" / "Problems" / "PRV085+1.p"),
+            str(ROOT / "ProoVer2026" / "PRV" / "PRV085+1.s"),
+            str(ROOT / "ProoVer2026" / "PRV" / "Problems" / "PRV085+1.p"),
         )
 
         assert result["skolem_issues"] == {}
 
     def test_prv083_reports_universal_only_skolem_target(self):
         result = check_proof_file(
-            str(ROOT / "ProoVer2026" / "PRV083+1.s"),
-            str(ROOT / "ProoVer2026" / "Problems" / "PRV083+1.p"),
+            str(ROOT / "ProoVer2026" / "PRV" / "PRV083+1.s"),
+            str(ROOT / "ProoVer2026" / "PRV" / "Problems" / "PRV083+1.p"),
         )
 
         assert "sk" in result["skolem_issues"]
@@ -246,8 +227,8 @@ class TestSkolemCheckerExamples:
 
     def test_prv084_reports_negative_polarity_existential(self):
         result = check_proof_file(
-            str(ROOT / "ProoVer2026" / "PRV084+1.s"),
-            str(ROOT / "ProoVer2026" / "Problems" / "PRV084+1.p"),
+            str(ROOT / "ProoVer2026" / "PRV" / "PRV084+1.s"),
+            str(ROOT / "ProoVer2026" / "PRV" / "Problems" / "PRV084+1.p"),
         )
 
         assert "sk" in result["skolem_issues"]

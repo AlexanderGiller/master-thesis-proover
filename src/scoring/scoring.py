@@ -34,10 +34,10 @@ class ScoringResult:
         - Falsch als Falsch (INCORRECT → VerifiedBad): +2
         - Richtig als Falsch (CORRECT → VerifiedBad): -1
         - Falsch als Richtig (INCORRECT → VerifiedGood): -10
-        - Timeout: 0
+        - Timeout / Unknown (abstention): 0
         """
         # Timeout always gives 0 points
-        if self.actual_status == "Timeout":
+        if self.actual_status in ("Timeout", "Unknown"):
             return 0
 
         # Map expected status to expected szs status
@@ -68,12 +68,14 @@ class ScoringResult:
 
     def get_error_categories(self) -> dict:
         """Extract error categories from the details."""
-        if not self.details or self.actual_status == "Timeout":
+        if not self.details or self.actual_status in ("Timeout", "Unknown"):
             return {}
 
         error_categories = {}
         issue_columns = [
             ("circular_dependency_issues", "Circular dependency"),
+            ("duplicate_name_issues", "Duplicate name"),
+            ("no_false_issues", "Missing $false"),
             ("axiom_issues", "Axiom"),
             ("conjecture_issues", "Conjecture"),
             ("negated_conjecture_issues", "Negated conjecture"),
@@ -124,11 +126,18 @@ class ProofScorer:
             return expected
 
         try:
-            with open(path, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    if row.get('proof') and row.get('expected_status'):
-                        expected[row['proof']] = row['expected_status']
+            # Accepted layouts (with or without header row):
+            #   PRV: proof,expected_status,description
+            #   TST: proof,test_id,expected,description
+            #   EXT: proof,rule,expected,description
+            # The expected value is the first of CORRECT / INCORRECT / EDGE after the file name.
+            with open(path, 'r', encoding='utf-8', newline='') as f:
+                for row in csv.reader(f):
+                    if not row or not row[0].strip().endswith('.s'):
+                        continue
+                    status = next((c.strip() for c in row[1:] if c.strip() in ('CORRECT', 'INCORRECT', 'EDGE')), None)
+                    if status:
+                        expected[row[0].strip()] = status
         except Exception as e:
             print(f"Error loading expected results: {e}")
 
@@ -161,7 +170,11 @@ class ProofScorer:
         verified_good = sum(1 for r in results if r.actual_status == "VerifiedGood")
         verified_bad = sum(1 for r in results if r.actual_status == "VerifiedBad")
         timeout = sum(1 for r in results if r.actual_status == "Timeout")
-        error = sum(1 for r in results if r.actual_status not in ["VerifiedGood", "VerifiedBad", "Timeout"])
+        unknown = sum(1 for r in results if r.actual_status == "Unknown")
+        error = sum(
+            1 for r in results
+            if r.actual_status not in ["VerifiedGood", "VerifiedBad", "Timeout", "Unknown"]
+        )
 
         # Count by scoring result type
         count_correct_as_correct = sum(1 for r in results if r.points == 1)
@@ -203,6 +216,7 @@ class ProofScorer:
             "verified_good": verified_good,
             "verified_bad": verified_bad,
             "timeout": timeout,
+            "unknown": unknown,
             "error": error,
             "error_categories": sorted_errors,
         }
@@ -260,6 +274,7 @@ def print_scoring_summary(summary: dict) -> None:
     print("Verification Status:")
     print(f"  VerifiedGood:    {summary['verified_good']}")
     print(f"  VerifiedBad:     {summary['verified_bad']}")
+    print(f"  Unknown:         {summary['unknown']}")
     print(f"  Timeout:         {summary['timeout']}")
     print(f"  Error:           {summary['error']}")
 

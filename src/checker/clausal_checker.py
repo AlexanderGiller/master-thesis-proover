@@ -360,16 +360,30 @@ def _walk(term: object, subst: dict[str, object]) -> object:
     return term
 
 
+def _occurs(name: str, term: object, subst: dict[str, object]) -> bool:
+    """Occurs check: does variable `name` occur in `term` (modulo `subst`)?"""
+    term = _walk(term, subst)
+    if isinstance(term, Variable):
+        return term.name == name
+    if isinstance(term, FunctionTerm):
+        return any(_occurs(name, arg, subst) for arg in term.args)
+    return False
+
+
 def _unify_terms(t1: object, t2: object, subst: dict[str, object]) -> dict[str, object] | None:
     t1 = _walk(t1, subst)
     t2 = _walk(t2, subst)
     if isinstance(t1, Variable) and isinstance(t2, Variable) and t1.name == t2.name:
         return subst
     if isinstance(t1, Variable):
+        if _occurs(t1.name, t2, subst):
+            return None
         new_subst = dict(subst)
         new_subst[t1.name] = t2
         return new_subst
     if isinstance(t2, Variable):
+        if _occurs(t2.name, t1, subst):
+            return None
         new_subst = dict(subst)
         new_subst[t2.name] = t1
         return new_subst
@@ -434,6 +448,8 @@ def check_resolution(
 
     vars1, body1 = flatten_prefix(first_parent.formula, Quantifier.UNIVERSAL)
     vars2, body2 = flatten_prefix(second_parent.formula, Quantifier.UNIVERSAL)
+
+    vars2, body2 = _rename_apart(vars2, body2, _collect_all_names(first_parent.formula))
     literals1 = _flatten_disjuncts(body1)
     literals2 = _flatten_disjuncts(body2)
     preferred_order = list(dict.fromkeys(vars1 + vars2))

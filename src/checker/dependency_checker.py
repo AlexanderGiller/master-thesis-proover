@@ -51,7 +51,7 @@ def check_no_circular_dependencies(
             stack[-1] = (node, next_idx + 1)
             parent = parents[next_idx]
             if parent not in color:
-                continue  # dangling reference; not this checker's concern
+                continue
 
             state = color[parent]
             if state == WHITE:

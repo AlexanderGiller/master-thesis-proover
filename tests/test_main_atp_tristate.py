@@ -33,4 +33,5 @@ def test_external_atp_unknown_creates_issue(monkeypatch):
         for reason in result["external_atp_issues"]["s1"]
     )
     assert result["all_ok"] is False
-
+    # the toy proof also lacks a final $false, so the verdict is a definite VerifiedBad
+    assert result["verdict"] == "VerifiedBad"

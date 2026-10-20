@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Laeuft Vampire ueber alle ProoVer2026-Probleme (ProoVer2026/Problems/*.p).
+# Laeuft Vampire ueber alle Probleme in ProoVer2026/PRV/Problems und ProoVer2026/Test/Problems.
 # Nutzung (in WSL, im Projekt-Root):
 #   bash scripts/run_vampire_all.sh                  # alle Probleme
 #   bash scripts/run_vampire_all.sh PRV000+1 PRV010+1 # nur ausgewaehlte
@@ -27,17 +27,19 @@ command -v "$VAMPIRE" >/dev/null 2>&1 || { echo "Vampire nicht gefunden: $VAMPIR
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"/{raw,proofs,rows}
 
-# Im ProoVer2026-Ordner arbeiten, damit file('Problems/X.p',...) in den
-# Vampire-Beweisen denselben Pfad hat wie in den Referenz-.s-Dateien.
+# Jedes Problem wird im Ordner seiner Gruppe (PRV oder Test) aufgerufen, damit file('Problems/X.p',...)
+# in den Vampire-Beweisen denselben Pfad hat wie in den Referenz-.s-Dateien.
+export ROOT
 cd "$ROOT/ProoVer2026" || exit 1
 
 run_one() {
-  local p="$1" name out start end secs szs rc has
+  local entry="$1" grp p name out start end secs szs rc has
+  grp="${entry%%/*}"; p="${entry#*/}"
   name="$(basename "$p" .p)"
   out="$OUT_DIR/raw/$name.out"
   start=$(date +%s.%N)
   # shellcheck disable=SC2086
-  timeout -k 5 $((TIMEOUT + 5)) "$VAMPIRE" --mode casc -t "$TIMEOUT" $VAMPIRE_ARGS "$p" >"$out" 2>&1
+  (cd "$ROOT/ProoVer2026/$grp" && timeout -k 5 $((TIMEOUT + 5)) "$VAMPIRE" --mode casc -t "$TIMEOUT" $VAMPIRE_ARGS "$p") >"$out" 2>&1
   rc=$?
   end=$(date +%s.%N)
   secs=$(awk -v s="$start" -v e="$end" 'BEGIN{printf "%.2f", e-s}')
@@ -54,9 +56,14 @@ run_one() {
 export -f run_one
 
 if [ "$#" -gt 0 ]; then
-  files=(); for n in "$@"; do files+=("Problems/${n%.p}.p"); done
+  files=()
+  for n in "$@"; do
+    n="${n%.p}"
+    case "$n" in TST*) grp=Test ;; *) grp=PRV ;; esac
+    files+=("$grp/Problems/$n.p")
+  done
 else
-  files=(Problems/*.p)
+  files=(PRV/Problems/*.p Test/Problems/*.p)
 fi
 
 printf '%s\0' "${files[@]}" | xargs -0 -n1 -P "$JOBS" bash -c 'run_one "$1"' _

@@ -166,26 +166,26 @@ class TestRemoveDoubleNegation:
 class TestIntegrationAgainstRealProofs:
     def test_prv009_rename_variable(self):
         result = check_proof_file(
-            "ProoVer2026/PRV009+1.s", "ProoVer2026/Problems/PRV009+1.p"
+            "ProoVer2026/PRV/PRV009+1.s", "ProoVer2026/PRV/Problems/PRV009+1.p"
         )
         assert result["rename_variable_issues"] == {}
 
     def test_prv026_copy(self):
         result = check_proof_file(
-            "ProoVer2026/PRV026+1.s", "ProoVer2026/Problems/PRV026+1.p"
+            "ProoVer2026/PRV/PRV026+1.s", "ProoVer2026/PRV/Problems/PRV026+1.p"
         )
         assert result["copy_issues"] == {}
 
     def test_prv098_copy_and_duplicate_chain(self):
         result = check_proof_file(
-            "ProoVer2026/PRV098+1.s", "ProoVer2026/Problems/PRV098+1.p"
+            "ProoVer2026/PRV/PRV098+1.s", "ProoVer2026/PRV/Problems/PRV098+1.p"
         )
         assert result["copy_issues"] == {}
         assert result["duplicate_issues"] == {}
 
     def test_prv010_double_negation_and_removal(self):
         result = check_proof_file(
-            "ProoVer2026/PRV010+1.s", "ProoVer2026/Problems/PRV010+1.p"
+            "ProoVer2026/PRV/PRV010+1.s", "ProoVer2026/PRV/Problems/PRV010+1.p"
         )
         assert result["double_negation_issues"] == {}
         assert result["remove_double_negation_issues"] == {}

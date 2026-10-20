@@ -158,11 +158,29 @@ def _node_equal(left: object, right: object, bound_map: dict[str, str]) -> bool:
     return left == right
 
 
+def _term_variable_names(term: object) -> set[str]:
+    """Names of all variables occurring in a term."""
+    if isinstance(term, Variable):
+        return {term.name}
+    if isinstance(term, FunctionTerm):
+        names: set[str] = set()
+        for arg in term.args:
+            names |= _term_variable_names(arg)
+        return names
+    return set()
+
+
 def match_template_to_instance(
     template: object, instance: object, abstract_vars: set[str], bound_map: dict[str, str] | None = None,
     substitutions: dict[str, object] | None = None,
+    local_bound: frozenset[str] = frozenset(),
 ) -> bool:
-    """Check whether template matches instance with some abstract variables allowed."""
+    """Check whether template matches instance with some abstract variables allowed.
+
+    ``local_bound`` holds the instance-side variable names bound by quantifiers
+    entered during this match. An abstract variable must not be mapped to a term
+    that contains one of them, since the term would be captured by that quantifier.
+    """
     if bound_map is None:
         bound_map = {}
     if substitutions is None:
@@ -175,6 +193,8 @@ def match_template_to_instance(
                 return False
             return instance.name == mapped
         if template.name in abstract_vars:
+            if local_bound and _term_variable_names(instance) & local_bound:
+                return False  # variable capture
             existing = substitutions.get(template.name)
             if existing is None:
                 substitutions[template.name] = instance
@@ -192,21 +212,21 @@ def match_template_to_instance(
 
     if isinstance(template, FunctionTerm):
         return template.functor == instance.functor and len(template.args) == len(instance.args) and all(
-            match_template_to_instance(t_arg, i_arg, abstract_vars, bound_map, substitutions)
+            match_template_to_instance(t_arg, i_arg, abstract_vars, bound_map, substitutions, local_bound)
             for t_arg, i_arg in zip(template.args, instance.args)
         )
 
     if isinstance(template, Atom):
         return template.predicate == instance.predicate and len(template.args) == len(instance.args) and all(
-            match_template_to_instance(t_arg, i_arg, abstract_vars, bound_map, substitutions)
+            match_template_to_instance(t_arg, i_arg, abstract_vars, bound_map, substitutions, local_bound)
             for t_arg, i_arg in zip(template.args, instance.args)
         )
 
     if isinstance(template, Equality):
         return (
             template.negated == instance.negated
-            and match_template_to_instance(template.left, instance.left, abstract_vars, bound_map, substitutions)
-            and match_template_to_instance(template.right, instance.right, abstract_vars, bound_map, substitutions)
+            and match_template_to_instance(template.left, instance.left, abstract_vars, bound_map, substitutions, local_bound)
+            and match_template_to_instance(template.right, instance.right, abstract_vars, bound_map, substitutions, local_bound)
         )
 
     if isinstance(template, Negation):
@@ -217,8 +237,8 @@ def match_template_to_instance(
     if isinstance(template, BinaryFormula):
         return (
             template.connective == instance.connective
-            and match_template_to_instance(template.left, instance.left, abstract_vars, bound_map, substitutions)
-            and match_template_to_instance(template.right, instance.right, abstract_vars, bound_map, substitutions)
+            and match_template_to_instance(template.left, instance.left, abstract_vars, bound_map, substitutions, local_bound)
+            and match_template_to_instance(template.right, instance.right, abstract_vars, bound_map, substitutions, local_bound)
         )
 
     if isinstance(template, JunctionFormula):
@@ -226,7 +246,7 @@ def match_template_to_instance(
             template.connective == instance.connective
             and len(template.operands) == len(instance.operands)
             and all(
-                match_template_to_instance(t_op, i_op, abstract_vars, bound_map, substitutions)
+                match_template_to_instance(t_op, i_op, abstract_vars, bound_map, substitutions, local_bound)
                 for t_op, i_op in zip(template.operands, instance.operands)
             )
         )
@@ -238,7 +258,12 @@ def match_template_to_instance(
         for t_var, i_var in zip(template.variables, instance.variables):
             new_bound[str(t_var)] = str(i_var)
         return match_template_to_instance(
-            template.formula, instance.formula, abstract_vars, new_bound, substitutions
+            template.formula,
+            instance.formula,
+            abstract_vars,
+            new_bound,
+            substitutions,
+            local_bound | {str(v) for v in instance.variables},
         )
 
     return template == instance

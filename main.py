@@ -49,7 +49,7 @@ from src.scoring.scoring import ProofScorer, print_scoring_summary
 from src.performance.performance import PerformanceTracker, print_performance_table
 
 PER_PROOF_TIMEOUT_SECONDS = 30.0
-DEBUG_PROOF_FLOW = True
+DEBUG_PROOF_FLOW = False
 
 def _dbg(msg: str) -> None:
     if DEBUG_PROOF_FLOW:
@@ -62,6 +62,29 @@ def _build_step_index(steps):
     return index
 
 
+def _check_unique_step_names(steps) -> dict:
+    """NAU: every formula name must occur only once in a derivation."""
+    seen: dict[str, int] = {}
+    for step in steps:
+        seen[step.name] = seen.get(step.name, 0) + 1
+    return {
+        name: [f"Duplicate step name '{name}' ({count} definitions)"]
+        for name, count in seen.items()
+        if count > 1
+    }
+
+
+def _check_ends_in_false(steps) -> dict:
+    """EIF: the derivation must contain a derived step with formula $false."""
+    for step in steps:
+        if step.role in {FormulaRole.AXIOM, FormulaRole.CONJECTURE}:
+            continue
+        f = step.formula
+        if isinstance(f, Atom) and f.predicate == "$false" and not f.args and step.inference:
+            return {}
+    return {"<proof>": ["Derivation never derives $false (not a refutation)"]}
+
+
 def _formulas_are_complements(left: object, right: object) -> bool:
     """Recognize syntactic complement pairs phi / ~phi (incl. equality vs !=)."""
     if isinstance(left, Negation) and is_alpha_equivalent(left.formula, right):
@@ -71,6 +94,43 @@ def _formulas_are_complements(left: object, right: object) -> bool:
     if isinstance(left, Equality) and isinstance(right, Equality) and left.negated != right.negated:
         return is_alpha_equivalent(left.left, right.left) and is_alpha_equivalent(left.right, right.right)
     return False
+
+
+# Reasons of the external-ATP issue map that mean "could not be decided"
+# (as opposed to "refuted").  If these are the only findings, the verdict is
+# the third value `Unknown` instead of `VerifiedBad`.
+_UNRESOLVED_PREFIXES = (
+    "External ATP could not validate",
+    "No checker available",
+)
+
+VERDICT_GOOD = "VerifiedGood"
+VERDICT_BAD = "VerifiedBad"
+VERDICT_UNKNOWN = "Unknown"
+
+
+def classify_verdict(result: dict) -> str:
+    """Map the issue maps of `check_proof_file` to a three-valued verdict.
+
+    - ``VerifiedGood``: every check succeeded.
+    - ``VerifiedBad``: at least one check found a definite defect (a checker
+      rejected a step, a structural rule was violated, or the prover refuted
+      the step).
+    - ``Unknown``: no defect was found, but some step could not be decided
+      (the prover timed out / gave no answer, or no checker exists for the
+      rule).  The verifier abstains (0 points) instead of guessing.
+    """
+    if result.get("all_ok"):
+        return VERDICT_GOOD
+    for key, value in result.items():
+        if key in ("all_ok", "verdict") or not value:
+            continue
+        if key != "external_atp_issues":
+            return VERDICT_BAD
+    reasons = [r for rs in result.get("external_atp_issues", {}).values() for r in rs]
+    if reasons and all(r.startswith(_UNRESOLVED_PREFIXES) for r in reasons):
+        return VERDICT_UNKNOWN
+    return VERDICT_BAD
 
 
 def check_proof_file(proof_path: str, problem_path: str) -> dict:
@@ -91,14 +151,15 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
     problem_formulas = {f.name: f for f in parse_file(problem_path)}
     proof = load_proof(proof_path)
     steps_by_name = _build_step_index(proof.steps)
-    normalized_problem_path = Path(problem_path).resolve().as_posix().lower()
-    shortcut_enabled = Path(proof_path).name in {"PRV013+1.s", "PRV015+1.s"} or "/examples/correct/" in normalized_problem_path
 
     circular_dependency_issues = {}
     for issue in check_no_circular_dependencies(proof.steps):
         circular_dependency_issues.setdefault(issue.step_name, []).append(issue.reason)
     for issue in check_conjecture_not_assumed(proof.steps):
         circular_dependency_issues.setdefault(issue.step_name, []).append(issue.reason)
+
+    duplicate_name_issues = _check_unique_step_names(proof.steps)
+    no_false_issues = _check_ends_in_false(proof.steps)
 
     atp_calls = 0
     atp_total_seconds = 0.0
@@ -345,10 +406,10 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             if parent is None:
                 external_atp_issues[step.name] = [f"Parent step '{step.inference.parents[0]}' not found"]
             else:
-                # Conservative fast-path: accept only the canonical shape phi -> (H => phi).
+                # Sound fast-path: the canonical shape phi -> (H => phi) is valid
+                # for every H, so no prover call is needed.
                 if (
-                    shortcut_enabled
-                    and isinstance(step.formula, BinaryFormula)
+                    isinstance(step.formula, BinaryFormula)
                     and step.formula.connective == BinaryConnective.IMPLIES
                     and is_alpha_equivalent(step.formula.right, parent.formula)
                 ):
@@ -376,16 +437,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 missing = [name for name, parent in zip(parent_names, parents) if parent is None]
                 external_atp_issues[step.name] = [f"Parent step(s) not found: {', '.join(missing)}"]
             else:
-                # Conservative fast-path: accept only contradiction elimination to $false.
+                # Sound fast-path: two complementary parents yield $false.
                 is_false = isinstance(step.formula, Atom) and step.formula.predicate == "$false" and not step.formula.args
-                if (
-                    shortcut_enabled
-                    and is_false
-                    and (
-                        _formulas_are_complements(parents[0].formula, parents[1].formula)
-                        or isinstance(parents[0].formula, Negation) != isinstance(parents[1].formula, Negation)
-                    )
-                ):
+                if is_false and _formulas_are_complements(parents[0].formula, parents[1].formula):
                     pass
                 else:
                     start = time.perf_counter()
@@ -550,6 +604,8 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
 
     all_ok = (
         not circular_dependency_issues
+        and not duplicate_name_issues
+        and not no_false_issues
         and not axiom_issues
         and not conjecture_issues
         and not negated_conjecture_issues
@@ -580,8 +636,10 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
         for b, n in sorted(branch_hits.items(), key=lambda x: x[0]):
             _dbg(f"branch {b}: {n}")
 
-    return {
+    result = {
         "circular_dependency_issues": circular_dependency_issues,
+        "duplicate_name_issues": duplicate_name_issues,
+        "no_false_issues": no_false_issues,
         "axiom_issues": axiom_issues,
         "conjecture_issues": conjecture_issues,
         "negated_conjecture_issues": negated_conjecture_issues,
@@ -607,6 +665,8 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
         "external_atp_issues": external_atp_issues,
         "all_ok": all_ok,
     }
+    result["verdict"] = classify_verdict(result)
+    return result
 
 
 def _check_proof_worker(proof_path: str, problem_path: str, result_queue: Queue) -> None:
@@ -645,7 +705,10 @@ def check_proof_file_with_timeout(
 
 
 def report_proof_check(
-    proof_path: str, problem_path: str, timeout_seconds: float = PER_PROOF_TIMEOUT_SECONDS
+    proof_path: str,
+    problem_path: str,
+    timeout_seconds: float = PER_PROOF_TIMEOUT_SECONDS,
+    binary_verdict: bool = False,
 ) -> tuple[str, dict | None]:
     """Run the proof check, print a report, and return the overall status and details."""
     print(f"\n{'='*70}")
@@ -673,6 +736,18 @@ def report_proof_check(
                     print(f"  - {name}: {reason}")
         else:
             print("\n[OK] No circular dependencies detected")
+
+        for key, label in (
+            ("duplicate_name_issues", "Duplicate Name"),
+            ("no_false_issues", "Missing $false"),
+        ):
+            if result[key]:
+                print(f"\n[FAIL] {label} Issues:")
+                for name, reasons in result[key].items():
+                    for reason in reasons:
+                        print(f"  - {name}: {reason}")
+            else:
+                print(f"\n[OK] No {label.lower()} issues")
 
         if result["axiom_issues"]:
             print("\n[FAIL] Axiom Provenance Issues:")
@@ -756,12 +831,13 @@ def report_proof_check(
         else:
             print("\n[OK] All ATP-checked steps verified correctly")
 
-        if result["all_ok"]:
-            print("\n% SZS status VerifiedGood")
-            return "VerifiedGood", result
-
-        print("\n% SZS status VerifiedBad")
-        return "VerifiedBad", result
+        verdict = result.get("verdict") or classify_verdict(result)
+        if verdict == VERDICT_UNKNOWN and binary_verdict:
+            verdict = VERDICT_BAD
+        if verdict == VERDICT_UNKNOWN:
+            print("\n[UNKNOWN] No defect found, but some steps could not be decided; abstaining")
+        print(f"\n% SZS status {verdict}")
+        return verdict, result
 
 
 def collect_example_pairs(example_dir: Path):
@@ -860,12 +936,13 @@ def print_prv_results_table(results: list[tuple[str, str, dict | None]]) -> None
 def parse_cli_args() -> argparse.Namespace:
     """Parse optional command-line arguments while preserving the all-files default."""
     parser = argparse.ArgumentParser(
-        description="Verify one proof file or, without arguments, all ProoVer2026 proofs."
+        description="Verify one proof file or, without a proof argument, all proofs of a directory "
+        "(batch mode with scoring; see --dir, --expected, --prefix)."
     )
     parser.add_argument(
         "proof",
         nargs="?",
-        help="Proof file to verify, e.g. ProoVer2026\\PRV038+1.s",
+        help="Proof file to verify, e.g. ProoVer2026/PRV/PRV038+1.s",
     )
     parser.add_argument(
         "-p",
@@ -878,6 +955,32 @@ def parse_cli_args() -> argparse.Namespace:
         type=float,
         default=PER_PROOF_TIMEOUT_SECONDS,
         help=f"Timeout in seconds (default: {PER_PROOF_TIMEOUT_SECONDS:g}).",
+    )
+    parser.add_argument(
+        "-d",
+        "--dir",
+        default="ProoVer2026/PRV",
+        help="Batch mode: directory with proofs (*.s) and a Problems/ subdirectory "
+        "(default: ProoVer2026/PRV; also ProoVer2026/Test, ProoVer2026/Extra, ProoVer2026/Deprecated).",
+    )
+    parser.add_argument(
+        "-e",
+        "--expected",
+        default=None,
+        help="Batch mode: CSV with expected results. Default: chosen from the directory name "
+        "(PRV and Deprecated: PRV_expected.csv, Test: TST_expected.csv, Extra: EXT_expected.csv), "
+        "all in src/scoring/.",
+    )
+    parser.add_argument(
+        "--prefix",
+        default="",
+        help="Batch mode: only check proofs whose file name starts with this prefix, e.g. PRV, TST or EXT.",
+    )
+    parser.add_argument(
+        "--binary-verdict",
+        action="store_true",
+        help="Report VerifiedBad instead of Unknown when a step cannot be decided "
+        "(two-valued output).",
     )
     return parser.parse_args()
 
@@ -907,15 +1010,28 @@ if __name__ == "__main__":
         if args.timeout <= 0:
             raise SystemExit("Timeout must be greater than zero.")
 
-        status, _ = report_proof_check(str(proof_path), str(problem_path), args.timeout)
+        status, _ = report_proof_check(
+            str(proof_path), str(problem_path), args.timeout, binary_verdict=args.binary_verdict
+        )
         raise SystemExit(0 if status == "VerifiedGood" else 1)
 
-    prover_directory = base / "ProoVer2026"
+    prover_directory = Path(args.dir)
+    if not prover_directory.is_absolute():
+        prover_directory = base / prover_directory
     all_pairs = collect_example_pairs(prover_directory)
+    all_pairs = [pair for pair in all_pairs if Path(pair[0]).name.startswith(args.prefix)]
     all_pairs.sort(key=lambda pair: Path(pair[0]).name)
+    run_name = prover_directory.name
 
     # Initialize scorer with expected results
-    expected_file = base / "src" / "scoring" / "PRV_expected.csv"
+    if args.expected is None:
+        expected_by_dir = {"PRV": "PRV", "Deprecated": "PRV", "Test": "TST", "Extra": "EXT"}
+        stem = expected_by_dir.get(run_name, "PRV")
+        expected_file = Path("src") / "scoring" / f"{stem}_expected.csv"
+    else:
+        expected_file = Path(args.expected)
+    if not expected_file.is_absolute():
+        expected_file = base / expected_file
     scorer = ProofScorer(str(expected_file))
     if scorer.expected:
         print(f"✓ Loaded {len(scorer.expected)} expected results from {expected_file}")
@@ -929,6 +1045,7 @@ if __name__ == "__main__":
     verified_count = 0
     not_verified_count = 0
     timeout_count = 0
+    unknown_count = 0
     axiom_failure_count = 0
     conjecture_failure_count = 0
     negated_conjecture_failure_count = 0
@@ -956,11 +1073,13 @@ if __name__ == "__main__":
     scoring_results = []
 
     if total == 0:
-        print("No proof/problem pairs found in ProoVer2026")
+        print(f"No proof/problem pairs found in {prover_directory}")
     else:
         for proof_sub_path, problem_sub_path in all_pairs:
             tracker.start()
-            status, details = report_proof_check(proof_sub_path, problem_sub_path, args.timeout)
+            status, details = report_proof_check(
+                proof_sub_path, problem_sub_path, args.timeout, binary_verdict=args.binary_verdict
+            )
             proof_name = Path(proof_sub_path).name
             tracker.stop(proof_name)
             
@@ -974,6 +1093,8 @@ if __name__ == "__main__":
                 verified_count += 1
             elif status == "Timeout":
                 timeout_count += 1
+            elif status == "Unknown":
+                unknown_count += 1
             else:
                 not_verified_count += 1
 
@@ -1010,6 +1131,7 @@ if __name__ == "__main__":
     print(f"Total proofs checked: {total}")
     print(f"VerifiedGood: {verified_count}")
     print(f"VerifiedBad: {not_verified_count}")
+    print(f"Unknown: {unknown_count}")
     print(f"Timeout: {timeout_count}")
     print("Failed steps:")
     print(f"  Axiom verification: {axiom_failure_count}")
@@ -1062,7 +1184,8 @@ if __name__ == "__main__":
         print_performance_table(tracker)
         
         # Export performance data to CSV
-        perf_csv_file = base / "results" / "performance_results.csv"
+        perf_csv_file = base / "results" / f"{run_name}_performance.csv"
+        perf_csv_file.parent.mkdir(parents=True, exist_ok=True)
         with open(perf_csv_file, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(['Proof', 'WC Time (s)', 'CPU Time (s)', 'Overhead (s)'])
@@ -1077,6 +1200,6 @@ if __name__ == "__main__":
         print_scoring_summary(scoring_summary)
         
         # Export results to CSV
-        output_csv = base / "results" / "ProoVer2026_results.csv"
+        output_csv = base / "results" / f"{run_name}_results.csv"
         scorer.export_results_to_csv(scoring_results, str(output_csv))
         print(f"\nScoring results exported to: {output_csv}")

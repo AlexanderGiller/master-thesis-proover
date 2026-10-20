@@ -28,28 +28,15 @@ class NegatedConjectureIssue:
 def _negate_formula(formula):
     """Negate a formula according to logical rules.
 
-    - Negating a negation: ~(~P) = P (double negation elimination)
+    - Negating a negation: the negation of ~P is P
     - ![X]: P(X) becomes ?[X]: ~P(X)
     - ?[X]: P(X) becomes ![X]: ~P(X)
-    - ~(![X]: P(X)) becomes ?[X]: ~P(X)
-    - ~(?[X]: P(X)) becomes ![X]: ~P(X)
+    - the negation of ~(![X]: P(X)) is ![X]: P(X) (and analogously for ?)
     - Other formulas become ~(formula)
     """
     if isinstance(formula, Negation):
-        inner = formula.formula
-        if isinstance(inner, Negation):
-            return inner.formula
-        if isinstance(inner, QuantifiedFormula):
-            new_quantifier = (
-                Quantifier.EXISTENTIAL
-                if inner.quantifier == Quantifier.UNIVERSAL
-                else Quantifier.UNIVERSAL
-            )
-            negated_inner = _negate_formula(inner.formula)
-            return QuantifiedFormula(
-                quantifier=new_quantifier, variables=inner.variables, formula=negated_inner
-            )
-        return inner
+        # The negation of ~X is X.
+        return formula.formula
     if isinstance(formula, QuantifiedFormula):
         new_quantifier = (
             Quantifier.EXISTENTIAL
@@ -234,9 +221,9 @@ def check_negated_conjecture(
 
     parent_formula = parent_conj_step.formula
     if isinstance(parent_formula, Negation):
-        expected_forms = [parent_formula.formula]
-        if isinstance(parent_formula.formula, Negation):
-            expected_forms.append(parent_formula.formula.formula)
+        # The negation of ~X is X (simplified) or ~~X (literal). In particular
+        # the negation of ~~Y is ~Y, not Y.
+        expected_forms = [parent_formula.formula, Negation(parent_formula)]
     else:
         expected_forms = [
             _negate_formula(parent_formula),
