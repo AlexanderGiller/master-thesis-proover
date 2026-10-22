@@ -87,3 +87,20 @@ def test_validate_step_with_atp_returns_false_for_countersatisfiable(monkeypatch
     assert valid is False
     assert note == "CounterSatisfiable"
 
+
+
+def test_validate_step_with_atp_returns_unknown_for_prover_timeout_status(monkeypatch):
+    """A prover that stops with its own time limit has no answer: not a refutation."""
+    monkeypatch.setattr("src.checker.external_atp_checker._resolve_atp_command", lambda: ["vampire"])
+
+    def _fake_run(*args, **kwargs):
+        return subprocess.CompletedProcess(
+            args=args[0], returncode=1, stdout="% SZS status Timeout for validation", stderr=""
+        )
+
+    monkeypatch.setattr("src.checker.external_atp_checker.subprocess.run", _fake_run)
+
+    valid, note = validate_step_with_atp(_fake_formula(), [], timeout_seconds=1.0)
+
+    assert valid == "unknown"
+    assert "Timeout" in note

@@ -4,8 +4,35 @@ from dataclasses import dataclass
 from itertools import combinations
 
 from src.checker.formula_utils import flatten_prefix, match_template_to_instance, substitute_node
-from src.parser.ast_nodes import AnnotatedFormula, Negation, QuantifiedFormula, Variable
+from src.parser.ast_nodes import (
+    AnnotatedFormula,
+    Atom,
+    BinaryFormula,
+    Equality,
+    JunctionFormula,
+    Negation,
+    QuantifiedFormula,
+    Variable,
+)
 from src.var_mapping import InferenceRule, InferenceStatus, Quantifier
+
+
+def _bound_names(node: object) -> set[str]:
+    """Names of all variables bound by a quantifier somewhere inside ``node``."""
+    if isinstance(node, QuantifiedFormula):
+        return {str(v) for v in node.variables} | _bound_names(node.formula)
+    if isinstance(node, Negation):
+        return _bound_names(node.formula)
+    if isinstance(node, BinaryFormula):
+        return _bound_names(node.left) | _bound_names(node.right)
+    if isinstance(node, JunctionFormula):
+        names: set[str] = set()
+        for operand in node.operands:
+            names |= _bound_names(operand)
+        return names
+    if isinstance(node, (Atom, Equality)):
+        return set()
+    return set()
 
 
 @dataclass
@@ -72,6 +99,7 @@ def check_instantiate(step: AnnotatedFormula, parent_step: AnnotatedFormula) -> 
             )
         return issues
 
+    inner_bound = _bound_names(parent_body)
     found = False
     for kept_indices in combinations(range(len(parent_vars)), len(child_vars)):
         kept_map = {
@@ -79,6 +107,11 @@ def check_instantiate(step: AnnotatedFormula, parent_step: AnnotatedFormula) -> 
             for step_var, parent_index in zip(child_vars, kept_indices)
         }
         removed_vars = set(parent_vars) - set(kept_map)
+        if any(
+            v.name in inner_bound and v.name != old for old, v in kept_map.items()
+        ):
+            # Renaming a kept variable to a name bound further inside would capture it.
+            continue
         transformed_parent_body = substitute_node(parent_body, kept_map)
 
         if match_template_to_instance(transformed_parent_body, child_body, removed_vars):

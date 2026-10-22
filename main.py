@@ -42,7 +42,7 @@ from src.checker.structural_checker import (
 )
 from src.deep_recursion import run_with_larger_stack
 from src.parser.parser import load_proof, parse_file
-from src.parser.ast_nodes import Atom, BinaryFormula, Equality, Negation
+from src.parser.ast_nodes import Atom, BinaryFormula, Equality, FileSource, Negation
 from src.var_mapping import FormulaRole, InferenceStatus
 from src.var_mapping import BinaryConnective
 from src.scoring.scoring import ProofScorer, print_scoring_summary
@@ -241,6 +241,20 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                     "No parent conjecture specified in inference"
                 ]
             hit("negated conjecture", step.name, rule, status, parent_count)
+        elif step.inference is None and isinstance(step.raw_source, FileSource):
+            # Any other formula imported from the problem (hypothesis, definition, lemma, ...):
+            # it must be alpha-equivalent to the problem formula and carry the same role.
+            issues = check_axiom_provenance(
+                step, problem_formulas, problem_path, expected_role=step.role
+            )
+            if issues:
+                axiom_issues[step.name] = [it.reason for it in issues]
+            hit("input formula", step.name, rule, status, parent_count)
+        elif step.inference is None and step.raw_source is not None:
+            # introduced(...) formulas have no premises, so nothing can justify them.
+            external_atp_issues[step.name] = [
+                f"No checker available for a formula with role '{step.role}' and an introduced(...) source"
+            ]
         elif step.inference and step.inference.rule == "instantiate":
             if not step.inference.parents:
                 instantiate_issues[step.name] = ["No parent specified for instantiate step"]
@@ -691,17 +705,29 @@ def check_proof_file_with_timeout(
     result_queue: Queue = Queue()
     process = Process(target=_check_proof_worker, args=(proof_path, problem_path, result_queue))
     process.start()
-    process.join(timeout_seconds)
 
-    if process.is_alive():
-        process.terminate()
-        process.join()
-        return "timeout", None
-
+    # Read the result before joining: a child that has put a large result into the
+    # queue does not exit until the parent has consumed it, so joining first could
+    # report a spurious timeout.
+    deadline = time.perf_counter() + timeout_seconds
     try:
-        return result_queue.get_nowait()
-    except Empty:
-        return "error", f"Proof checking process exited with code {process.exitcode}"
+        while True:
+            remaining = deadline - time.perf_counter()
+            if remaining <= 0:
+                return "timeout", None
+            try:
+                return result_queue.get(timeout=min(0.05, remaining))
+            except Empty:
+                if not process.is_alive():
+                    try:
+                        return result_queue.get(timeout=0.2)
+                    except Empty:
+                        return "error", f"Proof checking process exited with code {process.exitcode}"
+    finally:
+        process.join(0.2)
+        if process.is_alive():
+            process.terminate()
+            process.join()
 
 
 def report_proof_check(

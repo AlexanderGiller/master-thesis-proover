@@ -130,6 +130,25 @@ def _free_variable_names(node: object, bound: set[str] | None = None) -> set[str
     return set()
 
 
+def _child_polarities(connective: object, polarity: bool) -> tuple[bool, bool, bool]:
+    """Polarity of the left and right operand of a binary connective.
+
+    Returns (left, right, mixed). `mixed` is True for <=> and <~>, where an
+    operand occurs in both polarities, so that a quantifier below it has no
+    well-defined polarity.
+    """
+    c = str(connective)
+    if c == "=>":
+        return (not polarity, polarity, False)
+    if c == "<=":
+        return (polarity, not polarity, False)
+    if c in ("~|", "~&"):
+        return (not polarity, not polarity, False)
+    if c in ("<=>", "<~>"):
+        return (polarity, polarity, True)
+    return (polarity, polarity, False)
+
+
 def _analyze_target_bindings(node: object, target_var: str, polarity: bool = True) -> dict[str, int]:
     """Collect how target_var is quantified syntactically vs. effectively."""
     stats = {
@@ -146,13 +165,9 @@ def _analyze_target_bindings(node: object, target_var: str, polarity: bool = Tru
             walk(current.formula, not current_polarity, negation_depth + 1)
             return
         if isinstance(current, BinaryFormula):
-            # A => B is equivalent to ~A v B; only the left side flips polarity.
-            if current.connective == "=>":
-                walk(current.left, not current_polarity, negation_depth)
-                walk(current.right, current_polarity, negation_depth)
-            else:
-                walk(current.left, current_polarity, negation_depth)
-                walk(current.right, current_polarity, negation_depth)
+            left_pol, right_pol, _ = _child_polarities(current.connective, current_polarity)
+            walk(current.left, left_pol, negation_depth)
+            walk(current.right, right_pol, negation_depth)
             return
         if isinstance(current, JunctionFormula):
             for operand in current.operands:
@@ -260,13 +275,18 @@ def _skolemize_formula(
         return Negation(inner), found
 
     if isinstance(node, BinaryFormula):
+        left_pol, right_pol, mixed = _child_polarities(node.connective, polarity)
+        if mixed and _analyze_target_bindings(node, target_var)["any"] > 0:
+            # A quantifier below <=> or <~> occurs in both polarities; the
+            # Skolemization is not defined, so the step is rejected later.
+            capture["mixed_polarity"] = True
         left, found_left = _skolemize_formula(
             node.left, target_var, skolem_term, scope, active, rename_map, used_names, counter,
-            capture, polarity,
+            capture, left_pol,
         )
         right, found_right = _skolemize_formula(
             node.right, target_var, skolem_term, scope, active, rename_map, used_names, counter,
-            capture, polarity,
+            capture, right_pol,
         )
         return BinaryFormula(connective=node.connective, left=left, right=right), found_left or found_right
 
@@ -433,6 +453,10 @@ def check_skolemization(
 
     status_entries = [item.status for item in inf.info if isinstance(item, StatusInfo)]
 
+    # A repeated status(esa) occurs in valid benchmark proofs (PRV060), so only a
+    # missing status or a status other than esa is an error.
+    if not status_entries:
+        issues.append(SkolemizationIssue(skolem_step.name, "skolemize must have status 'esa', got none"))
     for status in status_entries:
         if status != InferenceStatus.ESA:
             issues.append(
@@ -441,22 +465,6 @@ def check_skolemization(
                     f"skolemize must be 'esa', got {status}",
                 )
             )
-    """
-    if len(status_entries) != 1:
-        issues.append(
-            SkolemizationIssue(
-                skolem_step.name,
-                f"skolemize must contain exactly one status, got {len(status_entries)}",
-            )
-        )
-    elif status_entries[0] != InferenceStatus.ESA:
-        issues.append(
-            SkolemizationIssue(
-                skolem_step.name,
-                f"skolemize must be 'esa', got {status_entries[0]}",
-            )
-        )
-    """
     new_symbols_info = next((item for item in inf.info if isinstance(item, NewSymbolsInfo)), None)
     if (
         new_symbols_info is None
@@ -525,6 +533,16 @@ def check_skolemization(
         capture,
     )
     universals_at_elim = capture["universals"]
+
+    if capture.get("mixed_polarity"):
+        issues.append(
+            SkolemizationIssue(
+                skolem_step.name,
+                f"variable '{skolemize_info.variable}' is quantified below an equivalence or "
+                "exclusive disjunction, where its polarity is not defined",
+            )
+        )
+        return issues
 
     if not found or universals_at_elim is None:
         binding_stats = _analyze_target_bindings(parent_step.formula, skolemize_info.variable)

@@ -93,7 +93,7 @@ export EXTERNAL_ATP_BINARY=/usr/local/bin/vampire
 oder:
 
 ```bash
-export EXTERNAL_ATP_COMMAND="vampire --mode casc"
+export EXTERNAL_ATP_COMMAND="/pfad/zu/vampire"   # --mode casc und --time_limit haengt der Verifier selbst an
 ```
 
 Falls du Python aus Windows startest und Vampire in WSL liegt, kann ein WSL-Wrapper genutzt werden:

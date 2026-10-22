@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Write the per-proof result tables of the appendix from results/eval/runs.json.
 
-Output: thesis/generated/tab_app_prv.tex and tab_app_tst.tex (longtable; needs \\usepackage{longtable}).
+Output: thesis/generated/tab_app_prv.tex, tab_app_tst.tex and tab_app_ext.tex (longtable; needs \\usepackage{longtable}).
 Usage:  python scripts/gen_appendix_tables.py
 """
 from __future__ import annotations
@@ -67,6 +67,7 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     prv = [r for r in runs if r["group"] == "PRV"]
     tst = [r for r in runs if r["group"] == "TST"]
+    ext = [r for r in runs if r["group"] == "EXT"]
     (OUT / "tab_app_prv.tex").write_text(
         table(prv, "Results for each proof of the ProoVer set (official proofs and samples).", "tab:app-prv"),
         encoding="utf-8",
@@ -75,7 +76,11 @@ def main() -> None:
         table(tst, "Results for each proof of the TST set (own test proofs).", "tab:app-tst"),
         encoding="utf-8",
     )
-    print(f"wrote {len(prv)} PRV and {len(tst)} TST rows")
+    (OUT / "tab_app_ext.tex").write_text(
+        table(ext, "Results for each proof of the Extra set (generated rule-level test proofs).", "tab:app-ext"),
+        encoding="utf-8",
+    )
+    print(f"wrote {len(prv)} PRV, {len(tst)} TST and {len(ext)} EXT rows")
 
 
 if __name__ == "__main__":

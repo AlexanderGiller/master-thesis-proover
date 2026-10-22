@@ -301,21 +301,23 @@ def make_tables() -> None:
     wrong_acc = 0
     cells = {}
     for exp, label, n in (("CORRECT", "valid", n_val), ("INCORRECT", "invalid", n_inv)):
-        v = count(prv, exp, "VerifiedGood")
-        b = count(prv, exp, "VerifiedBad") + count(prv, exp, "Error")
-        t = count(prv, exp, "Timeout")
-        pts = sum(points(exp, binary(r)) for r in prv if r["expected"] == exp)
+        rs_e = [r for r in prv if r["expected"] == exp]
+        v = sum(1 for r in rs_e if ternary(r) == "verified")
+        t = sum(1 for r in rs_e if verdict(r) == "Timeout")
+        u = sum(1 for r in rs_e if ternary(r) == "uncertain") - t
+        b = sum(1 for r in rs_e if ternary(r) == "failed")
+        pts = sum(points(exp, ternary(r)) for r in rs_e)
         score += pts
-        cells[exp] = (v, b, t, pts, n)
+        cells[exp] = (v, b, u, t, pts, n)
         if exp == "INCORRECT":
             wrong_acc = v
-        rows.append(f"{label} ({n}) & {v} & {b} & {t} & ${pts:+d}$ \\\\")
+        rows.append(f"{label} ({n}) & {v} & {b} & {u} & {t} & ${pts:+d}$ \\\\")
     body = "\n".join(rows)
     write(
         GEN / "tab_matrix.tex",
-        "\\begin{tabular}{@{}l c c c r@{}}\n\\toprule\nExpected $\\backslash$ verdict & verified & failed & timeout & Points \\\\\n\\midrule\n"
+        "\\begin{tabular}{@{}l c c c c r@{}}\n\\toprule\nExpected $\\backslash$ verdict & verified & failed & unknown & timeout & Points \\\\\n\\midrule\n"
         + body
-        + f"\n\\midrule\nTotal & {cells['CORRECT'][0] + cells['INCORRECT'][0]} & {cells['CORRECT'][1] + cells['INCORRECT'][1]} & {cells['CORRECT'][2] + cells['INCORRECT'][2]} & ${score:+d}$ \\\\\n\\bottomrule\n\\end{{tabular}}\n",
+        + f"\n\\midrule\nTotal & {cells['CORRECT'][0] + cells['INCORRECT'][0]} & {cells['CORRECT'][1] + cells['INCORRECT'][1]} & {cells['CORRECT'][2] + cells['INCORRECT'][2]} & {cells['CORRECT'][3] + cells['INCORRECT'][3]} & ${score:+d}$ \\\\\n\\bottomrule\n\\end{{tabular}}\n",
     )
     maxscore = n_val + 2 * n_inv
     M.update(
@@ -324,10 +326,12 @@ def make_tables() -> None:
         EvalNPrv=len(prv),
         EvalAccValid=cells["CORRECT"][0],
         EvalRejValid=cells["CORRECT"][1],
-        EvalTimeoutValid=cells["CORRECT"][2],
+        EvalUnknownValid=cells["CORRECT"][2],
+        EvalTimeoutValid=cells["CORRECT"][3],
         EvalRejInvalid=cells["INCORRECT"][1],
         EvalAccInvalid=cells["INCORRECT"][0],
-        EvalTimeoutInvalid=cells["INCORRECT"][2],
+        EvalUnknownInvalid=cells["INCORRECT"][2],
+        EvalTimeoutInvalid=cells["INCORRECT"][3],
         EvalScore=score,
         EvalMaxScore=maxscore,
         EvalScorePct=pct(score, maxscore),
@@ -338,13 +342,14 @@ def make_tables() -> None:
     off = [r for r in prv if "/Deprecated/" not in r["proof"].replace("\\", "/")]
     off_val = [r for r in off if r["expected"] == "CORRECT"]
     off_inv = [r for r in off if r["expected"] == "INCORRECT"]
-    off_score = sum(points(r["expected"], binary(r)) for r in off)
+    off_score = sum(points(r["expected"], ternary(r)) for r in off)
+    off_score_bin = sum(points(r["expected"], binary(r)) for r in off)
     M.update(
         EvalOffN=len(off),
         EvalOffValid=len(off_val),
         EvalOffInvalid=len(off_inv),
         EvalOffAccValid=sum(1 for r in off_val if verdict(r) == "VerifiedGood"),
-        EvalOffRejInvalid=sum(1 for r in off_inv if verdict(r) != "VerifiedGood" and verdict(r) != "Timeout"),
+        EvalOffRejInvalid=sum(1 for r in off_inv if ternary(r) == "failed"),
         EvalOffTimeouts=sum(1 for r in off if verdict(r) == "Timeout"),
         EvalOffWrongAcc=sum(1 for r in off_inv if verdict(r) == "VerifiedGood"),
         EvalOffScore=off_score,
@@ -403,6 +408,37 @@ def make_tables() -> None:
         + "\n".join(lines)
         + f"\n\\midrule\nTotal ({n_rules} rules) & {len(prv)} & {tot['steps']} & {tot['internal']} & {tot['fallback']} & {tot['atp']} & {tot['unresolved']} \\\\\n\\bottomrule\n\\end{{tabular}}\n",
     )
+    # figure: how often each rule occurs and how its steps are decided
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        by_proofs = sorted(order, key=lambda k: (len(proofs_with[k]), per_rule[k]["steps"]))
+        fig, ax = plt.subplots(figsize=(6.2, 0.17 * len(by_proofs) + 0.9))
+        ys = range(len(by_proofs))
+        cols = ["#1f77b4" if per_rule[k]["internal"] else "#d62728" for k in by_proofs]
+        ax.barh(list(ys), [len(proofs_with[k]) for k in by_proofs], color=cols, height=0.7)
+        for y, k in zip(ys, by_proofs):
+            ax.text(len(proofs_with[k]) + 0.8, y, f"{per_rule[k]['steps']} step" + ("s" if per_rule[k]['steps'] != 1 else ""), va="center", fontsize=6.5, color="#444444")
+        ax.set_yticks(list(ys))
+        ax.set_yticklabels(by_proofs, fontsize=7, family="monospace")
+        ax.set_xlabel("number of proofs of the ProoVer set that use the rule")
+        ax.set_xlim(0, max(len(v) for v in proofs_with.values()) * 1.18)
+        from matplotlib.patches import Patch
+
+        ax.legend(handles=[Patch(color="#1f77b4", label="internal checker"), Patch(color="#d62728", label="decided by the prover")],
+                  frameon=False, fontsize=7, loc="lower right")
+        ax.grid(axis="x", alpha=0.25)
+        fig.tight_layout()
+        DIAG.mkdir(parents=True, exist_ok=True)
+        fig.savefig(DIAG / "rule_coverage.pdf")
+        fig.savefig(DIAG / "rule_coverage.png", dpi=200)
+        plt.close(fig)
+    except Exception as exc:  # noqa: BLE001
+        print("rule coverage figure failed:", exc)
+
     # share per proof (median) to avoid the dominance of the largest proofs
     shares = []
     for r in prv:
@@ -463,7 +499,7 @@ def make_tables() -> None:
             EvalExtRunsAgree=ext_ok,
             EvalExtRunsFalseRej=sum(1 for r in ext_valid if verdict(r) != "VerifiedGood"),
             EvalExtRunsWrongAcc=sum(1 for r in ext_inv if verdict(r) == "VerifiedGood"),
-            EvalExtRunsScore=sum(points(r["expected"], binary(r)) for r in ext_valid + ext_inv),
+            EvalExtRunsScore=sum(points(r["expected"], ternary(r)) for r in ext_valid + ext_inv),
             EvalExtRunsWallMedian=fmt_t(st.median(ext_walls)) if ext_walls else "--",
         )
 
@@ -491,7 +527,8 @@ def make_tables() -> None:
     errs = []
     for r in prv:
         v = verdict(r)
-        opt = (r["expected"] == "CORRECT" and v == "VerifiedGood") or (r["expected"] == "INCORRECT" and v in ("VerifiedBad", "Error"))
+        t3 = ternary(r)
+        opt = (r["expected"] == "CORRECT" and t3 == "verified") or (r["expected"] == "INCORRECT" and t3 == "failed")
         if opt:
             continue
         iss = r.get("issues") or {}
@@ -499,8 +536,8 @@ def make_tables() -> None:
             cause = "Time limit exceeded"
         elif v == "VerifiedGood":
             cause = "Wrongly accepted"
-        elif unresolved_only(r):
-            cause = "ATP unresolved or no checker"
+        elif t3 == "uncertain":
+            cause = "Step not decidable (verdict Unknown)"
         elif any(k in iss for k in ("axiom_issues", "conjecture_issues", "negated_conjecture_issues")):
             cause = "Provenance or negated conjecture"
         elif "skolem_issues" in iss:
@@ -541,6 +578,7 @@ def make_tables() -> None:
 
     M.update(
         EvalScoreBinary=score_policy(prv, binary),
+        EvalOffScoreBinary=off_score_bin,
         EvalScoreTernary=score_policy(prv, ternary),
         EvalUncertainCount=sum(1 for r in prv if ternary(r) == "uncertain"),
     )
@@ -871,6 +909,35 @@ def tables_mutation() -> None:
         + "\n".join(lines)
         + f"\n\\midrule\nTotal & {tot['n']} & {tot['killed']} & {tot['eq']} & {tot['miss']} & {pct(tot['killed'], adj)}\\,\\% \\\\\n\\bottomrule\n\\end{{tabular}}\n",
     )
+    # figure: outcome of the mutants per operator
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        ops = [op for op in OPERATORS if any(r["op"] == op for r in rows)]
+        plain = {op: OP_LABEL[op].replace("\\texttt{", "").replace("}", "") for op in ops}
+        killed = [sum(r["killed"] for r in rows if r["op"] == op) for op in ops]
+        eq = [sum(1 for r in rows if r["op"] == op and not r["killed"] and r["survivor_entailed"] == "True") for op in ops]
+        miss = [sum(1 for r in rows if r["op"] == op and not r["killed"]) - e for op, e in zip(ops, eq)]
+        fig, ax = plt.subplots(figsize=(6.2, 2.9))
+        ys = list(range(len(ops)))[::-1]
+        ax.barh(ys, killed, color="#1f77b4", label="rejected (killed)")
+        ax.barh(ys, eq, left=killed, color="#bbbbbb", label="accepted, still valid")
+        ax.barh(ys, miss, left=[k + e for k, e in zip(killed, eq)], color="#d62728", label="accepted, not valid (miss)")
+        ax.set_yticks(ys)
+        ax.set_yticklabels([plain[op] for op in ops], fontsize=7.5)
+        ax.set_xlabel("number of mutants")
+        ax.legend(frameon=False, fontsize=7, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=3)
+        ax.grid(axis="x", alpha=0.25)
+        fig.tight_layout()
+        DIAG.mkdir(parents=True, exist_ok=True)
+        fig.savefig(DIAG / "mutation_outcomes.pdf")
+        fig.savefig(DIAG / "mutation_outcomes.png", dpi=200)
+        plt.close(fig)
+    except Exception as exc:  # noqa: BLE001
+        print("mutation figure failed:", exc)
     macros(
         "eval_mutation_macros",
         dict(EvalMutN=tot["n"], EvalMutKilled=tot["killed"], EvalMutEq=tot["eq"], EvalMutMiss=tot["miss"], EvalMutRate=pct(tot["killed"], adj),

@@ -2,7 +2,6 @@
 
 import csv
 from pathlib import Path
-from typing import Optional
 
 
 class ScoringResult:
@@ -160,11 +159,14 @@ class ProofScorer:
         # Calculate total points
         total_points = sum(r.points for r in results)
 
-        # Maximum possible points (all correct as correct = +1 each)
-        max_points = total
-
-        # Minimum possible points (all incorrect as incorrect = -10 each)
-        min_points = -10 * total
+        # Best and worst possible points given the expected results:
+        # a valid proof scores +1 / -1, an invalid proof +2 / -10, others 0.
+        max_points = sum(
+            {"CORRECT": 1, "INCORRECT": 2}.get(r.expected_status, 0) for r in results
+        )
+        min_points = sum(
+            {"CORRECT": -1, "INCORRECT": -10}.get(r.expected_status, 0) for r in results
+        )
 
         # Count by status
         verified_good = sum(1 for r in results if r.actual_status == "VerifiedGood")
@@ -262,8 +264,8 @@ def print_scoring_summary(summary: dict) -> None:
     print("="*70)
     print(f"Total Proofs:          {summary['total']}")
     print(f"Total Points:          {summary['total_points']}")
-    print(f"Max Possible:          {summary['max_points']} (all +1)")
-    print(f"Min Possible:          {summary['min_points']} (all -10)")
+    print(f"Max Possible:          {summary['max_points']} (+1 per valid, +2 per invalid proof)")
+    print(f"Min Possible:          {summary['min_points']} (-1 per valid, -10 per invalid proof)")
     print()
     print("Score Breakdown:")
     print(f"  Correct → VerifiedGood:  {summary['count_correct_as_correct']:3d} proofs × (+1) = {summary['points_correct_as_correct']:+4d}")

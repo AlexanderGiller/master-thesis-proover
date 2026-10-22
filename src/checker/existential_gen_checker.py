@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from src.checker.formula_utils import flatten_prefix, match_template_to_instance
 from src.parser.ast_nodes import AnnotatedFormula, JunctionFormula
-from src.var_mapping import InferenceRule, InferenceStatus, Quantifier
+from src.var_mapping import BinaryConnective, InferenceRule, InferenceStatus, Quantifier
 
 
 @dataclass
@@ -54,11 +54,13 @@ def check_existential_gen(
         new_count = len(existential_vars) - len(target_vars)
         new_vars = existential_vars[:new_count]
         preserved_vars = existential_vars[new_count:]
-        bound_map = dict(zip(target_vars, preserved_vars))
+        # template = child body, instance = parent body: map child names to parent names
+        bound_map = dict(zip(preserved_vars, target_vars))
         return match_template_to_instance(child_body, target_inner, set(new_vars), dict(bound_map))
 
     if not _matches_generalization(parent_step.formula):
-        if isinstance(parent_step.formula, JunctionFormula) and any(
+        # From A & B one may infer ?[X]: A' (A is a consequence); from A | B one may not.
+        if isinstance(parent_step.formula, JunctionFormula) and parent_step.formula.connective == BinaryConnective.AND and any(
             _matches_generalization(operand) for operand in parent_step.formula.operands
         ):
             return issues

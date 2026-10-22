@@ -1,3 +1,5 @@
+import os
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -26,7 +28,17 @@ class MutationCase:
     mutate: Callable[[str], str]
 
 
+def _atp_available() -> bool:
+    return bool(
+        os.environ.get("EXTERNAL_ATP_COMMAND")
+        or shutil.which(os.environ.get("EXTERNAL_ATP_BINARY", "vampire"))
+        or (Path.home() / "vampire" / "vampire").exists()
+    )
+
+
 def _run_mutation_case(tmp_path: Path, case: MutationCase):
+    if case.expected_valid and not _atp_available():
+        pytest.skip("a valid proof needs the external ATP for its final consequence step")
     mutated_text = case.mutate(case.seed_proof.read_text(encoding="utf-8"))
     mutated_proof = tmp_path / f"{case.name}.s"
     mutated_proof.write_text(mutated_text, encoding="utf-8")

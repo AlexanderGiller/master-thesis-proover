@@ -199,7 +199,8 @@ def match_template_to_instance(
             if existing is None:
                 substitutions[template.name] = instance
                 return True
-            return _node_equal(existing, instance, bound_map)
+            # Both terms are instance-side terms; template bindings do not apply.
+            return _node_equal(existing, instance, {})
         if not isinstance(instance, Variable):
             return False
         return template.name == instance.name
@@ -231,7 +232,7 @@ def match_template_to_instance(
 
     if isinstance(template, Negation):
         return match_template_to_instance(
-            template.formula, instance.formula, abstract_vars, bound_map, substitutions
+            template.formula, instance.formula, abstract_vars, bound_map, substitutions, local_bound
         )
 
     if isinstance(template, BinaryFormula):

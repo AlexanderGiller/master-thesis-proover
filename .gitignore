@@ -5,3 +5,25 @@
 *.xml
 *.venv
 results
+
+# LaTeX build files
+thesis/*.aux
+thesis/*.bbl
+thesis/*.blg
+thesis/*.toc
+thesis/*.lof
+thesis/*.lot
+thesis/*.out
+thesis/*.acn
+thesis/*.acr
+thesis/*.alg
+thesis/*.glo
+thesis/*.gls
+thesis/*.glg
+thesis/*.ist
+thesis/*.xdy
+thesis/*.log
+thesis/*.fls
+thesis/*.fdb_latexmk
+thesis/*.synctex.gz
+thesis/*.tmp

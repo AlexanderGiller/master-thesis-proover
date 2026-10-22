@@ -45,7 +45,7 @@ class PerformanceTracker:
         # Try to get CPU time (works on Unix-like systems)
         try:
             self._start_cpu_time = os.times().user
-        except:
+        except (AttributeError, OSError):
             self._start_cpu_time = time.process_time()
 
     def stop(self, operation_name: str = "operation") -> TimeMeasurement:
@@ -67,7 +67,7 @@ class PerformanceTracker:
         try:
             current_cpu = os.times().user
             cpu_time = current_cpu - self._start_cpu_time
-        except:
+        except (AttributeError, OSError):
             current_cpu = time.process_time()
             cpu_time = current_cpu - self._start_cpu_time
 

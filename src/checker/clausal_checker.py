@@ -400,6 +400,20 @@ def _unify_terms(t1: object, t2: object, subst: dict[str, object]) -> dict[str, 
     return None
 
 
+def _resolve_term(term: object, subst: dict[str, object]) -> object:
+    """Apply a triangular substitution completely (the occurs check guarantees termination)."""
+    term = _walk(term, subst)
+    if isinstance(term, FunctionTerm):
+        return FunctionTerm(term.functor, [_resolve_term(arg, subst) for arg in term.args])
+    return term
+
+
+def _idempotent(subst: dict[str, object]) -> dict[str, object]:
+    """Turn the triangular unifier into an idempotent one, so that a single
+    substitution pass yields the most general instance."""
+    return {name: _resolve_term(value, subst) for name, value in subst.items()}
+
+
 def _unify_atoms(a1: object, a2: object, subst: dict[str, object]) -> dict[str, object] | None:
     if isinstance(a1, Atom) and isinstance(a2, Atom):
         if a1.predicate != a2.predicate or len(a1.args) != len(a2.args):
@@ -464,6 +478,7 @@ def check_resolution(
             if subst is None:
                 continue
 
+            subst = _idempotent(subst)
             remaining = [substitute_node(lit, subst) for k, lit in enumerate(literals1) if k != i]
             remaining += [substitute_node(lit, subst) for k, lit in enumerate(literals2) if k != j]
 

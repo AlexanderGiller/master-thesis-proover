@@ -98,10 +98,8 @@ external_source: "file" "(" SINGLE_QUOTED ("," name)? ")"
 
 internal_source: "introduced" "(" introduction_type "," general_list ")"
 
-introduction_type: "definition"
-                 | "axiom_of_choice"
-                 | "tautology"
-                 | "assumption"
+introduction_type: INTRODUCTION_TYPE
+INTRODUCTION_TYPE: "definition" | "axiom_of_choice" | "tautology" | "assumption"
 
 inference_record: "inference" "(" inference_rule "," inference_info "," "[" parent_list "]" ")"
 
