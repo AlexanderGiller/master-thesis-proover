@@ -1,0 +1,490 @@
+\section{Background}
+\label{sec:background}
+
+This chapter provides the technical foundations and explains the competition given conditions for this thesis.
+In section~\ref{subsec:atp-certification} proof certification is discussed.
+Subsequently, section~\ref{subsec:verifier-def} defines the meaning of a \emph{proof verifier} and which important properties it should have, to be labeled as such.
+Sections~\ref{subsec:fol} and~\ref{subsec:normal-forms} explain first-order logic and the normal-form transformations that appear in the TSTP derivations in this thesis.
+Section~\ref{subsec:tptp-tstp} introduces the TPTP world: the first-order language (FOF), the format of derivations (TSTP), and the SZS ontologies.
+Section~\ref{subsec:gdv} describes GDV, the established derivation verifier of this ecosystem, on which most of the later design discussion builds.
+Section~\ref{subsec:proof-objects-soundness} defines what it means for a checker to be sound, Section~\ref{subsec:proover2026} describes the ProoVer 2026 competition and its benchmark files, and Section~\ref{subsec:requirements-summary} summarizes the resulting goals.
+
+%==============================================================================
+\subsection{Automated Theorem Proving and Proof Certification}
+\label{subsec:atp-certification}
+
+Automated theorem provers search for formal derivations that establish the validity or unsatisfiability of logical statements.
+Their search procedures combine many techniques, for example saturation, clause selection heuristics, and indexing, and are correspondingly complex.
+For first-order logic the dominant systems are saturation provers based on resolution and superposition, such as Vampire \citep{RiazanovVoronkov2002} and E \citep{SchulzCV2019}.
+They are developed and compared in the yearly CASC competition \citep{Sut16}.
+Trusting such a system as a whole is difficult, because a single implementation error can lead to a wrong answer without any visible symptom \citep{taprogge2026lightweight, taprogge2026formal}.
+
+Proof verification addresses this issue by separating \emph{proof search} from \emph{proof checking}.
+The prover generates a proof object, and an independent checker validates each inference step against a trusted set of rules.
+The set of components that must be correct for an accepted result to be trustworthy is called the \emph{trusted computing base} (TCB).
+For a proof checker, the relevant property is that every accepted proof is valid.
+The TCB then consists of the checker itself, together with any external tool it relies on, whereas the prover that produced the proof is not part of it.
+We do not count the underlying language runtime, operating system, and hardware, as they are assumed to be correct and are not specific to the checker.
+Therefore, proof verification shrinks the TCB from the prover to the checker, which is typically orders of magnitude smaller \citep{chihani2013foundational,taprogge2026formal}.
+
+Additionally, separating search from checking has practical benefits beyond trust.
+It improves diagnosability, because instead of a binary success or failure result, users obtain explicit intermediate steps that can be replayed and audited.
+Furthermore, it also makes benchmark comparisons less dependent on solver-specific implementation details, which is crucial for benchmark-driven research.
+
+%==============================================================================
+\subsection{What Is a Proof Verifier?}
+\label{subsec:verifier-def}
+
+The literature uses several terms for tools that examine proofs: \emph{proof checker}, \emph{derivation verifier}, \emph{certifier}, and \emph{proof reconstruction}.
+They are not used consistently.
+For example, GDV is called a \emph{derivation verifier} \citep{Sutcliffe2006GDV}, whereas the ProoVer competition and the system N\"orgler speak of \emph{proof checkers} \citep{proover-competition,taprogge2026lightweight}.
+In this thesis, \emph{verifier} and \emph{checker} are synonyms for the following notion.
+
+\paragraph{Definition.}
+Let a \emph{problem} be a finite set of annotated formulas with the roles \texttt{axiom} and \texttt{conjecture}, and let a \emph{derivation} be a finite set of annotated formulas that carry sources and inference records (Section~\ref{subsec:tstp-derivations}).
+A \emph{proof verifier} is a program that maps a pair $(\mathit{Problem},\mathit{Derivation})$ to a \emph{verdict}.
+The verdicts used in the ProoVer setting are \texttt{VerifiedGood} (the derivation is a correct proof of the conjecture), \texttt{VerifiedBad} (it is not), and the abstentions \texttt{Timeout} and \texttt{Unknown} \citep{proover-competition,taprogge2026lightweight}.
+The verifier does \emph{not} search for a proof; it only judges one that was produced by another system.
+A derivation is \emph{valid} for a problem if
+\begin{enumerate}
+  \item it is well-formed: its names are unique, every parent exists, and the dependency graph is acyclic (\emph{structure});
+  \item its leaves are faithful to the problem: every imported axiom and conjecture is a copy of a formula of the problem, and no further axioms are assumed (\emph{faithfulness});
+  \item every inference step is correct with respect to its declared status, i.e.\ entailed by its parents for \texttt{thm} and satisfiability-preserving for \texttt{esa} (\emph{logical correctness}, Section~\ref{subsec:proof-objects-soundness});
+  \item it is a refutation: it negates the conjecture, uses only this negation and the axioms as premises, and derives \texttt{\$false}.
+\end{enumerate}
+These four groups correspond to the taxonomy of checks used in the N\"orgler paper: global and local structure, logical correctness, and faithfulness to the original problem \citep{taprogge2026lightweight}.
+If a derivation is valid, then by Equation~\ref{eq:refutation} the conjecture is entailed by the axioms.
+
+\paragraph{Soundness and completeness.}
+A verifier is \emph{sound} if it returns \texttt{VerifiedGood} only for valid derivations.
+It is \emph{complete} (for a class of derivations) if it returns \texttt{VerifiedGood} for every valid derivation of that class.
+Soundness is the property that justifies trusting a verifier at all, and it is what the competition punishes most heavily (Section~\ref{subsec:proover2026}).
+A note on terminology: the GDV documentation uses the two words from the point of view of \emph{faults}.
+There, ``a complete verifier finds every fault, and a sound verifier finds only faults'' \citep{GDVSeminar}.
+A verifier that finds every fault never accepts an invalid derivation, so GDV's \emph{complete} corresponds to \emph{sound} here, and GDV's \emph{sound} corresponds to our \emph{complete}.
+The GDV documentation considers the first property the more important one, which agrees with the priority given here.
+
+\paragraph{How steps are validated.}
+Verifiers differ mainly in the evidence they require for an individual inference step; this determines their trusted computing base.
+\begin{description}
+  \item[Semantic verification.] The step is re-proved by a trusted automated prover: from the parents, the prover must derive the conclusion. This is the approach of GDV \citep{Sutcliffe2006GDV} and of N\"orgler \citep{taprogge2026lightweight}. It works for any rule but adds the prover to the TCB and requires proof search, which may fail or time out.
+  \item[Rule replay.] The verifier implements the inference rules itself and recomputes the conclusion from the parents. The TCB is the verifier, but every rule must be implemented and trusted. Replay is the standard in propositional proof checking with DRAT and LRAT \citep{Wetzler2014DRATtrim}.
+  \item[Certification.] The derivation, or the verifier's own check of it, is translated into a term that a small kernel of a proof assistant or logical framework checks, for example in LambdaPi/Dedukti \citep{Sutcliffe2025GDVLP,Delahaye2013ZenonModulo}. This yields the strongest guarantee at the price of translation effort.
+\end{description}
+Practical systems combine these strategies.
+The ProoVer competition explicitly asks for such a hybrid: contestants ``implement a proof checker that can call an external prover for some steps, while verifying specific proof steps internally'' \citep{proover-competition}.
+
+\paragraph{Why verification is not decidable in general.}
+Whether a conclusion follows from its parents is an entailment problem in first-order logic, which is only semi-decidable.
+A verifier that delegates such questions to a prover therefore cannot always answer within a time limit: a correct step may not be proved, and an incorrect step may not be refuted.
+For this reason a verifier needs the abstention verdicts \texttt{Timeout} and \texttt{Unknown}, and it needs a policy for what to do with them.
+The policy adopted in this thesis is \emph{fail-closed}: a step or proof that cannot be established is never reported as \texttt{VerifiedGood}.
+Chapter~\ref{sec:design} derives this policy from the scoring scheme of the competition.
+
+%==============================================================================
+\subsection{First-Order Logic}
+\label{subsec:fol}
+
+The derivations considered in this thesis are over classical first-order logic.
+We recall only the notions needed within the scope of this thesis, for a full treatment see \citet{Fitting1996}.
+
+\paragraph{Syntax.}
+A signature consists of function symbols and predicate symbols with fixed arities; constants are function symbols of arity zero.
+\emph{Terms} are built from variables and function symbols.
+An \emph{atom} is a predicate symbol applied to terms (or an equation $s = t$).
+\emph{Formulas} are built from atoms, $\top$ and $\bot$ (written \texttt{\$true} and \texttt{\$false} in TPTP), the connectives $\neg, \wedge, \vee, \Rightarrow, \Leftrightarrow$, and the quantifiers $\forall$ and $\exists$.
+A formula without free variables is a \emph{sentence}.
+A \emph{literal} is an atom or its negation, and a \emph{clause} is a disjunction of literals.
+A quantifier $\forall x\,\varphi$ \emph{binds} $x$ in $\varphi$; two formulas that differ only in the names of bound variables are \emph{alpha-equivalent}, a notion that the verifier uses to compare formulas.
+
+\paragraph{Semantics.}
+An interpretation assigns a domain, a function to each function symbol, and a relation to each predicate symbol.
+A sentence is \emph{satisfiable} if some interpretation makes it true, and a set of sentences $\Gamma$ \emph{entails} a sentence $\varphi$, written $\Gamma \models \varphi$, if every interpretation that satisfies all of $\Gamma$ also satisfies $\varphi$.
+Entailment and unsatisfiability are connected by
+\begin{equation}
+  \Gamma \models \varphi \quad\text{iff}\quad \Gamma \cup \{\neg\varphi\} \text{ is unsatisfiable.}
+  \label{eq:refutation}
+\end{equation}
+Most ATP systems exploit this \emph{refutation principle}: to prove a conjecture, they negate it, add it to the axioms, and derive a contradiction.
+This explains why TSTP proofs of theorems typically end in $\bot$ and contain a negated conjecture.
+
+\paragraph{Polarity.}
+The \emph{polarity} of an occurrence of a subformula is positive if it lies under an even number of negations and in the consequent positions of implications, and negative otherwise; the antecedent of an implication $A \Rightarrow B$ is a negative position, since $A \Rightarrow B$ is equivalent to $\neg A \vee B$.
+A quantifier occurring at a negative position behaves like its dual: $\neg\forall x\,\varphi$ is equivalent to $\exists x\,\neg\varphi$.
+Checks that depend on whether a quantifier is \emph{effectively} existential or universal, such as the Skolemization check below, must therefore track polarity through negations and implications.
+
+%==============================================================================
+\subsection{Normal Forms, Skolemization, and Equisatisfiability}
+\label{subsec:normal-forms}
+
+Many provers do not work on arbitrary formulas, but first transform them into a normal form, usually conjunctive normal form (CNF) of a quantifier-free matrix.
+This \emph{clausification} consists of eliminating $\Rightarrow$ and $\Leftrightarrow$, pushing negations inward (negation normal form, NNF), renaming variables apart, moving quantifiers outward (prenex form), eliminating existential quantifiers, and distributing $\vee$ over $\wedge$.
+Real provers use refinements: to avoid an exponential blow-up, subformulas are replaced by fresh predicates or functions together with a defining equivalence (definitional or Tseitin-style clausification).
+These definitions again introduce new symbols and are equisatisfiable, not equivalent, to their input.
+
+The elimination of existential quantifiers is called \emph{Skolemization}.
+An existential variable $y$ in the scope of universal variables $x_1,\dots,x_n$ is replaced by a term $f(x_1,\dots,x_n)$ with a fresh \emph{Skolem function} $f$ (a fresh constant if $n=0$):
+\[
+  \forall x_1 \dots \forall x_n\, \exists y\, \varphi(x_1,\dots,x_n,y)
+  \;\leadsto\;
+  \forall x_1 \dots \forall x_n\, \varphi(x_1,\dots,x_n,f(x_1,\dots,x_n)).
+\]
+The result is in general \emph{not} logically equivalent to the original formula, since it mentions the new symbol $f$.
+It is only \emph{equisatisfiable}: the original formula is satisfiable if and only if the Skolemized formula is.
+For refutation-based proofs this suffices, because only unsatisfiability matters (Equation~\ref{eq:refutation}).
+
+Skolemization has a consequence for checking that is central to this thesis.
+For existential quantifiers at positive positions, the Skolemized formula entails the original one, but not the other way round.
+This one direction is a necessary condition for a correct step; it is not sufficient.
+A Skolem term with too few arguments, for example $f$ instead of $f(x)$, yields a \emph{stronger} formula that still entails the original one but is no longer equisatisfiable.
+Thus a Skolemization step cannot be validated by an entailment check between parent and conclusion.
+The checker must instead verify the shape of the transformation, the dependencies of the Skolem term on the universal variables in scope, and the \emph{freshness} of the introduced symbol, i.e.\ that $f$ occurs neither in the problem nor in the formulas derived before \citep{NonnengartWeidenbach2001}.
+This is exactly why GDV treats Skolemized formulas as a separate case (Section~\ref{subsec:gdv}).
+Symmetrically, instantiating a universal formula with a fresh constant, as in Herbrand-style reasoning, introduces new symbols that must be tracked.
+This is why the symbol-introduction annotations in ProoVer 2026 files (Section~\ref{subsec:proover2026}) are relevant for verification.
+
+%==============================================================================
+\subsection{The TPTP World}
+\label{subsec:tptp-tstp}
+
+The TPTP (Thousands of Problems for Theorem Provers) library provides a standardized collection of benchmark problems across multiple logics and domains.
+It has become a central infrastructure for evaluating ATP systems under comparable conditions \citep{Sutcliffe2017}.
+Problems are encoded in a common syntax and distributed with metadata that supports reproducible experiments.
+The language comes in several dialects: untyped first-order formulas (\texttt{fof}), clause normal form (\texttt{cnf}), typed first-order (\texttt{tff}), and higher-order (\texttt{thf}).
+This thesis concentrates on \texttt{fof}, the language of the ProoVer 2026 benchmarks (Chapter~\ref{sec:requirements}).
+The infrastructure around the library consists of the TSTP solution library, which stores proofs and models produced by ATP systems for the TPTP problems \citep{TSTPLibrary}, the SZS ontologies (Section~\ref{subsec:szs}), and online tools such as SystemOnTPTP, which runs ATP systems and tools on a problem on remote machines \citep{Sutcliffe2000SOTPTP}.
+
+\subsubsection{The FOF Language}
+\label{subsec:fof-syntax}
+
+\emph{FOF} stands for first-order form: formulas of untyped classical first-order logic with equality, in which quantifiers and connectives may be nested arbitrarily.
+This distinguishes it from the \texttt{cnf} dialect, in which only clauses with implicitly universally quantified variables are allowed.
+A TPTP file is a sequence of \emph{annotated formulas}, whose general shape in the TPTP grammar is \citep{TPTPSyntaxBNF}
+\begin{verbatim}
+fof(Name, Role, Formula, Source, UsefulInfo).
+\end{verbatim}
+\texttt{Name} is a unique identifier (a lowercase word, a quoted word, or a non-negative integer), \texttt{Role} states the intended use of the formula, and \texttt{Formula} is the logical content.
+\texttt{Source} and \texttt{UsefulInfo} are optional annotations; they are absent in problem files and essential in derivations.
+Lines beginning with \texttt{\%} and blocks between \texttt{/*} and \texttt{*/} are comments.
+
+\paragraph{Formula roles.}
+The roles that occur in this thesis are the following; the grammar lists further ones, for example \texttt{lemma} and \texttt{theorem} \citep{TPTPSyntaxBNF}.
+\begin{center}
+\small
+\begin{tabular}{@{}l p{9.5cm}@{}}
+\toprule
+Role & Meaning \\
+\midrule
+\texttt{axiom} & A formula that may be assumed. \\
+\texttt{hypothesis} & An assumption of the problem; it is treated like an axiom but must keep its role when it is imported into a proof. \\
+\texttt{conjecture} & The statement to be proved from the axioms. \\
+\texttt{negated\_conjecture} & The negation of the conjecture, introduced by refutation provers. \\
+\texttt{plain} & A derived formula without a special role, used for intermediate steps. \\
+\texttt{definition} & The definition of a new symbol. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Concrete syntax.}
+Variables are written with an initial uppercase letter; predicates, functions, and constants start with a lowercase letter or are quoted.
+Table~\ref{tab:fof-syntax} lists the connectives, quantifiers, and defined symbols of FOF.
+\begin{table}[t]
+\centering
+\small
+\caption{Logical symbols of the FOF language and their TPTP syntax \citep{TPTPSyntaxBNF}.}
+\label{tab:fof-syntax}
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+Notion & Symbol & TPTP & Example \\
+\midrule
+negation & $\neg$ & \texttt{\textasciitilde} & \verb|~p(X)| \\
+conjunction, disjunction & $\wedge,\ \vee$ & \texttt{\&}, \texttt{|} & \verb|p(a) & q| \\
+implication, reverse implication & $\Rightarrow,\ \Leftarrow$ & \texttt{=>}, \texttt{<=} & \verb|p => q| \\
+equivalence, exclusive or & $\Leftrightarrow,\ \oplus$ & \texttt{<=>}, \texttt{<\textasciitilde>} & \verb|p <=> q| \\
+NOR, NAND & & \texttt{\textasciitilde|}, \texttt{\textasciitilde\&} & \verb+p ~| q+ \\
+universal, existential quantifier & $\forall,\ \exists$ & \texttt{!}, \texttt{?} & \verb|![X]: p(X)| \\
+equality, inequality & $=,\ \neq$ & \texttt{=}, \texttt{!=} & \verb|f(X) != c| \\
+truth constants & $\top,\ \bot$ & \texttt{\$true}, \texttt{\$false} & \verb|$false| \\
+\bottomrule
+\end{tabular}
+\end{table}
+Three syntactic details matter for a parser.
+First, a quantifier is followed by a variable list in brackets, a colon, and a \emph{unit} formula, so a quantified body that is a binary formula needs parentheses: \verb|![X]: (p(X) => q(X))|.
+Second, the associative connectives \texttt{\&} and \texttt{|} may be chained, but they must not be mixed without parentheses, and the non-associative connectives such as \texttt{=>} and \texttt{<=>} take exactly two operands.
+Third, equality and inequality are \emph{infix} atoms (\verb|s = t|), unlike all other predicates.
+In the BNF of the TPTP language this is expressed by the nonterminals \texttt{fof\_unitary\_formula}, \texttt{fof\_binary\_assoc}, and \texttt{fof\_binary\_nonassoc} \citep{TPTPSyntaxBNF}.
+
+\paragraph{Example problem.}
+The smallest problem of the benchmark (\texttt{PRV000+1.p}) consists of an axiom and a conjecture that are identical:
+\begin{verbatim}
+fof(a1, axiom, ?[X]: ![Y]: ?[Z]: ![W]: r(X,Y,Z,W)).
+fof(c, conjecture, ?[X]: ![Y]: ?[Z]: ![W]: r(X,Y,Z,W)).
+\end{verbatim}
+
+\subsubsection{TSTP Derivations}
+\label{subsec:tstp-derivations}
+
+TSTP (Thousands of Solutions from Theorem Provers) complements TPTP by providing a library and a convention for solver outputs, including proofs.
+A \emph{derivation} is written in the same language as a problem, as a list of annotated formulas, and uses the annotation fields to record where each formula comes from \citep{SutcliffeSCV2006,TPTPQuickGuideDerivations}.
+The \texttt{Source} field takes one of three forms:
+\begin{description}
+  \item[\texttt{file(FileName, FormulaName)}] marks a \emph{leaf} that is taken from a problem file, for example \verb|file('Problems/PRV000+1.p', a1)|.
+  \item[\texttt{introduced(Type, [UsefulInfo])}] marks a leaf that was \emph{introduced} by the prover instead of being part of the problem, with a type such as \texttt{definition}, \texttt{tautology}, or \texttt{assumption}. A \texttt{definition} must declare the new symbol with \texttt{new\_symbols(definition, [Symbol])}.
+  \item[\texttt{inference(Rule, [UsefulInfo], [Parents])}] marks a \emph{derived} formula. \texttt{Rule} is an arbitrary word, since the names of inference rules are not standardized. \texttt{Parents} lists the names of the formulas from which the formula was inferred.
+\end{description}
+The list \texttt{UsefulInfo} of an inference record holds additional terms.
+The two most important ones are the following \citep{TPTPQuickGuideDerivations}.
+\begin{itemize}
+  \item \texttt{status(S)} states the logical relationship between a formula and its parents (see below). An inference record should contain exactly one status.
+  \item \texttt{new\_symbols(Kind, [Symbols])} documents symbols that the step introduces, for example \texttt{new\_symbols(skolem,[sK0])}. For Skolemization the additional term \texttt{skolemize(Var, Term)} names the eliminated variable and the Skolem term, for example \texttt{skolemize(X3,sK0)}.
+\end{itemize}
+
+\paragraph{Status values.}
+The status of an inference is one of the success values of the SZS ontology (Section~\ref{subsec:szs}); three of them are used in derivations.
+\begin{center}
+\small
+\begin{tabular}{@{}l l p{8cm}@{}}
+\toprule
+Status & SZS name & Meaning \\
+\midrule
+\texttt{thm} & Theorem & The formula is a logical consequence of its parents. Used by most rules. \\
+\texttt{cth} & CounterTheorem & The \emph{negation} of the formula is a consequence of its parents. Used when negating the conjecture; the single parent must have role \texttt{conjecture}. \\
+\texttt{esa} & EquiSatisfiable & The formula is equisatisfiable with its single parent. Used for Skolemization. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Structure of a derivation.}
+A derivation is a directed acyclic graph (DAG): the leaves are formulas of the problem or introduced formulas, the derived nodes are inferred from their parents, and the roots are the final formulas.
+For a refutation, the root is \texttt{\$false} \citep{GDVSeminar}.
+Further conventions apply to derivations that are to be verified.
+An inference should list only the parents that it actually uses.
+Each Skolemization step eliminates one existential variable and is recorded in its own annotated formula.
+Symbols introduced by a step must be globally new; by convention they are named \texttt{sK$n$} for Skolem symbols and \texttt{sF$n$} or \texttt{sP$n$} for defined functions and predicates \citep{TPTPQuickGuideDerivations}.
+These conventions are what make the status of a Skolemization step checkable: without a single eliminated variable and a declared new symbol, a verifier has little to examine \citep{taprogge2026lightweight}.
+In practice, provers do not always follow them.
+Vampire, for example, reports the introduction of Skolem symbols as separate \texttt{introduced(definition,\ldots)} formulas, attaches no status to most steps, and eliminates several variables in one \texttt{skolemisation} step (Section~\ref{subsec:disc-transfer}).
+An excerpt of Vampire's proof of \texttt{PRV000+1} shows the difference to the benchmark style (Figure~\ref{fig:example-derivation} below):
+\begin{verbatim}
+fof(f3,negated_conjecture,
+  (~? [X0] : ! [X1] : ? [X2] : ! [X3] : r(X0,X1,X2,X3)),
+  inference(negated_conjecture,[status(cth)],[f2])).
+fof(f4,plain,
+  (! [X0] : ? [X1] : ! [X2] : ? [X3] : ~r(X0,X1,X2,X3)),
+  inference(ennf_transformation,[],[f3])).
+fof(f5,plain,
+  (? [X0] : ! [X1] : ? [X2] : ! [X3] : r(X0,X1,X2,X3)
+   => ! [X1] : ? [X2] : ! [X3] : r(sK0,X1,X2,X3)),
+  introduced(definition,[],[skolem_symbol_introduction])).
+fof(f7,plain,(! [X1] : ! [X3] : r(sK0,X1,sK1(X1),X3)),
+  inference(skolemisation,
+    [status(esa),new_symbols(skolem,[sK0,sK1])],[f1,f6,f5])).
+\end{verbatim}
+
+\subsubsection{The SZS Ontologies}
+\label{subsec:szs}
+
+Solver results are communicated through the SZS ontologies \citep{Sutcliffe2008SZS,SZSOntologyWeb}.
+They are four families of status values for logical data, of which three matter here.
+\begin{description}
+  \item[Success ontology.] Describes what has been established about the relationship between the axioms $\mathit{Ax}$ and the conjecture $C$ of a problem. For problems with a conjecture the main values are \emph{Theorem} (every model of $\mathit{Ax}$ is a model of $C$), \emph{ContradictoryAxioms} (no interpretation is a model of $\mathit{Ax}$), and \emph{CounterSatisfiable} (some model of $\mathit{Ax}$ falsifies $C$); for problems without a conjecture they are \emph{Satisfiable} and \emph{Unsatisfiable}. The same ontology provides the status values of inference steps: \emph{Theorem}, \emph{CounterTheorem}, and \emph{EquiSatisfiable} are exactly the values \texttt{thm}, \texttt{cth}, and \texttt{esa} above.
+  \item[NoSuccess ontology.] Describes why no success value was established, for example \emph{Timeout} (the CPU limit was reached), \emph{GaveUp} (the system gave up because of incompleteness), or \emph{Error}.
+  \item[DataForm ontology.] Describes the nature of the logical data that justifies a result, for example \emph{Proof}, \emph{CNFRefutation}, \emph{Model}, \emph{FiniteModel}, or \emph{Saturation}.
+\end{description}
+A solver reports its result in comment lines of the form
+\begin{verbatim}
+% SZS status Theorem for PRV000+1
+% SZS output start Proof for PRV000+1
+...
+% SZS output end Proof for PRV000+1
+\end{verbatim}
+The first line states the success or no-success value exactly once; the data (here a proof) is delimited by the \texttt{output start} and \texttt{output end} lines, and the data form follows the keyword \texttt{start}.
+A verifier uses these delimiters to find the derivation inside a larger solver output.
+The ProoVer competition reuses the SZS style for its own verdicts (\texttt{\% SZS status VerifiedGood}), as does this thesis.
+
+%==============================================================================
+\subsection{GDV: Semantic Derivation Verification}
+\label{subsec:gdv}
+
+GDV is the established tool for verifying derivations in the TPTP world.
+It was developed by Geoff Sutcliffe and is described in \citet{Sutcliffe2006GDV}, with additional material on the TPTP web site \citep{GDVSeminar}.
+Because the competition systems and this thesis build on its ideas, we describe it in some detail.
+
+\paragraph{Motivation.}
+ATP systems are complex software and therefore likely to contain bugs, which can make their outputs unsound.
+GDV addresses this by having \emph{trusted} ATP systems check each inference of a derivation semantically, and by combining this with a \emph{structural} verification that each inference is used correctly within the whole derivation \citep{Sutcliffe2006GDV}.
+
+\paragraph{Structural verification.}
+The structural checks do not look at the logical content of formulas but at the relationships between inferences.
+The documentation lists nine checks in three groups \citep{GDVSeminar}:
+\emph{sanity checks} (the parents of derived formulas exist, the derivation is acyclic, and refutations have a false root),
+checks for \emph{explicit splitting} (both sides of refuting splits have a false root, and split refutations are independent),
+and checks for the \emph{use of assumptions} (assumptions are recorded, propagated, and discharged).
+
+\paragraph{Semantic verification.}
+GDV generates a \emph{verification obligation} for every formula of the derivation, including the leaves, and discharges the obligations with a trusted ATP system.
+The kind of obligation depends on the relationship between a formula and its sources \citep{GDVSeminar}:
+\begin{description}
+  \item[Leaf formulas.] A leaf that is a copy of an input formula needs no proof. Some ATP systems preprocess their input, so that a leaf is not a copy but derived from the input; then the obligation is to prove the leaf from the input problem. The documentation notes that undocumented clausification is a complication, since the resulting clauses include those of the negated conjecture and clauses containing Skolem functions.
+  \item[Logical consequences.] The derived formula must be proved from its parents, with theory axioms added if needed.
+  \item[Relevant logical consequences.] Contradictory parents entail any formula trivially. Where this must be excluded, the obligation is to show that the parents are satisfiable, which is only semi-decidable in first-order logic; the documentation names finite model generation, saturation, and failure of an unsatisfiability test as approaches. Relevance is not required in some refutation steps.
+  \item[Negated logical consequences.] For a negated conjecture, the obligation is to prove the negated leaf from its parent.
+  \item[Inverse logical consequences.] For a Skolemized formula, the obligation is reversed: the \emph{parent} is proved from the Skolemized formula. The documentation labels this check incomplete \citep{GDVSeminar}, in line with the observation of Section~\ref{subsec:normal-forms} that Skolemization is not an entailment.
+\end{description}
+The trusted systems are called through SystemOnTPTP \citep{Sutcliffe2000SOTPTP}.
+Optionally, GDV can additionally invoke model finders for two further checks that detect trivially satisfied inferences: that the axioms of the problem are satisfiable and that the premises of an inference are satisfiable \citep{taprogge2026lightweight}.
+
+\paragraph{Trust.}
+The documentation discusses the circularity of the approach: an incomplete trusted system makes the verifier unsound in the sense of Section~\ref{subsec:verifier-def}, and an unsound trusted system makes it incomplete.
+The proposed way out is empirical: every system acts as trusted system for the derivations of the others, so either all are wrong or all are right, and a \emph{weak} trusted system is preferable because it only needs to discharge small obligations \citep{GDVSeminar}.
+GDV-LP removes the trust in the ATP by translating the proofs that discharge the obligations into LambdaPi terms, which a small kernel checks; this completes a pipeline from proof search through verification to certification \citep{Sutcliffe2025GDVLP}.
+
+\paragraph{Limitations observed in the literature.}
+The authors of N\"orgler, which follows the semantic approach of GDV, report the following limitations \citep{taprogge2026lightweight}.
+Semantic verification relies on proof search and is therefore undecidable in general.
+Skolemization steps are unverifiable without annotations; GDV falls back to a best-effort check by entailment in both directions, which cannot be disabled and whose failure does not reject the proof.
+Some checks were missing in the version studied: that only the negated conjecture carries the status \texttt{cth} and that only the negated conjecture is used as a parent of other steps (both were added to GDV later).
+Calling external provers via a remote service adds latency.
+On the benchmark of that paper, GDV accepted 1972 of 1976 correct proofs and identified 1845 of 1952 falsified proofs as incorrect, with average run times of 0.54\,s and 0.43\,s \citep{taprogge2026lightweight}.
+Finally, many provers do not follow the TPTP conventions for derivations, so that strict checks may reject proofs that are not actually wrong.
+
+\paragraph{Check taxonomy.}
+\citet{taprogge2026lightweight} organize the checks of GDV-style verifiers into four groups, which we use in later chapters to compare verifiers (Table~\ref{tab:check-taxonomy}).
+\begin{table}[t]
+\centering
+\small
+\caption{Taxonomy of checks for TSTP refutations, after \citet{taprogge2026lightweight}. The abbreviations are those of the paper.}
+\label{tab:check-taxonomy}
+\begin{tabular}{@{}l p{11.2cm}@{}}
+\toprule
+Group & Checks \\
+\midrule
+Global structure & EIF: the proof ends in \texttt{\$false}; IAA: inference parents are acyclic; NUF: no unused formulas; NAU: names are unique. \\
+Local structure & PAA: each formula has an annotation; RIA: the role is admissible; IPE: inference parents exist earlier; NSC: only the negated conjecture has status \texttt{cth}; ONU: only the negated conjecture is used as a parent; DCP: a formula is \texttt{\$false} or a parent. \\
+Logical correctness & ICN: the conjecture is correctly negated; ICE: a step is correctly entailed by its parents; ICS: a step is correctly Skolemized; APS: the problem's axioms are satisfiable; PIS: the premises of an inference are satisfiable. \\
+Faithfulness & COO: a file-sourced formula is a copy of the problem formula; NAA: no axioms are added beyond the problem file. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%==============================================================================
+\subsection{Proof Objects, Inference Rules, and Soundness}
+\label{subsec:proof-objects-soundness}
+
+A proof object in the TSTP style represents a directed acyclic derivation where each node is justified by an inference rule and references to prior nodes (or axioms).
+Figure~\ref{fig:example-derivation} shows the smallest proof of the ProoVer 2026 benchmark set, which already needs a semantic check of its last step.
+
+\begin{figure}[t]
+\centering
+\begin{verbatim}
+fof(a1,axiom, ?[X]: ![Y]: ?[Z]: ![W]: r(X,Y,Z,W),
+    file('Problems/PRV000+1.p',a1) ).
+fof(c,conjecture, ?[X]: ![Y]: ?[Z]: ![W]: r(X,Y,Z,W),
+    file('Problems/PRV000+1.p',c) ).
+fof(neg,negated_conjecture,
+    ![A]: ?[B]: ![C]: ?[D]: ~r(A,B,C,D),
+    inference(negated_conjecture,[status(cth)],[c]) ).
+fof(bot,plain, $false,
+    inference(consequence,[status(thm)],[neg,a1]) ).
+\end{verbatim}
+\caption{The ProoVer 2026 proof \texttt{PRV000+1.s} (comments and SZS delimiters omitted). Axiom and conjecture are imported from the problem file, \texttt{neg} negates the conjecture, and one \texttt{consequence} step derives \texttt{\$false} from \texttt{neg} and \texttt{a1}.}
+\label{fig:example-derivation}
+\end{figure}
+
+Verifying such a proof requires:
+\begin{itemize}
+\item parsing and normalizing formula representations,
+\item resolving symbol and variable scopes correctly,
+\item validating rule applications (e.g., propositional, clausal, instantiation, and structural steps),
+\item ensuring dependency consistency and acyclicity where required.
+\end{itemize}
+
+From an implementation viewpoint, these tasks are tightly coupled.
+For example, a checker can only validate an \texttt{instantiate} step after resolving quantifier structure in the parent formula; similarly, validating \texttt{skolemize} requires both formula transformation checks and side-condition checks on generated symbols.
+As a result, practical proof verification combines syntactic processing, semantic rule checks, and graph-level consistency checks.
+
+\paragraph{Step status.}
+The status field distinguishes the logical strength of a step (Section~\ref{subsec:tstp-derivations}).
+A step with status \texttt{thm} claims that its conclusion is entailed by its parents, whereas a step with status \texttt{esa} (equisatisfiable) only claims preservation of satisfiability, as for Skolemization \citep{SutcliffeSCV2006}.
+In the ProoVer 2026 files the statuses \texttt{thm}, \texttt{esa}, and \texttt{cth} occur; \texttt{cth} marks the step that negates the conjecture.
+A checker must apply the appropriate criterion to each step: entailment for \texttt{thm} steps, and shape and side conditions for equisatisfiability-preserving steps.
+
+\paragraph{Soundness.}
+Let $\Gamma$ be the set of axioms and negated conjecture of a derivation, and let $D$ be a derivation of $\bot$ from $\Gamma$.
+A checker is \emph{sound} if it accepts $D$ only if $\Gamma$ is unsatisfiable, and hence, by Equation~\ref{eq:refutation}, the conjecture is entailed by the axioms.
+This property follows from \emph{step-wise soundness}, which has to be stated separately for the two kinds of steps.
+A step with status \texttt{thm} is sound if its conclusion is entailed by its premises.
+A step with status \texttt{esa} is sound if it preserves satisfiability: every model of its premises can be extended, by interpreting the fresh symbols it introduces, to a model of the premises and the conclusion.
+If all steps are sound and the dependency graph is acyclic, an induction over the graph yields the invariant that $\Gamma$ together with all formulas derived so far is satisfiable whenever $\Gamma$ is.
+This is impossible once $\bot$ has been derived, so $\Gamma$ is unsatisfiable.
+The argument has a precondition that is easy to overlook: the derivation must actually \emph{contain} a derivation of $\bot$.
+A derivation in which every step is sound but that never reaches $\bot$ proves nothing, so the check that a refutation ends in \texttt{\$false} (EIF in Table~\ref{tab:check-taxonomy}) is part of soundness and not merely of well-formedness.
+Section~\ref{subsec:design-verdict} carries out this argument for the verifier.
+In practice, systems adopt conservative behavior for unsupported constructs: unknown inference rules are rejected, flagged, or isolated to avoid unsound acceptance.
+This design choice trades permissiveness for trustworthiness, which is generally desirable in certification-oriented workflows \citep{Pollack1998}.
+A complementary property is \emph{completeness} on a given benchmark set, i.e.\ that all valid derivations are accepted.
+It is not a correctness requirement, but it determines how many benchmarks a checker can verify; the thesis therefore reports it separately as coverage.
+
+%==============================================================================
+\subsection{Competition Setting: ProoVer 2026}
+\label{subsec:proover2026}
+
+ProoVer is a new competition for proof checkers in the TPTP ecosystem, inspired by CASC, that evaluates the correctness and robustness of checkers \citep{proover-competition}.
+Participants receive both correct and deliberately flawed proofs and must decide for each whether it is valid.
+The rules of the 2026 edition constrain what a competitive verifier may do \citep{proover-competition}:
+\begin{itemize}
+  \item All proofs are refutations: the conjecture is negated and the proof ends with \texttt{\$false}.
+  \item A fixed set of \emph{specified} rules must be verified \emph{internally} by the checker. These are the import of axioms and conjectures (the \texttt{file} directive must match the problem file, and the formula must be alpha-equivalent to the referenced one), \texttt{negated\_conjecture} (status \texttt{cth}, parent of role \texttt{conjecture}, formula the negation of the parent), and \texttt{skolemize} (status \texttt{esa}, one new Skolem symbol declared with \texttt{new\_symbols(skolem, [sK])}, the eliminated variable and the Skolem term stated with \texttt{skolemize(Var, sK(\ldots))}, and the Skolem term depending on the universal variables in scope).
+  \item \emph{Unspecified} rules need not be hard-coded as long as they are checked by an external ATP call, which is permitted only for steps with status \texttt{thm} or \texttt{cth}. The ATP may only be invoked on a single step together with its premises; it is forbidden to re-check the whole conjecture independently as a sanity check.
+  \item The input consists of a problem file and a TSTP proof file whose header names the problem (\texttt{Proof: path/to/problem\_file.p}); according to the rules, the verifier never needs to parse the header beyond that.
+\end{itemize}
+The benchmark of the 2026 edition has 100 problems, 50 with a valid and 50 with an invalid proof, each evaluated independently with a wall-clock limit of 30\,s per problem and one checker per CPU.
+A correct verdict on a bad proof earns $+2$, on a good proof $+1$; giving up scores $0$, rejecting a good proof costs $-1$, and accepting a bad proof costs $-10$.
+The total is the sum over all problems, and ties are broken by the average time on solved problems \citep{proover-competition}.
+The asymmetry in this scheme is the reason for the fail-closed policy of Section~\ref{subsec:verifier-def}.
+
+Competition scenarios impose additional engineering constraints beyond pure logical correctness.
+A competitive verifier must process diverse benchmark sets, cope with differences in prover output style, and provide stable performance under time and memory limits.
+Architecture decisions such as modular rule checkers, efficient internal data structures, and clear diagnostics are therefore not merely implementation details; they directly affect scientific usability and benchmark competitiveness.
+
+The ProoVer 2026 benchmark files follow a regular TSTP-style profile that is particularly useful for discussing verification requirements.
+Each proof file starts with comment metadata and explicit SZS delimiters:
+\begin{verbatim}
+% SZS output start Proof
+...
+% SZS output end Proof
+\end{verbatim}
+Inside these delimiters, entries are given as \texttt{fof(...)} statements.
+Typical files begin with \texttt{axiom} and \texttt{conjecture} items linked to the corresponding problem source, followed by derived \texttt{plain} steps, a \texttt{negated\_conjecture} step, and finally a contradiction step deriving \texttt{\$false} via \texttt{inference(consequence,...)}.
+
+Two concrete examples illustrate the spectrum.
+The small file \texttt{PRV000+1.s} has a compact structure: source formulas, negated conjecture, and one final consequence step to contradiction.
+In contrast, \texttt{PRV010+1.s} contains a long derivation with many rule families, including \texttt{excluded\_middle}, \texttt{double\_negation}, \texttt{instantiate}, \texttt{add\_hypothesis}, \texttt{existential\_gen}, \texttt{remove\_double\_negation}, \texttt{split\_conjunct}, \texttt{reflexivity}, \texttt{rename\_variable}, \texttt{weaken}, \texttt{commute}, \texttt{skolemize}, and \texttt{consequence}.
+This diversity motivates a modular checker architecture with explicit per-rule validation logic.
+Table~\ref{tab:rules} in Chapter~\ref{sec:design} lists these rules with their intended reading, and Table~\ref{tab:rule-families} groups them by the principle of their check.
+
+Another ProoVer 2026-specific aspect is metadata for generated symbols.
+Skolemization steps can carry annotations such as:
+\begin{verbatim}
+new_symbols(skolem,[sK0]), skolemize(X1,sK0)
+\end{verbatim}
+and some instantiation steps include Herbrand-symbol annotations like:
+\begin{verbatim}
+new_symbols(herbrand,[m0])
+\end{verbatim}
+These annotations are not merely decorative; they describe symbol-introduction events that a robust checker should parse and validate consistently against the transformed formula, in particular with respect to the freshness condition from Section~\ref{subsec:normal-forms}.
+Section~\ref{subsec:design-skolem} describes how the verifier checks \texttt{skolemize} steps and their \texttt{new\_symbols} annotations.
+
+For \texttt{herbrand} symbols the verifier performs no separate check, because an instantiation with an arbitrary term is entailed by its parent (Section~\ref{subsec:design-skolem}).
+
+%==============================================================================
+\subsection{Resulting Goals}
+\label{subsec:requirements-summary}
+
+Designing a practical proof verifier therefore requires balancing three goals:
+\begin{enumerate}
+\item high assurance through explicit rule-level validation,
+\item broad compatibility with heterogeneous TPTP/TSTP-style derivations,
+\item efficient execution on large benchmark collections.
+\end{enumerate}
+These goals define the technical context in which the present thesis is positioned and motivate the requirements and design decisions in the following chapters.

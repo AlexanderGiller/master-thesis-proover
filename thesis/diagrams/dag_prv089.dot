@@ -1,0 +1,33 @@
+digraph proof {
+  graph [rankdir=TB, nodesep=0.35, ranksep=0.45, fontname="Helvetica"];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.12,0.06"];
+  edge [arrowsize=0.7, color="#555555"];
+  "a1" [label="a1  (axiom)\n?[Y]: p(Y)\nfile(...)", fillcolor="#e6e6e6"];
+  "a2" [label="a2  (axiom)\n![X]: q(X)\nfile(...)", fillcolor="#e6e6e6"];
+  "c" [label="c  (conjecture)\n?[Z]: (p(Z) & q(Z))\nfile(...)", fillcolor="#e6e6e6"];
+  "skA" [label="skA  (plain)\np(sK0)\nskolemize [esa]", fillcolor="#cfe2f7"];
+  "instB" [label="instB  (plain)\nq(sK0)\ninstantiate [thm]", fillcolor="#d5efd5"];
+  "s" [label="s  (plain)\n(p(sK0) & q(sK0))\nconjunction [thm]", fillcolor="#d5efd5"];
+  "s2" [label="s2  (plain)\n?[Z]: (p(Z) & q(Z))\nexistential_gen [thm]", fillcolor="#d5efd5"];
+  "negc" [label="negc  (negated_conjecture)\n~?[Z]: (p(Z) & q(Z))\nnegated_conjecture [cth]", fillcolor="#fbd9b5"];
+  "bot" [label="bot  (plain)\n$false\nconsequence [thm]", fillcolor="#fff0a8"];
+  "a1" -> "skA";
+  "a2" -> "instB";
+  "skA" -> "s";
+  "instB" -> "s";
+  "s" -> "s2";
+  "c" -> "negc";
+  "negc" -> "bot";
+  "s2" -> "bot";
+  subgraph cluster_legend { label=""; style=invis;
+    "leg_provenance" [label="provenance check (file source)", fillcolor="#e6e6e6", fontsize=9];
+    "leg_negated" [label="negated-conjecture check", fillcolor="#fbd9b5", fontsize=9];
+    "leg_provenance" -> "leg_negated" [style=invis];
+    "leg_skolem" [label="Skolemization check", fillcolor="#cfe2f7", fontsize=9];
+    "leg_negated" -> "leg_skolem" [style=invis];
+    "leg_internal" [label="internal rule checker", fillcolor="#d5efd5", fontsize=9];
+    "leg_skolem" -> "leg_internal" [style=invis];
+    "leg_shortcut" [label="sound shortcut (no prover call)", fillcolor="#fff0a8", fontsize=9];
+    "leg_internal" -> "leg_shortcut" [style=invis];
+  }
+}

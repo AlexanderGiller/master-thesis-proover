@@ -4,62 +4,52 @@ The top-level auxiliary file: main.aux
 Reallocating 'name_of_file' (item size: 1) to 12 items.
 The style file: language-dt.bst
 Reallocating 'name_of_file' (item size: 1) to 13 items.
+Reallocating 'name_of_file' (item size: 1) to 23 items.
 Database file #1: bibliography.bib
-Warning--I didn't find a database entry for "TODO-atp-survey"
-Warning--I didn't find a database entry for "PLACEHOLDER_PROVER_BUGS"
-Warning--I didn't find a database entry for "PLACEHOLDER_CERT1"
-Warning--I didn't find a database entry for "PLACEHOLDER_CERT2"
-Warning--I didn't find a database entry for "PLACEHOLDER_SKOLEM"
-Warning--I didn't find a database entry for "PLACEHOLDER_TPTP1"
-Warning--I didn't find a database entry for "PLACEHOLDER_TSTP1"
-Warning--I didn't find a database entry for "PLACEHOLDER_SZS"
-Warning--I didn't find a database entry for "PLACEHOLDER_SOUND1"
-Warning--to sort, need author or key in PLACEHOLDER_PROOVER_PROC
-Warning--to sort, need author or key in PLACEHOLDER_GDVLP
-Warning--to sort, need author or key in LeanOnVampire2026
-Warning--empty author in PLACEHOLDER_GDVLP
-Warning--empty year in PLACEHOLDER_GDVLP
+Database file #2: bibliography_additions.bib
+Warning--to sort, need author or key in ProoVer2026Proceedings
 Warning--empty booktitle in RiazanovVoronkov2002
 Warning--can't use both volume and number fields in RiazanovVoronkov2002
-You've used 53 entries,
+Warning--empty journal in taprogge2026formal
+You've used 68 entries,
             2865 wiz_defined-function locations,
-            961 strings with 13068 characters,
-and the built_in function-call counts, 29295 in all, are:
-= -- 2396
-> -- 796
-< -- 101
-+ -- 285
-- -- 207
-* -- 2002
-:= -- 4142
-add.period$ -- 223
-call.type$ -- 53
-change.case$ -- 378
-chr.to.int$ -- 55
-cite$ -- 66
-duplicate$ -- 2491
-empty$ -- 2555
-format.name$ -- 353
-if$ -- 6149
-int.to.chr$ -- 6
+            1030 strings with 15359 characters,
+and the built_in function-call counts, 38031 in all, are:
+= -- 3101
+> -- 1094
+< -- 138
++ -- 398
+- -- 285
+* -- 2641
+:= -- 5396
+add.period$ -- 290
+call.type$ -- 68
+change.case$ -- 492
+chr.to.int$ -- 73
+cite$ -- 74
+duplicate$ -- 3227
+empty$ -- 3238
+format.name$ -- 489
+if$ -- 7930
+int.to.chr$ -- 12
 int.to.str$ -- 1
-missing$ -- 461
-newline$ -- 278
-num.names$ -- 208
-pop$ -- 877
+missing$ -- 596
+newline$ -- 359
+num.names$ -- 281
+pop$ -- 1131
 preamble$ -- 1
-purify$ -- 307
+purify$ -- 401
 quote$ -- 0
-skip$ -- 989
+skip$ -- 1260
 stack$ -- 0
-substring$ -- 1372
-swap$ -- 1188
-text.length$ -- 16
+substring$ -- 1739
+swap$ -- 1566
+text.length$ -- 22
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 450
-warning$ -- 7
-while$ -- 171
+type$ -- 579
+warning$ -- 4
+while$ -- 226
 width$ -- 0
-write$ -- 711
-(There were 16 warnings)
+write$ -- 919
+(There were 4 warnings)

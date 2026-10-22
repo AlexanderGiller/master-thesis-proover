@@ -1,11 +1,140 @@
-\section{General Addenda}
 
-If there are several additions you want to add, but they do not fit into the thesis itself, they belong here.
+\section{Reproduction}
+\label{app:reproduction}
 
-\subsection{Detailed Addition}
+This appendix describes how to reproduce the results of the thesis.
+The source code, the proofs, and the scripts are in the repository of the thesis; the commit used for the measurements is \EvalCommit.
 
-Even sections are possible, but usually only used for several elements in, e.g.\ tables, images, etc.
+\subsection{Requirements}
 
-\section{Figures}
-\subsection{Example 1}
-\subsection{Example 2}
+The verifier needs Python~3.11 or newer (the measurements used Python~\EvalPython) and the library \texttt{lark}.
+The external prover is Vampire (the measurements used \EvalVampire).
+Vampire is called through the environment variables \texttt{EXTERNAL\_ATP\_BINARY} (path of the binary) or \texttt{EXTERNAL\_ATP\_COMMAND} (complete command), and is found in the search path by default.
+Under Windows, the verifier is run in WSL.
+
+\begin{verbatim}
+python3 -m venv .venv && source .venv/bin/activate
+python -m pip install -r requirements.txt -r requirements-dev.txt
+export EXTERNAL_ATP_BINARY=/usr/local/bin/vampire
+\end{verbatim}
+
+\subsection{Checking Proofs}
+
+A single proof is checked by passing the proof file; the problem file is looked up in the subdirectory \texttt{Problems} next to the proof, or given with \texttt{-p}.
+Without a proof argument, the verifier checks all proofs of a directory (default \texttt{ProoVer2026/PRV}; further sets are \texttt{ProoVer2026/Test}, \texttt{ProoVer2026/Extra}, and \texttt{ProoVer2026/Deprecated}) and prints a summary with the score.
+
+\begin{verbatim}
+python main.py ProoVer2026/PRV/PRV010+1.s
+python main.py proof.s -p problem.p -t 30
+python main.py -d ProoVer2026/Extra
+python main.py --binary-verdict ProoVer2026/PRV/PRV010+1.s
+\end{verbatim}
+
+\begin{table}[tbp]
+\centering
+\small
+\caption{Command-line options of the verifier.}
+\label{tab:app-cli}
+\begin{tabular}{@{}l P{0.65\linewidth}@{}}
+\toprule
+Option & Meaning \\
+\midrule
+\texttt{-p}, \texttt{--problem} & Problem file; by default \texttt{Problems/<name>.p} next to the proof. \\
+\texttt{-t}, \texttt{--timeout} & Wall-clock limit per proof in seconds (default 30). \\
+\texttt{-d}, \texttt{--dir} & Batch mode: directory with proofs; the expected results are chosen from the directory name (\texttt{-e} overrides). \\
+\texttt{--prefix} & Batch mode: only check proofs whose file name starts with the prefix. \\
+\texttt{--binary-verdict} & Print \texttt{VerifiedBad} instead of \texttt{Unknown} when a step cannot be decided. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The last line of the output is the SZS status.
+Table~\ref{tab:app-status} lists the statuses.
+
+\begin{table}[tbp]
+\centering
+\small
+\caption{Statuses printed by the verifier.}
+\label{tab:app-status}
+\begin{tabular}{@{}l P{0.65\linewidth}@{}}
+\toprule
+Status & Meaning \\
+\midrule
+\texttt{VerifiedGood} & Every check succeeded. \\
+\texttt{VerifiedBad} & A definite defect was found, or the proof could not be processed. \\
+\texttt{Unknown} & No defect was found, but a step could not be decided (prover without result, or no checker for the rule). \\
+\texttt{Timeout} & The time limit was exceeded. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Tests and Evaluation}
+
+The test suite is run with \texttt{pytest}; the coverage figures of Section~\ref{subsec:eval-modularity} come from the same run.
+The evaluation driver runs the verifier in a fresh process for each proof and writes raw data to \texttt{results/eval} and the tables and macros of Chapter~\ref{sec:evaluation} to \texttt{thesis/generated}.
+
+\begin{verbatim}
+pytest
+python scripts/eval_all.py --parts all --reps 3
+python scripts/gen_appendix_tables.py
+\end{verbatim}
+
+\noindent The parts of the driver can be run separately with \texttt{--parts}; Table~\ref{tab:app-parts} lists them.
+The run time depends on the machine; the full run needs the prover for all parts except \texttt{noatp}.
+
+\begin{table}[tbp]
+\centering
+\small
+\caption{Parts of the evaluation driver \texttt{scripts/eval\_all.py}.}
+\label{tab:app-parts}
+\begin{tabular}{@{}l P{0.70\linewidth}@{}}
+\toprule
+Part & Content \\
+\midrule
+\texttt{runs} & Verdicts, steps, prover calls, time, and memory per proof (Sections~\ref{subsec:eval-correctness} and~\ref{subsec:eval-runtime}). \\
+\texttt{noatp} & The same without prover (ablation). \\
+\texttt{internal} & Internal checkers against Vampire on single steps. \\
+\texttt{mutation} & Mutations of accepted proofs with entailment check of the survivors. \\
+\texttt{inputs} & Malformed inputs (robustness). \\
+\texttt{extra} & Generated rule test suite. \\
+\texttt{coverage} & Test coverage and lines of code per module. \\
+\texttt{tables} & Regenerates tables, macros, and the figures from the raw data. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Example Reports}
+\label{app:reports}
+
+The report lists one block per check, and ends with the SZS status.
+The following output is the (shortened) report for the invalid proof \texttt{PRV002+1}, in which the negated conjecture is not the negation of the conjecture; the blocks without finding are omitted and the formulas are abbreviated.
+
+\begin{verbatim}
+Checking proof: ProoVer2026/PRV/PRV002+1.s
+Against problem: ProoVer2026/PRV/Problems/PRV002+1.p
+
+[FAIL] Negated Conjecture Issues:
+  - neg: formula is not the correct negation of parent
+    conjecture; expected one of: [...], got: [...]
+
+% SZS status VerifiedBad
+\end{verbatim}
+
+\section{Results per Proof}
+\label{app:per-proof}
+
+Tables~\ref{tab:app-prv}, \ref{tab:app-tst}, and~\ref{tab:app-ext} list the status and the run time of each proof of the three benchmark groups.
+The time is the median over the repetitions of the whole process, including the start-up of the interpreter.
+The column ``Result'' compares the status with the expected result; ``abstain'' denotes \texttt{Unknown} or \texttt{Timeout}, which score zero.
+
+{\small
+\input{generated/tab_app_prv}
+}
+
+{\small
+\input{generated/tab_app_tst}
+}
+
+{\small
+\input{generated/tab_app_ext}
+}

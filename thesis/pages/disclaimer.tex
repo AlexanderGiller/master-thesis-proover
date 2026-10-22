@@ -1,32 +1,56 @@
 \cleardoublepage{}
 
 \thispagestyle{empty}
-\vspace*{0.8\textheight}
+\null
+\newpage
+
+\thispagestyle{empty}
+\vspace{15mm}
 \noindent
 \makeatletter
 \begin{center}
-\iflanguage{english}{
-{\normalfont\bfseries} Disclaimer
-}
-{}
-\iflanguage{german}{
-{\normalfont\bfseries} Erklärung
-}
-{}
+    \iflanguage{english}{
+        {\normalfont\bfseries} Disclaimer
+    }{}
 \end{center}
-\begin{flushleft}
-\iflanguage{english}{
-{I confirm that this \MakeLowercase{Thesis type} is my own work and I have documented all sources and material used.}
-}
-{}
-\iflanguage{german}{
-{Ich versichere, dass ich diese Arbeit selbstständig verfasst und nur die angegebenen Quellen und Hilfsmittel verwendet habe.}
-}
-{}
-\makeatother
 
 \vspace{15mm}
+
+\begin{flushleft}
+    \iflanguage{english}{
+    I confirm that this Master's thesis was written independently by me, only with the support of the auxiliary tools listed below.
+    All passages taken from literature or other sources are appropriately acknowledged and referenced in the text.
+    }{}
+
+\vspace{15mm}
+
 \noindent
-Munich, \date{\today} \hspace{50mm} Author
+Munich, \today \hspace{50mm} Author
 \end{flushleft}
+
+\vspace{15mm}
+
+\noindent
+\iflanguage{english}{
+\textbf{Note on the Use of AI Tools}
+
+Artificial intelligence (AI) tools, including large language models
+(LLMs) such as Claude Sonnet 5.5, were used in the preparation of this
+thesis to support translation and linguistic editing, including
+improvements to grammar, spelling, clarity, and overall readability.
+In addition, AI-based tools were used for code completion, data
+analysis, and the generation of figures and visualizations.
+
+All AI-generated or AI-assisted outputs were reviewed and critically
+evaluated by the author. The author takes full responsibility for
+the accuracy, interpretation, and final presentation of the content
+of this thesis.
+}{}
+
+\makeatother
+
 \cleardoublepage{}
+
+\thispagestyle{empty}
+\null
+\newpage

@@ -1,4 +1,3 @@
-% Werte in [eckigen Klammern] nach der Evaluation eintragen. Absätze mit "% FALLS" je nach Stand des Codes beibehalten oder streichen.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -8,24 +7,29 @@ This chapter interprets the results of Chapter~\ref{sec:evaluation}, discusses w
 \subsection{Interpretation of the Results}
 \label{subsec:disc-results}
 
-The verifier reaches a score of [S] of 153 points on the ProoVer set and does not accept any invalid proof [confirm].
+The verifier reaches a score of \EvalOffScore{} of \EvalOffMaxScore{} points on the \EvalOffN{} proofs of the benchmark (\EvalScore{} of \EvalMaxScore{} including the deprecated proofs) and does not accept any invalid proof.
 The second property matters more than the first: with a penalty of $-10$ for a wrong acceptance, a single such error costs as much as ten correct acceptances.
-The verdict matrix shows where the remaining points are lost.
-[Interpretation: most losses are abstentions on valid proofs, caused by [rule / timeout / ATP], and not wrong rejections.]
-This is the intended behavior of the fail-closed policy of Section~\ref{subsec:req-scoring}: when the verifier loses points, it loses them in the cheap direction.
+The verdict matrix shows that the only loss on this benchmark is the two points for the invalid proof \texttt{PRV097}, for which the verifier answers unknown.
+This should not be read as a statement that the verifier is complete: the benchmark was available during the development, and the proofs that the verifier rejects do so for reasons that it was built to detect.
+The Extra set of Section~\ref{subsec:eval-extra} found defects that the benchmark could not, and on \EvalExtraEdgeRej{} of the \EvalExtraEdge{} generated edge cases the verifier is more cautious than necessary (Section~\ref{subsec:eval-extra}).
+If the verifier loses points on unseen proofs, the fail-closed policy of Section~\ref{subsec:req-scoring} makes it lose them in the cheap direction.
 
-The ablation of the verdict rule (Section~\ref{subsec:eval-ablation}) quantifies this: a binary verdict that treats unresolved steps as failures would have changed the score by [D] points, because [it turns abstentions on invalid proofs into lucky rejections but also turns abstentions on valid proofs into wrong rejections].
-The comparison also shows that the benefit of abstaining depends on the benchmark: it pays off when unresolved steps are rare but dangerous, and it is worth little when almost every proof can be decided.
+The ablation of the verdict rule (Section~\ref{subsec:eval-ablation}) shows the price of this policy.
+The default three-valued verdict, in which a proof that fails only because a step cannot be decided is an abstention, scores \EvalScoreTernary{} points instead of the \EvalScoreBinary{} points of the binary policy (\texttt{--binary-verdict}), because one invalid proof (\texttt{PRV097}), whose step with an unknown rule cannot be decided, is an abstention instead of a correct rejection.
+Without the prover, the three-valued rule is clearly better (\EvalNoAtpScoreTernary{} against \EvalNoAtpScoreBinary{} points), because most valid proofs become undecidable and would otherwise be wrongly rejected.
+The default therefore costs two points on this benchmark and protects against a much larger loss if the prover fails on the competition machine.
+The benefit of abstaining therefore depends on how often a missing answer occurs for valid proofs compared with invalid proofs, and on the availability of the prover.
 
-The rule coverage (Section~\ref{subsec:eval-coverage}) shows that [X\,\%] of the steps are decided by internal checks, and only [Y\,\%] need the external prover.
-At the same time, the run times (Section~\ref{subsec:eval-runtime}) are dominated by the ATP calls: a single call takes about two seconds in our preliminary measurements, while all internal checks of a proof together take [milliseconds to a few hundred milliseconds].
-For this reason, the order ``cheap checks first'' is not only a design preference but the main lever for the run time, and it is the reason why the verifier stays within the 30\,s limit on [Z] of the proofs.
+The rule coverage (Section~\ref{subsec:eval-coverage}) shows that \EvalInternalPct\,\% of the derived steps are decided by internal checks, and only \EvalAtpOnlySteps{} steps (the final \texttt{consequence} step and \texttt{add\_hypothesis}, mostly) need the external prover.
+The run times (Section~\ref{subsec:eval-runtime}) are nevertheless not dominated by the prover: its calls take \EvalAtpShare\,\% of the total time, with a mean of \EvalAtpMean{}, while the start-up of the interpreter alone takes \EvalInterpStart{} on the test machine.
+The one visible exception is \texttt{PRV099}, which shows that a single hard prover call can matter more than all other checks together.
+The order ``cheap checks first'' is therefore mainly a matter of precision and independence from the prover, and has little effect on the run time. It is also the reason why steps that Vampire does not confirm within 10\,s but that are trivial for the internal checker do not endanger the verdict (Section~\ref{subsec:eval-ablation}).
 
 \subsection{Scoring Policy and Its Limits}
 \label{subsec:disc-scoring}
 
 The policy of Section~\ref{subsec:req-scoring} follows from the scoring scheme, but it rests on assumptions that deserve a comment.
-The probability $p$ that a proof is valid is not observable, so the thresholds $2/3$ and $10/11$ cannot be applied literally; the verifier approximates them by the discrete rule that acceptance requires positive evidence for every step and rejection requires a concrete defect.
+The probability $p$ that a proof is valid is not observable, so the thresholds $2/3$ and $10/11$ cannot be applied literally. The verifier approximates them by the discrete rule that acceptance requires positive evidence for every step and rejection requires a concrete defect.
 This is conservative on both sides.
 It would be possible to accept proofs with a small unresolved remainder if the remainder is judged harmless, but this requires a calibrated estimate of $p$ that the verifier does not have.
 The policy is also tied to this competition: with a different penalty the optimal behavior changes, and in a setting where a wrong acceptance is not much worse than a wrong rejection, abstention would be less attractive.
@@ -37,14 +41,18 @@ Finally, the policy trades points for safety when the external prover is missing
 The soundness argument of Section~\ref{subsec:design-verdict} is conditional: it holds if the rule checkers are correct and the external prover is sound.
 In terms of the trusted computing base (Section~\ref{subsec:atp-certification}), the following components therefore have to be trusted for the property that every accepted proof is valid:
 \begin{itemize}
-  \item the \emph{parser and normalization}, since a parse error that changes the meaning of a formula would change what is checked;
-  \item the \emph{alpha-equivalence} check, which also merges quantifier prefixes and flattens junctions before it compares, and which therefore equates formulas that are not literally identical;
-  \item the \emph{rule checkers}, in particular the Skolem checker, the largest module, and the clausal checker;
-  \item the \emph{serialization of formulas to TPTP} for the external prover, because a defect there would make the prover validate a different formula than the one in the proof;
-  \item the \emph{external prover} and its interpretation through the SZS status line; and
-  \item the \emph{verdict aggregation}, which decides how the individual results are combined.
+  \item The \emph{parser and normalization}, since a parse error that changes the meaning of a formula would change what is checked.
+  \item The \emph{alpha-equivalence} check, which also merges quantifier prefixes and flattens junctions before it compares, and which therefore equates formulas that are not literally identical.
+  \item The \emph{rule checkers}, in particular the Skolem checker, the largest module, and the clausal checker.
+  \item The \emph{serialization of formulas to TPTP} for the external prover, because a defect there would make the prover validate a different formula than the one in the proof.
+  \item The \emph{external prover} and its interpretation through the SZS status line.
+  \item The \emph{verdict aggregation}, which decides how the individual results are combined.
 \end{itemize}
-Compared with a checker that sends every step to a prover, this list is longer, because the internal checks are part of it; compared with the prover that produced the proof, it is much shorter.
+Compared with a checker that sends every step to a prover, this list is longer, because the internal checks are part of it. Compared with the prover that produced the proof, it is much shorter.
+Measured against the de Bruijn criterion (Section~\ref{subsec:atp-certification}), the verifier is a partial success.
+Its own trusted code, about \EvalCheckerLines{} lines of checkers plus the parser and the shared utilities, is small enough to be read and tested rule by rule, but it is an order of magnitude larger than the kernel of an LCF-style system, and every proof whose last step is a \texttt{consequence} step also depends on Vampire, a full saturation prover.
+For such a proof the trusted part is not smaller than the system that could have produced the proof, which is exactly what the criterion wants to avoid.
+The competition rules accept this compromise, since they explicitly allow external provers for unspecified rules. A stricter verifier would have to replace the prover calls by certificates that a kernel checks, as GDV-LP does with LambdaPi \citep{Sutcliffe2025GDVLP}.
 This is the trade-off stated in Section~\ref{subsec:rw-positioning}: the thesis exchanges a larger trusted checker for less dependence on the prover and for better diagnostics.
 The evaluation supports the correctness of the checkers by tests, by the mutation experiment, and by the benchmark, but it does not prove it.
 A way to reduce the trusted part further would be to restrict the internal checks to the rules where they are simple (structural, propositional, and the Skolem conditions) and to delegate the rest, or to validate the checks themselves against a proof assistant.
@@ -61,24 +69,142 @@ This is correct with respect to the rules, but it shows that the quality of the 
 \paragraph{Modularity.}
 Rule-local checkers made it possible to test each rule in isolation and to attribute every error to a step and a reason.
 The price is that some knowledge, such as the freshness of Skolem symbols, cannot be local to one step and lives in the driver.
-The size of the dispatcher in \texttt{main.py} is a sign that the modular idea has been applied to the checkers but not yet to the dispatch; the registry of Section~\ref{subsec:design-dispatch} addresses this.
+The size of the dispatcher in \texttt{main.py} is a sign that the modular idea has been applied to the checkers but not yet to the dispatch. The registry of Section~\ref{subsec:design-dispatch} addresses this.
 
 \paragraph{Python.}
 The implementation language favors readability and fast development, which was valuable for a thesis with many rules.
 It costs run time for the internal checks and complicates deep recursion, which needed a dedicated thread with a larger stack.
-The measurements show that the ATP, not Python, dominates the run time of the proofs that need it; the pure Python cost matters for the large proofs, where [parsing / checks] take [x\,s].
+The measurements show that Python is fast enough for this task: the prover takes only \EvalAtpShare\,\% of the total time, and the pure Python cost matters only for the very large proofs, where parsing takes about 2.5\,s and the rule checks between 3.0 and 3.6\,s (Section~\ref{subsec:eval-runtime}).
 
 \paragraph{Process isolation.}
 Running each proof in its own process makes timeouts and crashes harmless and enforces the time limit, but it adds a startup cost per proof and makes sharing state, such as a cache of ATP results, harder.
+
+\subsection{Transfer to Other Provers: A Case Study with Vampire}
+\label{subsec:disc-transfer}
+
+The verifier was designed for the ProoVer 2026 setting, in which the rule vocabulary, the proof style, and the kinds of defects in invalid proofs are fixed by the organizers.
+This subsection asks how much of the design survives when the proofs do not come from the competition but from an automated prover.
+We use Vampire \citep{RiazanovVoronkov2002,KovacsVoronkov2013} for two small experiments and then discuss why a verifier that performs well on the competition set is unlikely to transfer to the output of other provers without further work.
+
+\paragraph{Setup.}
+Vampire 5.0.1 was run in CASC mode with a limit of 30\,s on all 176 problem files of the benchmark (script \texttt{scripts/run\_vampire\_all.sh}).
+It reports \emph{Theorem} for 139 problems, \emph{CounterSatisfiable} for 19, \emph{ContradictoryAxioms} for 3, and times out on 15 (13 of them in the TST group).
+The 142 problems with a proof (Theorem and ContradictoryAxioms) are the input of Experiment~A.
+The 19 CounterSatisfiable outputs contain a saturation instead of a proof. They correspond to problems whose conjecture does not follow from the axioms and are not used.
+
+\paragraph{Experiment A: Can the verifier read Vampire's proofs?}
+Table~\ref{tab:disc-transfer-a} summarizes what happens when the 142 proofs are given to the verifier unchanged.
+\begin{table}[tbp]
+\centering
+\small
+\caption{Verifier on unmodified Vampire proofs (142 proofs).}
+\label{tab:disc-transfer-a}
+\begin{tabular}{@{}l r@{}}
+\toprule
+Outcome & Proofs \\
+\midrule
+Rejected by the parser (\texttt{introduced(\dots)} annotations) & 66 \\
+Parsed, verdict \emph{failed} & 75 \\
+Parsed, timeout (60\,s) & 1 \\
+Parsed, verdict \emph{verified} & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+No proof is verified.
+This is not surprising, but the reasons differ and are worth looking at:
+\begin{itemize}
+  \item \textbf{Syntax.} Vampire records Skolem symbols and definitions as separate formulas with the source \texttt{introduced(definition,\dots)} and refers to input formulas as \texttt{file('Problems/X.p',unknown)}.
+  The grammar and the provenance check of the verifier assume the competition conventions (66 files cannot be parsed, and the provenance check fails for almost all others). Part of the parse failures were caused by a defect in the grammar rule for \texttt{introduced(\dots)}, corrected after this experiment (Section~\ref{subsec:impl-bugs}). Since the formulas introduced in this way cannot be justified by the verifier, the correction would turn these rejections into abstentions, not into acceptances.
+  This part is engineering and could be removed by a normalizing front end.
+  \item \textbf{Vocabulary.} Vampire's 142 proofs use 22 distinct inference names. The competition corpus uses 39.
+  Only two names occur in both (\texttt{resolution} and \texttt{negated\_conjecture}), and even for them the meaning differs: a Vampire \texttt{resolution} step works on clauses, a ProoVer \texttt{resolution} step on the formulas of the competition.
+  22\,153 inferences were counted in total. The 24.2\,\% that carry a name known to the verifier are almost all \texttt{resolution} steps, and no single proof consists only of such steps.
+  Most steps belong to the preprocessing and splitting machinery of the prover (\texttt{ennf\_transformation}, \texttt{cnf\_transformation}, \texttt{avatar\_*}, \texttt{sat\_conversion}, \texttt{forward\_subsumption\_resolution}).
+  \item \textbf{Status information.} In the competition format nearly every step carries \texttt{thm}, \texttt{esa}, or \texttt{cth}, and the verifier uses this to decide what may be delegated to a prover (Section~\ref{subsec:design-atp}).
+  In Vampire's output only \texttt{negated\_conjecture} and \texttt{skolemisation} carry a status. The other steps have none, so under the fail-closed policy none of them may be delegated.
+\end{itemize}
+The proofs are not large on this benchmark (median 11 formulas against 6 in the reference proofs, maximum 20\,007 against 10\,006), because the ProoVer problems are small.
+For harder problems the size of a prover's proof is not bounded by what a human or the organizers would write down, which matters for the run-time results of Section~\ref{subsec:eval-runtime}.
+
+\paragraph{Experiment B: Skolemization and an entailment oracle.}
+The previous experiment mostly measures format differences.
+To separate this from the question of whether the \emph{checks} would carry over, we isolate the one rule that cannot be checked by entailment: Skolemization (Section~\ref{subsec:normal-forms}).
+We take the Skolemization steps of the 176 reference proofs. There are 5\,141 such steps, and the internal check accepts 5\,106 of them. Since 5\,000 of them belong to the single, very large proof PRV072, we use at most ten steps per proof and mutation kind. From these steps we derive mutants with a known defect and compare two verdicts for each:
+(i) the internal Skolem check, and (ii) an \emph{entailment oracle} that asks Vampire whether the conclusion $C$ entails the parent $P$.
+This is the only entailment that holds for a correct step and it is what a verifier built around a generic prover would test.
+The mutants are
+\emph{drop\_arg} (a required dependency is removed from the Skolem term, which makes the step unsound),
+\emph{universal} (a universally quantified variable is ``Skolemized''),
+\emph{negate\_atom} (an atom of $C$ is negated), and
+\emph{drop\_conjunct} (a conjunct of $C$ is removed).
+The unchanged steps serve as a control.
+\begin{table}[tbp]
+\centering
+\small
+\caption{Internal Skolem check against an entailment oracle ($C \models P$ with Vampire). Numbers are mutants rejected / accepted.}
+\label{tab:disc-transfer-b}
+\begin{tabular}{@{}l r c c@{}}
+\toprule
+Step kind & Steps & Skolem check (rej./acc.) & Oracle (rej./acc.) \\
+\midrule
+unchanged (control) & 116 & 0 / 116 & 1 / 115 \\
+\emph{drop\_arg}: missing dependency & 25 & 25 / 0 & 0 / 25 \\
+\emph{universal}: universal variable eliminated & 56 & 56 / 0 & 26 / 30 \\
+\emph{negate\_atom}: wrong formula & 108 & 108 / 0 & 106 / 2 \\
+\emph{drop\_conjunct}: wrong formula & 11 & 11 / 0 & 5 / 6 \\
+flawed steps of the reference proofs & 35 & 35 / 0 & 11 / 22 (+2 ill-formed) \\
+\bottomrule
+\end{tabular}
+\end{table}
+Table~\ref{tab:disc-transfer-b} shows the expected pattern.
+Defects that change the \emph{formula} (\emph{negate\_atom}) are found by both. The two mutants that the oracle accepts negate an atom in a tautology ($a = a$) and are harmless.
+The defect that is specific to Skolemization, a missing dependency, is not found by the oracle in any of the 25 cases: a Skolem term with too few arguments makes $C$ stronger, so $C \models P$ still holds, but the step is not equisatisfiable.
+Of the 30 \emph{universal} mutants accepted by the oracle, 27 eliminate a variable that does not occur in the body, which is semantically harmless. The internal check rejects them because the rule does not allow it.
+In the measured version, the oracle also rejects one unchanged step that the internal check accepts (\texttt{TST064}, step \texttt{s1}). The corrected check rejects it as well.
+The step Skolemizes an existential quantifier in the antecedent of an implication, i.e.\ at a negative position, and the internal check of the measured version did not flip the polarity for implications. This defect is corrected in the final version (Section~\ref{subsec:impl-bugs}), which rejects the step.
+The 35 Skolemization steps that the internal check of the measured version rejects in the reference proofs (17 of them in the PRV set, where all affected proofs are labeled incorrect) fall into the same classes: the oracle recognizes 11, accepts 22, and cannot read two (a free variable in the Skolem term, rejected by Vampire's parser).
+The 22 accepted steps are defects such as a wrong number of introduced symbols, a mismatching annotation, \texttt{thm} instead of \texttt{esa}, or a wrong argument list. None of them is visible to an entailment test.
+
+\paragraph{Why a good competition verifier transfers poorly.}
+The two experiments point to four reasons.
+\begin{enumerate}
+  \item \emph{The calculus is part of the benchmark.}
+  The ProoVer proofs use a small set of local rules in the style of natural deduction (\texttt{modus\_ponens}, \texttt{instantiate}, \texttt{split\_conjunct}, \dots) that can be matched syntactically or discharged by a single small prover call.
+  The verifier is effectively a collection of matchers for exactly these rules.
+  A prover's proof is a refutation over clauses obtained after normalization and splitting. Its steps are not related to the above rules by name or by shape, so each rule needs a new checker or a translation layer.
+  \item \emph{The invalid proofs are drawn from a known fault model.}
+  The defects in the competition set (wrong Skolem term, wrong status, missing negation of the conjecture, circular dependency, wrong instance) are the ones the checkers target. This explains the high score.
+  Prover proofs would be wrong for other reasons, for example an unsound inference implementation, an incorrect definition introduced during clausification, or a wrong splitting decision, and those are not covered.
+  \item \emph{Entailment is not enough.}
+  Experiment~B shows that rules which preserve only satisfiability (Skolemization, and also the definition-introducing clausification and \textsc{Avatar} steps of modern saturation provers) cannot be validated by asking a prover for entailment.
+  A verifier that works well because most competition steps are \texttt{thm} steps loses this advantage on output where a large share of the steps is \texttt{esa}-like or has no status at all.
+  \item \emph{The trusted base becomes circular.}
+  The verifier delegates \texttt{thm} steps to Vampire.
+  For Vampire's own proofs this means that the correctness of the prover is partly assumed in order to check the prover, which weakens the independence that the architecture of Section~\ref{subsec:disc-tcb} is meant to provide.
+  Certificate-based approaches \citep{Wetzler2014DRATtrim,Carcara2023} avoid this by making the prover emit a proof in a calculus small enough to be checked without a second prover.
+\end{enumerate}
+
+\paragraph{Consequences.}
+A direct extension of the verifier to Vampire or to another saturation prover would need (a) a normalizing front end for the output syntax, (b) native checkers for the clausification and splitting rules, which are the bulk of the steps, and (c) an argument for how satisfiability-preserving steps are validated, for example through the Skolem and definition conditions used here rather than through entailment.
+A cheaper way to obtain a verifiable proof is to request a proof in a restricted calculus from the prover, or to reconstruct the proof from Vampire's output with the external prover as the oracle for small, \texttt{thm}-like steps. This is the approach followed by proof-reconstruction tools such as Sledgehammer \citep{Bohme2010Sledgehammer}.
+Other provers, for example E \citep{SchulzCV2019}, emit their own rule vocabularies. The observations above should apply to them in a similar way, but we did not run them.
+
+\paragraph{Threats to validity.}
+The mutants are synthetic, and their ground truth follows from the construction, not from an independent oracle. The mutation kind \emph{universal} in particular contains semantically harmless cases, as noted above.
+The \emph{drop\_arg} class is small (25 steps), because only few reference Skolem terms have an argument that is actually used.
+Only one entailment test was used as oracle. A model finder or a stronger equisatisfiability argument might detect more defects.
+The failures in Table~\ref{tab:disc-transfer-a} partly stem from provenance conventions and syntax and would shrink with a normalizing front end. Only the vocabulary and status differences are fundamental.
+Finally, all results are for one prover version and one benchmark whose problems are small.
 
 \subsection{Limitations}
 \label{subsec:disc-limitations}
 
 \begin{itemize}
   \item \textbf{Logic and format.} The verifier handles FOF problems and TSTP proofs with the rule vocabulary of the ProoVer 2026 benchmarks. CNF, typed, and higher-order input are out of scope, and rules outside the supported set are delegated to the prover or lead to abstention.
-  \item \textbf{Weak rule checks.} The \texttt{rewrite} rule is checked only for the shapes observed in the benchmark, because the demodulating equation may be missing in the proof. Since this check is weaker than the logical meaning of the rule, an accepted \texttt{rewrite} step is less well justified than the other steps. % FALLS rewrite an den ATP delegiert bzw. unresolved wird: diesen Punkt streichen.
-  \item \textbf{Symbols from instantiation.} Annotations of Herbrand symbols are parsed but not checked separately. This is sound for \texttt{thm} steps, since instantiation with an arbitrary term is entailed by the parent, but it means that the annotation carries no checked information. % FALLS im Code behandelt: anpassen.
+  \item \textbf{Weak rule checks.} Because the demodulating equation of a \texttt{rewrite} step is missing in the benchmark format, the check accepts only a conclusion that equals its parent up to renaming. This is sound but incomplete: a genuine rewrite that changes the formula would be rejected, which costs points on a valid proof but never accepts an invalid one.
+  \item \textbf{Symbols from instantiation.} Annotations of Herbrand symbols are parsed but not checked separately. This is sound for \texttt{thm} steps, since instantiation with an arbitrary term is entailed by the parent, but it means that the annotation carries no checked information.
+  \item \textbf{Rules without a semantics.} The rule \texttt{trivial} with status \texttt{esa} (\texttt{PRV097}) has no checker and cannot be delegated, so the proof is \emph{unknown} instead of rejected. The same holds for any other unknown rule with a status other than \texttt{thm} or \texttt{cth}.
   \item \textbf{Sequential prover calls.} Each unresolved step starts its own prover process, one after another. Proofs with many such steps are therefore slow. Parallel calls and a shared time budget would help.
-  \item \textbf{Benchmark.} The ProoVer set contains 100 proofs and the TST set 76 proofs written by the author. This is enough to find defects, but not to estimate rare failure rates, and the results do not carry over to proofs from other provers (Section~\ref{subsec:eval-threats}).
+  \item \textbf{Benchmark.} The ProoVer set contains 100 proofs, the TST set 76 proofs written by the author, and the Extra set \EvalExtraN{} generated proofs. This is enough to find defects, but not to estimate rare failure rates, and the results do not carry over to proofs from other provers (Section~\ref{subsec:eval-threats}).
   \item \textbf{Trust in tests.} Correctness of the checkers is supported by tests and mutations, not proved.
 \end{itemize}

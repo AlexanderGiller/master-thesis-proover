@@ -1,16 +1,22 @@
 \section*{Abstract}
 
-Nowadays automated theorem provers (ATPs) are highly effective, but the trustworthiness of their results depends on independent validation of the proof objects they produce.
-This thesis presents the design and implementation of a Python-based proof verifier for TPTP/TSTP derivations, developed according to the specifications for ProoVer 2026, which is the proof checking competition held as part of the FLoC Olympics 2026 in Lisbon~\citep{proover-competition}.
+Modern automated theorem provers are highly effective, but the trustworthiness of their results depends on the independent verification of the proof objects they generate.
+This thesis presents the design and implementation of a Python-based Proof-verifier for TPTP/TSTP derivations, developed according to the specifications of ProoVer 2026, a proof-checking competition held as part of the FLoC Olympics 2026 in Lisbon~\citep{proover-competition}.
 
-Due to the fact, that false positives are by far the worst outcome in automated theorem proving, the competition's scoring scheme also punishes a wrongly accepted proof ten times harder than it rewards a correct acceptance~\citep{proover-competition}.
-From the expected score a fail-closed policy is derived, where the verifier accepts a proof only if every step has been validated positively.
-Furthermore it only rejects the proof if it has found a concrete defect, and abstains otherwise.
-The verifier implements this policy as a modular pipeline of parsing and normalization, structural and dependency validation, and rule-specific inference checking.
-Structural, propositional, quantifier, and clausal rules and Skolemization (including freshness of the introduced symbols) are checked internally and produce diagnostics for each failing step.
-All remaining steps, that could not be verified internally are delegated to an external prover - in this case vampire - that only sees the premises of the step but not the whole proof.
+Generally a wrongly accepted proof is by far the worst outcome in proof verification, and therefore the scoring scheme of the competition also punishes wrong acceptances ten times harder than it rewards a correct acceptance~\citep{proover-competition}.
+The ProoVer 2026 competition ruleset also specifies a three-valued verdict, consisting of \emph{VerifiedGood} for a valid proof, \emph{VerifiedBad} for an invalid proof, and \emph{Unknown} if the checker did not come to a definitive conclusion.
+This scheme is furthermore extended by the extra verdict \emph{Timeout}, if the verifier is not able to definitively determine the verdict within the given time limit of 30 seconds.
+The developed verifier of this thesis accepts a proof only if every step has been validated positively, rejects it only if it has found a concrete defect, and otherwise answers \emph{Unknown}.
+This policy is implemented as a modular pipeline of parsing and normalization, structural and dependency validation, and rule-specific inference checking.
+Structural, propositional, quantifier, and clausal rules as well as Skolemization are checked internally and produce a diagnostic for each failing step.
+All remaining steps are delegated to an external prover, in this thesis Vampire, which is only allowed to see the premises of the step but not the proof as a whole.
 
-The evaluation on 91 problem/proof pairs given by the ProoVer2026 competition committee verifies 91 of 91 proofs within the 30 seconds wall clock time limit for each proof, correctly rejects all 47 invalid proofs, accepts all 44 valid proofs and never wrongly accepts or rejects a proof.
-This thesis contributes a scoring-derived verdict policy with a soundness argument, a modular verification architecture, a practical implementation, and an empirical analysis of its performance and robustness under simulated competition conditions.
+Of the \EvalOffN{} problem/proof pairs of the competition committee, the verifier accepts all \EvalOffValid{} valid proofs, rejects \EvalOffRejInvalid{} of the \EvalOffInvalid{} invalid proofs, and answers \emph{Unknown} for the remaining one.
+The median run time of \EvalWallMedian{} per proof is within the given limit of 30 seconds wall clock time~\citep{proover-competition}.
+This corresponds to \EvalOffScore{} of \EvalOffMaxScore{} points, where most importantly no proof is wrongly accepted.
+The same also holds for the \EvalSampleN{} proofs of the originally published set of 100 that were not scored in the competition.
+A generated suite of \EvalExtraN{} rule-level test proofs and \EvalMutN{} mutants of valid proofs, in which every mutant that is no longer valid is rejected, indicates that the checks are not only tuned to fit the benchmark.
+Furthermore, the verifier accepts no invalid proof even when the external prover is removed.
+This thesis contributes a soundness argument, a modular verification architecture, a practical implementation of the verifier, and an empirical analysis of its performance and robustness under simulated competition conditions.
 
 \textbf{Keywords}: Automated Theorem Proving, Proof Verification, TPTP, TSTP, Fail-Closed Checking, Skolemization, ProoVer 2026.

@@ -1,66 +1,85 @@
 @startuml
-' Sequence diagram for a single proof check run
+' One proof check: CLI -> timeout wrapper -> worker process -> driver -> checkers -> verdict
 autonumber
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam sequenceMessageAlign left
 
 actor User
-participant "main\n(__main__)" as CLI
+participant "main.py\nCLI" as CLI
 participant "report_proof_check" as Report
-participant "check_proof_file_with_timeout" as TimeoutWrap
-participant "_check_proof_worker\n(subprocess)" as Worker
-participant "check_proof_file" as Checker
-participant "ParserAPI\n(parse_file/load_proof)" as Parser
-participant "DependencyChecker" as Dep
-participant "Rule-specific checkers" as RuleCheckers
-participant "ExternalATPChecker" as ATP
+participant "check_proof_file_\nwith_timeout" as Wrap
+participant "_check_proof_worker\n(process, large stack)" as Worker
+participant "check_proof_file" as Drv
+participant "parser\n(parse_file / load_proof)" as Parser
+participant "global checks\n(dependency, names, $false)" as Global
+participant "rule checkers\n(provenance, negated conj.,\nstructural ... skolem)" as Rules
+participant "external_atp_checker" as ATP
+participant "Vampire" as Vamp
 
-User -> CLI : run with proof and problem
-CLI -> Report : report_proof_check(proof_path, problem_path, timeout)
-Report -> TimeoutWrap : check_proof_file_with_timeout(...)
-TimeoutWrap -> Worker : start process
-Worker -> Checker : run_with_larger_stack(check_proof_file)
-
-Checker -> Parser : parse_file(problem_path)
-Parser --> Checker : problem formulas
-Checker -> Parser : load_proof(proof_path)
-Parser --> Checker : ProofFile(steps)
-
-Checker -> Dep : check_no_circular_dependencies(steps)
-Dep --> Checker : dependency issues
-Checker -> Dep : check_conjecture_not_assumed(steps)
-Dep --> Checker : assumption issues
-
-loop for each step in proof.steps
-  alt role == axiom or conjecture
-    Checker -> RuleCheckers : check_axiom_provenance(...)
-    RuleCheckers --> Checker : issues
-  else role == negated_conjecture
-    Checker -> RuleCheckers : check_negated_conjecture(step, parent)
-    RuleCheckers --> Checker : issues
-  else supported inference rule
-    Checker -> RuleCheckers : call specific checker by inference.rule
-    RuleCheckers --> Checker : issues
-  else ATP allowed status
-    Checker -> ATP : validate_step_with_atp(step.formula, parent_formulas)
-    ATP --> Checker : valid / note
-  else unknown justification
-    Checker --> Checker : record external_atp_issues
+User -> CLI : main.py PROOF [-p PROBLEM] [-t T] [--binary-verdict]
+CLI -> Report : report_proof_check(proof, problem, T, binary_verdict)
+Report -> Wrap : check_proof_file_with_timeout(proof, problem, T)
+Wrap -> Worker : start process
+activate Worker
+Worker -> Drv : run_with_larger_stack(check_proof_file)
+activate Drv
+Drv -> Parser : parse_file(problem), load_proof(proof)
+alt syntax error
+  Parser --> Drv : exception
+  Drv --> Worker : exception
+  Worker --> Wrap : ("error", message)
+else parsed
+  Parser --> Drv : problem formulas, ProofFile
+  Drv -> Global : cycles, conjecture not assumed,\nunique names, derives $false
+  Global --> Drv : issue maps
+  loop for each step (if/elif dispatch by role and rule)
+    alt role axiom / conjecture, or other role with file(...) source
+      Drv -> Rules : check_axiom_provenance(step, problem, expected_role)
+    else role negated_conjecture
+      Drv -> Rules : check_negated_conjecture(step, conjecture)
+    else rule with internal checker
+      Drv -> Rules : check_<rule>(step, parents)
+      opt weaken / commute / excluded_middle and shape check failed
+        Drv -> ATP : validate_step_with_atp(step, parents)
+      end
+    else skolemize
+      Drv -> Rules : check_skolemization(step, parent)
+      Drv -> Drv : freshness: symbol not in problem,\nnot introduced before
+    else status thm or cth (consequence, add_hypothesis, other rules)
+      opt no sound shortcut applies
+        Drv -> ATP : validate_step_with_atp(step, parents)
+        ATP -> Vamp : premises as axioms, step as conjecture\n(--mode casc, time limit)
+        Vamp --> ATP : SZS status
+        ATP --> Drv : True (Theorem, Unsatisfiable, ContradictoryAxioms)\nFalse (CounterSatisfiable, Satisfiable)\n"unknown" (Timeout, GaveUp, no answer, ...)
+      end
+    else other status (e.g. esa) or introduced(...) source
+      Drv -> Drv : record "no checker available"
+    end
+    Rules --> Drv : issues for this step
   end
+  Drv -> Drv : classify_verdict(issue maps)
+  note right of Drv
+    VerifiedGood: no issue at all
+    Unknown: only undecided steps
+    VerifiedBad: any definite defect
+  end note
+  Drv --> Worker : result dict (issue maps, all_ok, verdict)
+  deactivate Drv
+  Worker --> Wrap : ("result", dict) via queue
 end
+deactivate Worker
 
-Checker --> Worker : result dict (issues + all_ok)
-Worker --> TimeoutWrap : queue result
-
-alt timeout
-  TimeoutWrap --> Report : ("timeout", None)
-  Report --> CLI : status Timeout
-else runtime error
-  TimeoutWrap --> Report : ("error", message)
-  Report --> CLI : status VerifiedBad
-else normal result
-  TimeoutWrap --> Report : ("result", details)
-  Report --> CLI : VerifiedGood or VerifiedBad
+alt no result within T
+  Wrap -> Worker : terminate
+  Wrap --> Report : ("timeout", None)
+  Report --> CLI : % SZS status Timeout
+else error
+  Wrap --> Report : ("error", message)
+  Report --> CLI : % SZS status VerifiedBad
+else result
+  Wrap --> Report : ("result", dict)
+  Report --> CLI : report per check +\n% SZS status VerifiedGood | VerifiedBad | Unknown\n(Unknown printed as VerifiedBad with --binary-verdict)
 end
-
-CLI --> User : print SZS status and issue report
+CLI --> User : report and SZS status
 @enduml
-

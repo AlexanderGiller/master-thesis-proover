@@ -1,0 +1,30 @@
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{@{}l r r r r r r@{}}
+\toprule
+ & & \multicolumn{2}{c}{internal accepts} & \multicolumn{2}{c}{internal rejects} & \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}
+Rule & Steps & prover \emph{yes} & prover \emph{no} & prover \emph{yes} & prover \emph{no} & unknown \\
+\midrule
+\texttt{instantiate} & 39 & 38 & 0 & 0 & 1 & 0 \\
+\texttt{existential\_gen} & 16 & 16 & 0 & 0 & 0 & 0 \\
+\texttt{modus\_ponens} & 13 & 11 & 0 & 1 & 1 & 0 \\
+\texttt{copy} & 11 & 11 & 0 & 0 & 0 & 0 \\
+\texttt{conjunction} & 10 & 9 & 0 & 0 & 0 & 1 \\
+\texttt{excluded\_middle} & 10 & 10 & 0 & 0 & 0 & 0 \\
+\texttt{resolution} & 8 & 7 & 0 & 0 & 1 & 0 \\
+\texttt{duplicate} & 8 & 8 & 0 & 0 & 0 & 0 \\
+\texttt{rename\_variable} & 7 & 6 & 0 & 0 & 0 & 1 \\
+\texttt{split\_conjunct} & 6 & 6 & 0 & 0 & 0 & 0 \\
+\texttt{paramodulation} & 5 & 4 & 0 & 0 & 1 & 0 \\
+\texttt{weaken} & 4 & 4 & 0 & 0 & 0 & 0 \\
+\texttt{rewrite} & 4 & 3 & 0 & 1 & 0 & 0 \\
+\texttt{remove\_double\_negation} & 3 & 3 & 0 & 0 & 0 & 0 \\
+\texttt{commute} & 3 & 3 & 0 & 0 & 0 & 0 \\
+\texttt{instantiate\_mp} & 3 & 2 & 0 & 0 & 0 & 1 \\
+\texttt{reflexivity} & 2 & 2 & 0 & 0 & 0 & 0 \\
+\texttt{double\_negation} & 2 & 2 & 0 & 0 & 0 & 0 \\
+\texttt{transitivity} & 1 & 1 & 0 & 0 & 0 & 0 \\
+\midrule
+Total & 155 & 146 & 0 & 2 & 4 & 3 \\
+\bottomrule
+\end{tabular}}

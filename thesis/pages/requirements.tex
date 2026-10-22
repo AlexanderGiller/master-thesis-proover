@@ -1,14 +1,14 @@
 % Benötigt: \usepackage{booktabs,array,amsmath,tikz}
-% Zielzustand = Fail-closed-Politik und dreiwertiges Verdikt. Siehe Kommentare "CODE:" für Abweichungen vom aktuellen Repo.
+% Anforderungen aus dem ProoVer-2026-Setting; Stand: Fail-closed-Politik und dreiwertiges Verdikt sind umgesetzt.
 
 \section{Requirements}
 \label{sec:requirements}
 
 This chapter derives the requirements for the verifier from the ProoVer 2026 task and from the properties of TSTP derivations discussed in Chapter~\ref{sec:background}.
 Section~\ref{subsec:req-context} fixes the task and its assumptions.
-Section~\ref{subsec:req-scoring} analyses the scoring scheme, which determines how the verifier should behave when it is unsure.
+Section~\ref{subsec:req-scoring} analyses the scoring scheme, which determines how the verifier has to behave when it is unsure, and derives a decision policy from it.
 Sections~\ref{subsec:req-functional} and~\ref{subsec:req-nonfunctional} list the functional and non-functional requirements.
-Section~\ref{subsec:req-traceability} relates them to the components and tests of the implementation.
+Section~\ref{subsec:req-traceability} relates them to the modules and tests of the implementation.
 
 \subsection{Task and Assumptions}
 \label{subsec:req-context}
@@ -26,21 +26,21 @@ The verifier must decide whether $\pi$ is a \emph{valid refutation} of $P$:
 (ii) the dependency graph of $\pi$ is acyclic and $C$ is used only by the step that negates it;
 (iii) every other step is sound in the sense of Section~\ref{subsec:proof-objects-soundness}; and
 (iv) $\pi$ derives \texttt{\$false}.
-It answers \emph{verified}, \emph{failed}, or \emph{uncertain}.
-The competition input is restricted to FOF; CNF and typed or higher-order input are out of scope.
+It answers \emph{verified}, \emph{failed}, or \emph{uncertain}, whose SZS statuses in the competition are \texttt{VerifiedGood}, \texttt{VerifiedBad}, and \texttt{Unknown} if the Checker can not decide, or \texttt{Timeout} if the time limit is exceeded \citep{ProoVer2026Proceedings}.
+The competition input is only restricted to FOF. CNF and typed or higher-order input are out of scope.
 We make the following assumptions:
 
 \begin{itemize}
   \item The input files are syntactically close to the TPTP BNF, but may be large (thousands of steps) and deeply nested.
   \item The problem file is trusted, the proof file is not.
-  \item An external ATP and a model finder may or may not be available at run time; the verifier must behave safely in both cases.
+  \item An external ATP may or may not be available at run time and therefore the verifier must behave safely in both cases.
+  \item The organizers specify only a few rules and leave edge cases open. As a consequence, the verifier follows the conservative reading, which never accepts without evidence, when the specification is silent.
 \end{itemize}
 
 \subsection{Scoring and Its Consequences}
 \label{subsec:req-scoring}
 
-In ProoVer 2026 a correct rejection of an invalid proof scores $+2$, a correct acceptance of a valid proof $+1$, giving up $0$, a wrong rejection $-1$, and a wrong acceptance $-10$ \citep{PLACEHOLDER_PROOVER_PROC}.
-Ties are broken by the average time on solved problems.
+In ProoVer 2026 a correct rejection of an invalid proof scores $+2$, a correct acceptance of a valid proof $+1$, giving up $0$, a wrong rejection $-1$, and a wrong acceptance $-10$ \citep{ProoVer2026Proceedings}.
 The asymmetry has a direct consequence for the verifier's behavior in uncertain situations.
 Let $p$ be the probability that a given proof is valid, given everything the verifier has found out.
 The expected scores of the three possible answers are
@@ -51,12 +51,13 @@ The expected scores of the three possible answers are
 \end{align*}
 Accepting is thus better than abstaining only if $p > 10/11 \approx 0.91$, and rejecting is better than abstaining only if $p < 2/3$.
 For $2/3 < p < 10/11$, giving up is optimal.
-The verifier therefore must not guess: it accepts only if every step has been positively verified, it rejects only if it has found a concrete defect, and it abstains in all other cases, for example if a required tool is missing or a time limit is hit.
-A failed rule-specific check counts as a concrete defect only for rules without an ATP fallback; otherwise the step stays unresolved until the fallback has decided (Section~\ref{subsec:design-atp}).
+The verifier therefore must not guess.
+It accepts only if every step has been positively verified, it rejects only if it has found a concrete defect, and it abstains in all other cases, for example if a required tool is missing, the prover gives no answer, or no checker exists for a rule.
+A failed syntactic check on a rule with an ATP fallback is handled conservatively and reported as a defect unless the prover confirms the step (Section~\ref{subsec:design-atp}).
 Figure~\ref{fig:expected-score} visualizes the three expected scores.
 The probability $p$ is of course not observable; the analysis does not compute it but motivates the asymmetric thresholds and the fail-closed policy that gives rise to the soundness requirement below.
 
-\begin{figure}[t]
+\begin{figure}[tbp]
 \centering
 \begin{tikzpicture}[x=9cm,y=0.42cm,font=\small]
   \draw[->] (0,0) -- (1.06,0) node[right,font=\scriptsize] {$p$};
@@ -82,54 +83,59 @@ The probability $p$ is of course not observable; the analysis does not compute i
 Table~\ref{tab:fr} lists the functional requirements.
 Each requirement has an identifier that is used for traceability in Section~\ref{subsec:req-traceability} and in the evaluation.
 
-\begin{table}[t]
-\centering
-\small
-\caption{Functional requirements.}
-\label{tab:fr}
-\begin{tabular}{@{}l p{0.82\linewidth}@{}}
+  {\small
+\begin{longtable}{@{}l P{0.82\linewidth}@{}}
+\caption{Functional requirements.}\label{tab:fr}\\
 \toprule
 ID & Requirement \\
 \midrule
+\endfirsthead
+\toprule
+ID & Requirement \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
 FR1 & Parse FOF problem and proof files, including roles, \texttt{file(\dots)} sources, \texttt{inference(\dots)} annotations with status, parents, \texttt{new\_symbols}, and \texttt{skolemize} information. \\
-FR2 & Check that each \texttt{axiom} and \texttt{conjecture} in the proof is alpha-equivalent to the formula of the cited problem file and role. \\
+FR2 & Check that each formula imported with a \texttt{file(\dots)} source (\texttt{axiom}, \texttt{conjecture}, and other input roles such as \texttt{hypothesis}) is alpha-equivalent to the formula of the cited problem file and has the same role. \\
 FR3 & Check that the \texttt{negated\_conjecture} step has status \texttt{cth}, has a \texttt{conjecture} as parent, and its formula is the negation of that conjecture. \\
 FR4 & Check that all cited parents exist and that the dependency graph is acyclic. \\
 FR5 & Check that the \texttt{conjecture} is not used as a premise by any step other than the negation step. \\
 FR6 & Check Skolemization steps: status \texttt{esa}, exactly one new Skolem symbol, a Skolem term that depends exactly on the universal variables in scope, a conclusion that results from replacing the eliminated variable by this term, and freshness of the symbol with respect to the problem and earlier steps. \\
 FR7 & Check each remaining inference step with a rule-specific checker whenever one exists (structural, propositional, quantifier, junction, clausal, and equational rules). \\
-FR8 & For steps without a rule-specific checker, or where a syntactic check fails on a known rule, delegate the step to an external ATP, but only if its status is \texttt{thm} or \texttt{cth} and only with the step's premises. \\
+FR8 & For steps without a rule-specific checker, and for the rules \texttt{weaken}, \texttt{commute}, and \texttt{excluded\_middle} if their syntactic check fails, delegate the step to an external ATP, but only if its status is \texttt{thm} or \texttt{cth} and only with the step's premises. \\
 FR9 & Check that the derivation ends in \texttt{\$false}. \\
-FR10 & Produce one of three verdicts per proof: verified, failed, or uncertain. \\
+FR10 & Produce one of three verdicts per proof: verified, failed, or uncertain, and print it as SZS status (\texttt{VerifiedGood}, \texttt{VerifiedBad}, \texttt{Unknown}, or \texttt{Timeout}). A two-valued output can be requested. \\
 FR11 & Report, for each failing or uncertain step, its name, the rule, and a human-readable reason. \\
-\bottomrule
-\end{tabular}
-\end{table}
+FR12 & Check a whole directory of proofs, compare the verdicts with the expected results, and compute the competition score. \\
+\end{longtable}}
 
-% CODE (Stand Repo): FR9 ist NICHT als globale Prüfung implementiert (kein Check auf $false am Ende; TST036 st01_no_false testen).
-% CODE (Stand Repo): FR10: validate_step_with_atp liefert bereits dreiwertig (True/False/"unknown"), main.py faltet "unknown" aber in Issues -> VerifiedBad;
-%   Worker-Fehler -> VerifiedBad; nur Timeout -> "Timeout". Dreiwertiges Verdikt muss in main.py noch umgesetzt werden.
+
 
 \subsection{Non-Functional Requirements}
 \label{subsec:req-nonfunctional}
 
-\begin{table}[t]
+Table~\ref{tab:nfr} lists the non-functional requirements.
+They do not describe what the verifier checks but how it has to behave while checking: safely when it is unsure, within the time limit, without crashing on unusual input, and in a way that can be tested and extended.
+The most important one is NFR1, the fail-closed property, which follows directly from the scoring analysis of Section~\ref{subsec:req-scoring}; NFR2 and NFR3 follow from the competition setting with its time limit and its deliberately malformed proofs.
+NFR6 and NFR7 concern the architecture and are evaluated in Section~\ref{subsec:eval-modularity}.
+\begin{table}[tbp]
 \centering
 \small
 \caption{Non-functional requirements.}
 \label{tab:nfr}
-\begin{tabular}{@{}l p{0.82\linewidth}@{}}
+\begin{tabular}{@{}l P{0.82\linewidth}@{}}
 \toprule
 ID & Requirement \\
 \midrule
 NFR1 & \textbf{Soundness (fail-closed).} A proof is verified only if every step has been positively validated. Missing tools, tool errors, unparsable output, and unknown rules never lead to acceptance. \\
-NFR2 & \textbf{Time.} A proof must be processed within the 30-second wall-clock limit, including proofs with several thousand steps. The checker enforces its own limit and then abstains. \\
+NFR2 & \textbf{Time.} A proof must be processed within the 30-second wall-clock limit, including proofs with several thousand steps. The checker enforces its own limit and then reports \texttt{Timeout}. \\
 NFR3 & \textbf{Robustness.} Malformed input, deeply nested formulas, and unexpected annotations must not crash the verifier or lead to an unjustified verdict. \\
-NFR4 & \textbf{Determinism.} The verdict does not depend on process scheduling or on the order of independent checks. \\
+NFR4 & \textbf{Determinism.} The verdict does not depend on process scheduling or on the order of independent checks and the only source of variation is the run time of the external prover. \\
 NFR5 & \textbf{Diagnostics.} Every failure is traceable to a step and a reason (FR11). \\
 NFR6 & \textbf{Extensibility.} A new rule can be added without modifying the other checkers. \\
-NFR7 & \textbf{Testability.} Each checker is a pure function of the proof model and can be tested in isolation; the test suite reaches a coverage of at least 85\,\%. \\
-NFR8 & \textbf{Portability.} Python~3.12 and the parser library \texttt{lark} suffice for the core; an ATP is configured through environment variables and is optional. \\
+NFR7 & \textbf{Testability.} Each checker is a pure function of the proof model and can be tested in isolation, with the target for the line coverage of the full checker modules is 85\,\%. \\
+NFR8 & \textbf{Portability.} Python~3.11 or newer and the parser library \texttt{lark} suffice for the core. Additionally the ATP is configured through environment variables and is optional. \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -140,26 +146,30 @@ NFR8 & \textbf{Portability.} Python~3.12 and the parser library \texttt{lark} su
 Table~\ref{tab:trace} shows which module implements each requirement and which test files exercise it.
 It is the basis for the claim that the requirements are covered and is revisited in Chapter~\ref{sec:evaluation}.
 
-\begin{table}[t]
-\centering
-\small
-\caption{Traceability from requirements to modules and tests.}
-\label{tab:trace}
-\begin{tabular}{@{}l p{0.38\linewidth} p{0.38\linewidth}@{}}
+  {\small
+\begin{longtable}{@{}l P{0.38\linewidth} P{0.38\linewidth}@{}}
+\caption{Traceability from requirements to modules and tests.}\label{tab:trace}\\
 \toprule
 Requirement & Module & Tests \\
 \midrule
+\endfirsthead
+\toprule
+Requirement & Module & Tests \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
 FR1 & \texttt{parser/} & \texttt{test\_parser}, \texttt{test\_parser\_transformer}, \texttt{test\_ast\_nodes} \\
-FR2 & \texttt{file\_dir}, \texttt{alpha\_eq} & \texttt{test\_file\_dir}, \texttt{test\_alpha\_equivalence} \\
+FR2 & \texttt{file\_dir}, \texttt{alpha\_eq}, \texttt{main.py} & \texttt{test\_file\_dir}, \texttt{test\_alpha\_equivalence}, \texttt{test\_scoring\_and\_runtime} \\
 FR3 & \texttt{negated\_conjecture\_checker} & \texttt{test\_negated\_conjecture\_checker} \\
 FR4, FR5 & \texttt{dependency\_checker} & \texttt{test\_dependency\_checker} \\
 FR6 & \texttt{skolem\_checker} & \texttt{test\_skolem\_checker} \\
-FR7 & \texttt{structural\_}, \texttt{propositional\_}, \texttt{junction\_}, \texttt{clausal\_}, \texttt{instantiate\_}, \texttt{existential\_gen\_checker} & matching \texttt{test\_*} files \\
-FR8 & \texttt{external\_atp\_checker} & \texttt{test\_unchecked\_inference\_rules} \\
-FR9--FR11 & \texttt{main.py} (\texttt{check\_proof\_file}, \texttt{report\_proof\_check}) & \texttt{test\_proof\_checker\_summary}, \texttt{test\_main\_atp\_tristate} \\
+FR7 & \texttt{structural\_}, \texttt{propositional\_}, \texttt{junction\_}, \texttt{clausal\_}, \texttt{instantiate\_}, \texttt{existential\_gen\_checker} & matching \texttt{test\_*} files, \texttt{test\_checker\_review\_regressions}, \texttt{test\_extra\_rule\_cases} \\
+FR8 & \texttt{external\_atp\_checker} & \texttt{test\_external\_atp\_checker}, \texttt{test\_unchecked\_inference\_rules} \\
+FR9 & \texttt{main.py} (\texttt{check\_proof\_file}) & \texttt{test\_refutation\_and\_names} \\
+FR10, FR11 & \texttt{main.py} (\texttt{classify\_verdict}, \texttt{report\_proof\_check}) & \texttt{test\_ternary\_verdict}, \texttt{test\_main\_atp\_tristate}, \texttt{test\_proof\_checker\_summary} \\
+FR12 & \texttt{main.py} (batch mode), \texttt{scoring/} & \texttt{test\_proof\_checker\_summary}, \texttt{test\_scoring\_and\_runtime} \\
 NFR2 & \texttt{main.py} (worker process), \texttt{deep\_recursion} & timing measurements (Chapter~\ref{sec:evaluation}) \\
 NFR1, NFR3 & all & \texttt{test\_mutation\_fuzzing}, \texttt{test\_advanced\_edge\_cases} \\
-NFR7 & CI configuration & coverage gate in the CI workflow \\
-\bottomrule
-\end{tabular}
-\end{table}
+NFR7 & all checker modules & coverage measurement (Section~\ref{subsec:eval-modularity}) \\
+\end{longtable}}

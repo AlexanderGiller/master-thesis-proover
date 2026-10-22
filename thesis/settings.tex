@@ -7,32 +7,29 @@
 % Set the headheight to at least 14.49998pt
 \setlength{\headheight}{14.49998pt}
 
-% Optionally adjust \topmargin if necessary
-% \addtolength{\topmargin}{-2.49998pt}
 \usepackage{relsize}
 
 \usepackage[bottom]{footmisc}
 \usepackage{tabularx}
     
-\pagestyle{empty}        % No page numbers
+\pagestyle{empty}
 
 % Set paragraph indentation to 1.5cm
 \setlength{\parindent}{2em}
 
-%%%Using XeTeX (xelatex, lulatex):
-%\usepackage{polyglossia}
-%\usepackage{fontspec}
-%\usepackage{xunicode}
-%\usepackage{xltxtra}
+
 \usepackage{url}
 \usepackage{hyperref}
-\usepackage[english,german]{babel}
+\usepackage[ngerman,english]{babel}
 
 \usepackage{graphicx}
+
+\usepackage[htt]{hyphenat}
 
 %\setmainfont[Mapping=tex-text]{Linux Libertine O} %Falls nicht vorhanden müssen die LinLibertine-ttf-Dateien nach C:\windows\fonts verschoben werden
 
 \usepackage{booktabs}    % For nice-looking tables
+\usepackage{longtable}
 \usepackage{natbib}      % Citation support (required for crossrefs)
 \usepackage{expex}
 \bibpunct[:]{(}{)}{;}{a}{}{,} % Defaults for in-text citations
@@ -41,19 +38,30 @@
 \usepackage{acronym}
 \usepackage{multicol}
 
-% TODO: set authors name
-%vorgelegt von\\
-%Name des Verfassers/der Verfasserin\\
 \author{Alexander Giller}
 
 \usepackage{scrhack} % Recommended to avoid potential conflicts
 \usepackage{microtype}
 
-\usepackage[acronym,xindy,toc]{glossaries} % TODO: include "acronym" if glossary and acronym should be separated
+\usepackage[acronym,xindy,toc]{glossaries}
 \makeglossaries
 \loadglsentries{pages/glossary.tex} % important update for glossaries, before document
 
 \usepackage{ragged2e}
+% Float placement: keep figures and tables close to their text
+\usepackage[section]{placeins}   % floats do not drift past the next \section (chapter)
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+\setlength{\emergencystretch}{3em}
+\usepackage{array}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}} % left-aligned paragraph column (no underfull boxes in tables)
+\usepackage[htt]{hyphenat} % allow line breaks in \texttt words (e.g. after underscores)  % avoid overfull lines with long \texttt names
+
 
 % Set up hyphenation rules for the language package when mistakes happen
 \babelhyphenation[english]{

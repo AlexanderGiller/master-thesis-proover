@@ -1,0 +1,17 @@
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{@{}l l r@{}}
+\toprule
+Input & Outcome & Time (s) \\
+\midrule
+empty file & \texttt{VerifiedBad} & 0.05 \\
+truncated in the middle of a formula & \texttt{error} & 0.05 \\
+binary garbage & \texttt{error} & 0.03 \\
+unknown inference rule & \texttt{VerifiedGood} & 0.12 \\
+missing inference annotation & \texttt{VerifiedBad} & 0.05 \\
+unknown status & \texttt{error} & 0.02 \\
+duplicate step names & \texttt{VerifiedBad} & 0.04 \\
+deeply nested negations (3000) & \texttt{VerifiedBad} & 0.06 \\
+deeply nested terms (3000) & \texttt{VerifiedBad} & 0.13 \\
+only comments & \texttt{VerifiedBad} & 0.03 \\
+\bottomrule
+\end{tabular}}

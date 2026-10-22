@@ -13,355 +13,587 @@
 \providecommand\@istfilename[1]{}
 \@istfilename{main.xdy}
 \@glsorder{word}
-\babel@aux{german}{}
+\babel@aux{english}{}
 \babel@aux{english}{}
 \citation{proover-competition}
 \citation{proover-competition}
-\citation{TODO-atp-survey}
+\citation{proover-competition}
+\citation{HandbookAR2001}
 \citation{Sut24}
 \citation{Sut10,Sut07-CSR}
 \citation{Sut06-FLAIRS,Sut06,Sut06-CASC-J3,Sut06-CASC}
 \citation{Sut08-KEAPPA}
 \citation{proover-competition}
 \citation{Sut16}
-\citation{proover-competition}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
 \newlabel{sec:introduction}{{1}{1}{Introduction}{section.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Motivation and Problem}{1}{subsection.1.1}\protected@file@percent }
-\newlabel{subsec:motivation}{{1.1}{1}{Motivation and Problem}{subsection.1.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}The ProoVer 2026 Competition}{1}{subsection.1.2}\protected@file@percent }
-\newlabel{subsec:proover}{{1.2}{1}{The ProoVer 2026 Competition}{subsection.1.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}Objective, Research Questions, and Scope}{2}{subsection.1.3}\protected@file@percent }
-\newlabel{subsec:rq}{{1.3}{2}{Objective, Research Questions, and Scope}{subsection.1.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {1.4}Contributions and Structure}{2}{subsection.1.4}\protected@file@percent }
-\newlabel{subsec:contributions}{{1.4}{2}{Contributions and Structure}{subsection.1.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Motivation}{1}{subsection.1.1}\protected@file@percent }
+\newlabel{subsec:motivation}{{1.1}{1}{Motivation}{subsection.1.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Research Questions and Scope}{1}{subsection.1.2}\protected@file@percent }
+\newlabel{subsec:rq}{{1.2}{1}{Research Questions and Scope}{subsection.1.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}Contributions and Structure}{2}{subsection.1.3}\protected@file@percent }
+\newlabel{subsec:contributions}{{1.3}{2}{Contributions and Structure}{subsection.1.3}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {2}Background}{2}{section.2}\protected@file@percent }
 \newlabel{sec:background}{{2}{2}{Background}{section.2}{}}
-\citation{PLACEHOLDER_PROVER_BUGS}
-\citation{PLACEHOLDER_CERT1,PLACEHOLDER_CERT2}
-\citation{Fitting1996}
+\citation{RiazanovVoronkov2002}
+\citation{SchulzCV2019}
+\citation{Sut16}
+\citation{taprogge2026lightweight,taprogge2026formal}
+\citation{chihani2013foundational,taprogge2026formal}
+\citation{BarendregtWiedijk2005}
+\citation{GordonMilnerWadsworth1979}
+\citation{Harrison2009HOLLight}
+\citation{Pollack1998}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Automated Theorem Proving and Proof Certification}{3}{subsection.2.1}\protected@file@percent }
 \newlabel{subsec:atp-certification}{{2.1}{3}{Automated Theorem Proving and Proof Certification}{subsection.2.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}First-Order Logic}{3}{subsection.2.2}\protected@file@percent }
-\newlabel{subsec:fol}{{2.2}{3}{First-Order Logic}{subsection.2.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{Syntax.}{3}{section*.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Semantics.}{3}{section*.4}\protected@file@percent }
-\newlabel{eq:refutation}{{1}{3}{Semantics}{equation.1}{}}
-\citation{PLACEHOLDER_SKOLEM}
-\citation{PLACEHOLDER_TPTP1}
-\citation{PLACEHOLDER_TSTP1}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Normal Forms, Skolemization, and Equisatisfiability}{4}{subsection.2.3}\protected@file@percent }
-\newlabel{subsec:normal-forms}{{2.3}{4}{Normal Forms, Skolemization, and Equisatisfiability}{subsection.2.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}The TPTP/TSTP Ecosystem}{4}{subsection.2.4}\protected@file@percent }
-\newlabel{subsec:tptp-tstp}{{2.4}{4}{The TPTP/TSTP Ecosystem}{subsection.2.4}{}}
-\citation{PLACEHOLDER_SZS}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces The ProoVer 2026 proof \texttt  {PRV000+1.s} (comments and SZS delimiters omitted). Axiom and conjecture are imported from the problem file, \texttt  {neg} negates the conjecture, and one \texttt  {consequence} step derives \texttt  {\$false} from \texttt  {neg} and \texttt  {a1}.}}{5}{figure.1}\protected@file@percent }
-\newlabel{fig:example-derivation}{{1}{5}{The ProoVer 2026 proof \texttt {PRV000+1.s} (comments and SZS delimiters omitted). Axiom and conjecture are imported from the problem file, \texttt {neg} negates the conjecture, and one \texttt {consequence} step derives \texttt {\$false} from \texttt {neg} and \texttt {a1}}{figure.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{SZS ontology.}{5}{section*.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Proof Objects, Inference Rules, and Soundness}{5}{subsection.2.5}\protected@file@percent }
-\newlabel{subsec:proof-objects-soundness}{{2.5}{5}{Proof Objects, Inference Rules, and Soundness}{subsection.2.5}{}}
-\citation{PLACEHOLDER_TSTP1}
-\citation{PLACEHOLDER_SOUND1}
-\@writefile{toc}{\contentsline {paragraph}{Step status.}{6}{section*.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Soundness.}{6}{section*.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6}Competition Setting: ProoVer 2026}{6}{subsection.2.6}\protected@file@percent }
-\newlabel{subsec:proover2026}{{2.6}{6}{Competition Setting: ProoVer 2026}{subsection.2.6}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.7}Resulting Goals}{7}{subsection.2.7}\protected@file@percent }
-\newlabel{subsec:requirements-summary}{{2.7}{7}{Resulting Goals}{subsection.2.7}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3}Related Work}{7}{section.3}\protected@file@percent }
-\newlabel{sec:related-work}{{3}{7}{Related Work}{section.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{The de Bruijn criterion and the LCF (Logic for Computable Functions) approach.}{3}{section*.3}\protected@file@percent }
+\citation{Sutcliffe2006GDV}
+\citation{proover-competition,taprogge2026lightweight}
+\citation{proover-competition,taprogge2026lightweight}
+\citation{taprogge2026lightweight}
+\citation{GDVSeminar}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}What Is a Proof Verifier?}{4}{subsection.2.2}\protected@file@percent }
+\newlabel{subsec:verifier-def}{{2.2}{4}{What Is a Proof Verifier?}{subsection.2.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Definition.}{4}{section*.4}\protected@file@percent }
+\citation{Sutcliffe2006GDV}
+\citation{taprogge2026lightweight}
+\citation{Wetzler2014DRATtrim}
+\citation{Sutcliffe2025GDVLP,Delahaye2013ZenonModulo}
 \citation{proover-competition}
-\citation{PLACEHOLDER_PROOVER_PROC}
-\citation{PLACEHOLDER_PROOVER_PROC}
-\citation{PLACEHOLDER_GDV}
-\citation{PLACEHOLDER_GDVLP}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Approaches to Proof Checking}{8}{subsection.3.1}\protected@file@percent }
-\newlabel{subsec:rw-approaches}{{3.1}{8}{Approaches to Proof Checking}{subsection.3.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{Semantic checking with external provers.}{8}{section*.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Internal replay.}{8}{section*.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Translation to a logical framework or proof assistant.}{8}{section*.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Hybrids.}{8}{section*.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Systems of ProoVer 2026}{8}{subsection.3.2}\protected@file@percent }
-\newlabel{subsec:rw-proover}{{3.2}{8}{Systems of ProoVer 2026}{subsection.3.2}{}}
-\citation{PLACEHOLDER_NORGLER}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Systems entered in ProoVer 2026, as described in their system descriptions. ``Ext.'' lists external tools the system relies on at run time.}}{9}{table.1}\protected@file@percent }
-\newlabel{tab:proover-systems}{{1}{9}{Systems entered in ProoVer 2026, as described in their system descriptions. ``Ext.'' lists external tools the system relies on at run time}{table.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}GDV and N\"orgler}{9}{subsection.3.3}\protected@file@percent }
-\newlabel{subsec:rw-gdv-norgler}{{3.3}{9}{GDV and N\"orgler}{subsection.3.3}{}}
-\@writefile{toc}{\contentsline {paragraph}{GDV.}{9}{section*.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{N\"orgler.}{9}{section*.13}\protected@file@percent }
-\citation{PLACEHOLDER_DRAT}
-\citation{PLACEHOLDER_ALETHE}
-\citation{PLACEHOLDER_DEDUKTI}
-\citation{PLACEHOLDER_SLEDGEHAMMER}
-\citation{PLACEHOLDER_GAPT}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Comparison of the closest related systems with this thesis. [TODO: fill in the last column according to the implementation; verify the other entries against the system descriptions.]}}{10}{table.2}\protected@file@percent }
-\newlabel{tab:positioning}{{2}{10}{Comparison of the closest related systems with this thesis. [TODO: fill in the last column according to the implementation; verify the other entries against the system descriptions.]}{table.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Proof Checking Beyond TPTP}{10}{subsection.3.4}\protected@file@percent }
-\newlabel{subsec:rw-other}{{3.4}{10}{Proof Checking Beyond TPTP}{subsection.3.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Positioning of This Thesis}{10}{subsection.3.5}\protected@file@percent }
-\newlabel{subsec:rw-positioning}{{3.5}{10}{Positioning of This Thesis}{subsection.3.5}{}}
+\citation{Fitting1996}
+\@writefile{toc}{\contentsline {paragraph}{Soundness and completeness.}{5}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{How steps are validated.}{5}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Why verification is not decidable in general.}{5}{section*.7}\protected@file@percent }
+\citation{Fitting1996}
+\citation{Fitting1996}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}First-Order Logic}{6}{subsection.2.3}\protected@file@percent }
+\newlabel{subsec:fol}{{2.3}{6}{First-Order Logic}{subsection.2.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Syntax.}{6}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Semantics.}{6}{section*.9}\protected@file@percent }
+\newlabel{eq:refutation}{{1}{6}{Semantics}{equation.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Polarity.}{6}{section*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Normal Forms, Skolemization, and Equisatisfiability}{6}{subsection.2.4}\protected@file@percent }
+\newlabel{subsec:normal-forms}{{2.4}{6}{Normal Forms, Skolemization, and Equisatisfiability}{subsection.2.4}{}}
+\citation{NonnengartWeidenbach2001}
+\citation{Sutcliffe2017}
+\citation{TSTPLibrary}
+\citation{Sutcliffe2000SOTPTP}
+\@writefile{toc}{\contentsline {paragraph}{Example.}{7}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}The TPTP World}{7}{subsection.2.5}\protected@file@percent }
+\newlabel{subsec:tptp-tstp}{{2.5}{7}{The TPTP World}{subsection.2.5}{}}
+\citation{TPTPSyntaxBNF}
+\citation{TPTPSyntaxBNF}
+\citation{TPTPSyntaxBNF}
+\citation{TPTPSyntaxBNF}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.5.1}The FOF Language}{8}{subsubsection.2.5.1}\protected@file@percent }
+\newlabel{subsec:fof-syntax}{{2.5.1}{8}{The FOF Language}{subsubsection.2.5.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Formula roles.}{8}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Concrete syntax.}{8}{section*.13}\protected@file@percent }
+\citation{SutcliffeSCV2006,TPTPQuickGuideDerivations}
+\citation{TPTPQuickGuideDerivations}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Logical symbols of the FOF language and their TPTP syntax \citep  {TPTPSyntaxBNF}.}}{9}{table.1}\protected@file@percent }
+\newlabel{tab:fof-syntax}{{1}{9}{Logical symbols of the FOF language and their TPTP syntax \citep {TPTPSyntaxBNF}}{table.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Example problem.}{9}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.5.2}TSTP Derivations}{9}{subsubsection.2.5.2}\protected@file@percent }
+\newlabel{subsec:tstp-derivations}{{2.5.2}{9}{TSTP Derivations}{subsubsection.2.5.2}{}}
+\citation{GDVSeminar}
+\citation{TPTPQuickGuideDerivations}
+\citation{taprogge2026lightweight}
+\@writefile{toc}{\contentsline {paragraph}{Status values.}{10}{section*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Structure of a derivation.}{10}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{A complete example.}{10}{section*.17}\protected@file@percent }
+\citation{Sutcliffe2008SZS,SZSOntologyWeb}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces The ProoVer 2026 proof \texttt  {PRV000+1.s} (comments and SZS delimiters omitted). Axiom and conjecture are imported from the problem file, \texttt  {neg} negates the conjecture, and one \texttt  {consequence} step derives \texttt  {\$false} from \texttt  {neg} and \texttt  {a1}.}}{11}{figure.1}\protected@file@percent }
+\newlabel{fig:example-derivation}{{1}{11}{The ProoVer 2026 proof \texttt {PRV000+1.s} (comments and SZS delimiters omitted). Axiom and conjecture are imported from the problem file, \texttt {neg} negates the conjecture, and one \texttt {consequence} step derives \texttt {\$false} from \texttt {neg} and \texttt {a1}}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.5.3}The SZS Ontologies}{11}{subsubsection.2.5.3}\protected@file@percent }
+\newlabel{subsec:szs}{{2.5.3}{11}{The SZS Ontologies}{subsubsection.2.5.3}{}}
+\citation{SutcliffeSCV2006}
+\citation{Pollack1998}
+\citation{Sutcliffe2006GDV}
+\citation{GDVSeminar}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6}Soundness of Refutations}{12}{subsection.2.6}\protected@file@percent }
+\newlabel{subsec:proof-objects-soundness}{{2.6}{12}{Soundness of Refutations}{subsection.2.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{Step status.}{12}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Step-wise soundness.}{12}{section*.19}\protected@file@percent }
+\citation{Sutcliffe2006GDV}
+\citation{GDVSeminar}
+\citation{GDVSeminar}
+\citation{GDVSeminar}
+\citation{Sutcliffe2000SOTPTP}
+\citation{taprogge2026lightweight}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.7}GDV: Semantic Derivation Verification}{13}{subsection.2.7}\protected@file@percent }
+\newlabel{subsec:gdv}{{2.7}{13}{GDV: Semantic Derivation Verification}{subsection.2.7}{}}
+\@writefile{toc}{\contentsline {paragraph}{Motivation.}{13}{section*.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Structural verification.}{13}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Semantic verification.}{13}{section*.22}\protected@file@percent }
+\citation{GDVSeminar}
+\citation{Sutcliffe2025GDVLP}
+\citation{taprogge2026lightweight}
+\citation{taprogge2026lightweight}
+\citation{taprogge2026lightweight}
+\citation{taprogge2026lightweight}
 \citation{proover-competition}
-\citation{PLACEHOLDER_PROOVER_PROC}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Requirements}{11}{section.4}\protected@file@percent }
-\newlabel{sec:requirements}{{4}{11}{Requirements}{section.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Task and Assumptions}{11}{subsection.4.1}\protected@file@percent }
-\newlabel{subsec:req-context}{{4.1}{11}{Task and Assumptions}{subsection.4.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Scoring and Its Consequences}{11}{subsection.4.2}\protected@file@percent }
-\newlabel{subsec:req-scoring}{{4.2}{11}{Scoring and Its Consequences}{subsection.4.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Expected score of accepting, rejecting, and abstaining as a function of the probability $p$ that the proof is valid, under the ProoVer 2026 scoring scheme. Accepting beats abstaining only for $p>10/11$, rejecting only for $p<2/3$.}}{12}{figure.2}\protected@file@percent }
-\newlabel{fig:expected-score}{{2}{12}{Expected score of accepting, rejecting, and abstaining as a function of the probability $p$ that the proof is valid, under the ProoVer 2026 scoring scheme. Accepting beats abstaining only for $p>10/11$, rejecting only for $p<2/3$}{figure.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Functional Requirements}{12}{subsection.4.3}\protected@file@percent }
-\newlabel{subsec:req-functional}{{4.3}{12}{Functional Requirements}{subsection.4.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Non-Functional Requirements}{12}{subsection.4.4}\protected@file@percent }
-\newlabel{subsec:req-nonfunctional}{{4.4}{12}{Non-Functional Requirements}{subsection.4.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Traceability}{12}{subsection.4.5}\protected@file@percent }
-\newlabel{subsec:req-traceability}{{4.5}{12}{Traceability}{subsection.4.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Design}{12}{section.5}\protected@file@percent }
-\newlabel{sec:design}{{5}{12}{Design}{section.5}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Functional requirements.}}{13}{table.3}\protected@file@percent }
-\newlabel{tab:fr}{{3}{13}{Functional requirements}{table.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Design Principles}{13}{subsection.5.1}\protected@file@percent }
-\newlabel{subsec:design-principles}{{5.1}{13}{Design Principles}{subsection.5.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Architecture Overview}{13}{subsection.5.2}\protected@file@percent }
-\newlabel{subsec:design-overview}{{5.2}{13}{Architecture Overview}{subsection.5.2}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Non-functional requirements.}}{14}{table.4}\protected@file@percent }
-\newlabel{tab:nfr}{{4}{14}{Non-functional requirements}{table.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Data Model}{14}{subsection.5.3}\protected@file@percent }
-\newlabel{subsec:design-model}{{5.3}{14}{Data Model}{subsection.5.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Global Checks}{14}{subsection.5.4}\protected@file@percent }
-\newlabel{subsec:design-global}{{5.4}{14}{Global Checks}{subsection.5.4}{}}
-\@writefile{toc}{\contentsline {paragraph}{Provenance (FR2).}{14}{section*.14}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Traceability from requirements to modules and tests.}}{15}{table.5}\protected@file@percent }
-\newlabel{tab:trace}{{5}{15}{Traceability from requirements to modules and tests}{table.5}{}}
-\@writefile{toc}{\contentsline {paragraph}{Dependency graph (FR4, FR5).}{15}{section*.15}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Termination (FR9).}{15}{section*.16}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Step Dispatch and the Checker Interface}{15}{subsection.5.5}\protected@file@percent }
-\newlabel{subsec:design-dispatch}{{5.5}{15}{Step Dispatch and the Checker Interface}{subsection.5.5}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Architecture of the verifier. Parsing, checking, and aggregation run in a worker process with a wall-clock limit. [TODO: redraw in the diagrams folder, add issue flow if desired.]}}{16}{figure.3}\protected@file@percent }
-\newlabel{fig:architecture}{{3}{16}{Architecture of the verifier. Parsing, checking, and aggregation run in a worker process with a wall-clock limit. [TODO: redraw in the diagrams folder, add issue flow if desired.]}{figure.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}Rule Checkers}{16}{subsection.5.6}\protected@file@percent }
-\newlabel{subsec:design-rules}{{5.6}{16}{Rule Checkers}{subsection.5.6}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}Checking Skolemization}{16}{subsection.5.7}\protected@file@percent }
-\newlabel{subsec:design-skolem}{{5.7}{16}{Checking Skolemization}{subsection.5.7}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Rule families and the principle of their checks.}}{17}{table.6}\protected@file@percent }
-\newlabel{tab:rule-families}{{6}{17}{Rule families and the principle of their checks}{table.6}{}}
-\@writefile{toc}{\contentsline {paragraph}{Polarity.}{17}{section*.17}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Herbrand symbols.}{17}{section*.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.8}Delegation to an External ATP}{17}{subsection.5.8}\protected@file@percent }
-\newlabel{subsec:design-atp}{{5.8}{17}{Delegation to an External ATP}{subsection.5.8}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Inference rules occurring in \texttt  {PRV010+1.s} and their intended reading. }}{18}{table.7}\protected@file@percent }
-\newlabel{tab:rules}{{7}{18}{Inference rules occurring in \texttt {PRV010+1.s} and their intended reading}{table.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.9}Verdicts and Soundness Argument}{18}{subsection.5.9}\protected@file@percent }
-\newlabel{subsec:design-verdict}{{5.9}{18}{Verdicts and Soundness Argument}{subsection.5.9}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Verdicts, printed SZS status, and score under the ProoVer 2026 scheme.}}{19}{table.8}\protected@file@percent }
-\newlabel{tab:verdicts}{{8}{19}{Verdicts, printed SZS status, and score under the ProoVer 2026 scheme}{table.8}{}}
-\@writefile{toc}{\contentsline {paragraph}{Soundness argument.}{19}{section*.19}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.10}Resource Control}{19}{subsection.5.10}\protected@file@percent }
-\newlabel{subsec:design-resources}{{5.10}{19}{Resource Control}{subsection.5.10}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.11}Diagnostics}{19}{subsection.5.11}\protected@file@percent }
-\newlabel{subsec:design-diagnostics}{{5.11}{19}{Diagnostics}{subsection.5.11}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Main design decisions and the alternatives considered.}}{20}{table.9}\protected@file@percent }
-\newlabel{tab:design-decisions}{{9}{20}{Main design decisions and the alternatives considered}{table.9}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.12}Design Decisions and Alternatives}{20}{subsection.5.12}\protected@file@percent }
-\newlabel{subsec:design-alternatives}{{5.12}{20}{Design Decisions and Alternatives}{subsection.5.12}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.13}Summary}{20}{subsection.5.13}\protected@file@percent }
-\newlabel{subsec:design-summary}{{5.13}{20}{Summary}{subsection.5.13}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6}Implementation}{20}{section.6}\protected@file@percent }
-\newlabel{sec:implementation}{{6}{20}{Implementation}{section.6}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Overview}{20}{subsection.6.1}\protected@file@percent }
-\newlabel{subsec:impl-overview}{{6.1}{20}{Overview}{subsection.6.1}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Module structure of the implementation (approximate line counts).}}{21}{table.10}\protected@file@percent }
-\newlabel{tab:impl-modules}{{10}{21}{Module structure of the implementation (approximate line counts)}{table.10}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Internal Representation}{21}{subsection.6.2}\protected@file@percent }
-\newlabel{subsec:impl-model}{{6.2}{21}{Internal Representation}{subsection.6.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Parser}{21}{subsection.6.3}\protected@file@percent }
-\newlabel{subsec:impl-parser}{{6.3}{21}{Parser}{subsection.6.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Driver and Dispatch}{22}{subsection.6.4}\protected@file@percent }
-\newlabel{subsec:impl-driver}{{6.4}{22}{Driver and Dispatch}{subsection.6.4}{}}
-\@writefile{toc}{\contentsline {paragraph}{Verdict.}{22}{section*.20}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Global Checks}{22}{subsection.6.5}\protected@file@percent }
-\newlabel{subsec:impl-global}{{6.5}{22}{Global Checks}{subsection.6.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.6}Structural, Propositional, and Quantifier Rules}{22}{subsection.6.6}\protected@file@percent }
-\newlabel{subsec:impl-simple-rules}{{6.6}{22}{Structural, Propositional, and Quantifier Rules}{subsection.6.6}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Structure of the alpha-equivalence check (pseudocode, simplified).}}{23}{figure.4}\protected@file@percent }
-\newlabel{fig:impl-alpha}{{4}{23}{Structure of the alpha-equivalence check (pseudocode, simplified)}{figure.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.7}Skolemization}{23}{subsection.6.7}\protected@file@percent }
-\newlabel{subsec:impl-skolem}{{6.7}{23}{Skolemization}{subsection.6.7}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Result mapping of the ATP fallback.}}{24}{figure.5}\protected@file@percent }
-\newlabel{fig:impl-atp}{{5}{24}{Result mapping of the ATP fallback}{figure.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.8}Equality and Clausal Reasoning}{24}{subsection.6.8}\protected@file@percent }
-\newlabel{subsec:impl-clausal}{{6.8}{24}{Equality and Clausal Reasoning}{subsection.6.8}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.9}Delegation to the External ATP}{24}{subsection.6.9}\protected@file@percent }
-\newlabel{subsec:impl-atp}{{6.9}{24}{Delegation to the External ATP}{subsection.6.9}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.10}Resource Control}{25}{subsection.6.10}\protected@file@percent }
-\newlabel{subsec:impl-resources}{{6.10}{25}{Resource Control}{subsection.6.10}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.11}Test Suite}{25}{subsection.6.11}\protected@file@percent }
-\newlabel{subsec:impl-testing}{{6.11}{25}{Test Suite}{subsection.6.11}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.12}Tooling for Reporting and Evaluation}{25}{subsection.6.12}\protected@file@percent }
-\newlabel{subsec:impl-tooling}{{6.12}{25}{Tooling for Reporting and Evaluation}{subsection.6.12}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.13}Deviations from the Design}{25}{subsection.6.13}\protected@file@percent }
-\newlabel{subsec:impl-limitations}{{6.13}{25}{Deviations from the Design}{subsection.6.13}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Groups of the TST set.}}{26}{table.11}\protected@file@percent }
-\newlabel{tab:eval-tst}{{11}{26}{Groups of the TST set}{table.11}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7}Evaluation}{26}{section.7}\protected@file@percent }
-\newlabel{sec:evaluation}{{7}{26}{Evaluation}{section.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Setup}{26}{subsection.7.1}\protected@file@percent }
-\newlabel{subsec:eval-setup}{{7.1}{26}{Setup}{subsection.7.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{Benchmarks.}{26}{section*.21}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Metrics.}{26}{section*.22}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Environment.}{26}{section*.23}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces Verdicts on the ProoVer set (number of proofs) and resulting score.}}{27}{table.12}\protected@file@percent }
-\newlabel{tab:eval-matrix}{{12}{27}{Verdicts on the ProoVer set (number of proofs) and resulting score}{table.12}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces Results on the TST set by group (agreeing / total).}}{27}{table.13}\protected@file@percent }
-\newlabel{tab:eval-tst-results}{{13}{27}{Results on the TST set by group (agreeing / total)}{table.13}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Correctness and Score}{27}{subsection.7.2}\protected@file@percent }
-\newlabel{subsec:eval-correctness}{{7.2}{27}{Correctness and Score}{subsection.7.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Rule Coverage (RQ1)}{27}{subsection.7.3}\protected@file@percent }
-\newlabel{subsec:eval-coverage}{{7.3}{27}{Rule Coverage (RQ1)}{subsection.7.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Architecture Metrics (RQ2)}{27}{subsection.7.4}\protected@file@percent }
-\newlabel{subsec:eval-modularity}{{7.4}{27}{Architecture Metrics (RQ2)}{subsection.7.4}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces Rules in the ProoVer set and how their steps were decided.}}{28}{table.14}\protected@file@percent }
-\newlabel{tab:eval-coverage}{{14}{28}{Rules in the ProoVer set and how their steps were decided}{table.14}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces Size and test coverage of the checker modules.}}{28}{table.15}\protected@file@percent }
-\newlabel{tab:eval-size}{{15}{28}{Size and test coverage of the checker modules}{table.15}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}Run Time and Memory (RQ3)}{28}{subsection.7.5}\protected@file@percent }
-\newlabel{subsec:eval-runtime}{{7.5}{28}{Run Time and Memory (RQ3)}{subsection.7.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.6}Robustness (RQ3)}{28}{subsection.7.6}\protected@file@percent }
-\newlabel{subsec:eval-robustness}{{7.6}{28}{Robustness (RQ3)}{subsection.7.6}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {16}{\ignorespaces Preliminary average run time per check category (five proofs each; to be repeated on the final version and the final hardware).}}{29}{table.16}\protected@file@percent }
-\newlabel{tab:eval-prelim}{{16}{29}{Preliminary average run time per check category (five proofs each; to be repeated on the final version and the final hardware)}{table.16}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Wall-clock time per proof of the ProoVer set against the number of steps.}}{29}{figure.6}\protected@file@percent }
-\newlabel{fig:eval-runtime}{{6}{29}{Wall-clock time per proof of the ProoVer set against the number of steps}{figure.6}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.7}Ablations}{29}{subsection.7.7}\protected@file@percent }
-\newlabel{subsec:eval-ablation}{{7.7}{29}{Ablations}{subsection.7.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.8}Error Analysis}{29}{subsection.7.8}\protected@file@percent }
-\newlabel{subsec:eval-errors}{{7.8}{29}{Error Analysis}{subsection.7.8}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.9}Threats to Validity}{29}{subsection.7.9}\protected@file@percent }
-\newlabel{subsec:eval-threats}{{7.9}{29}{Threats to Validity}{subsection.7.9}{}}
-\@writefile{toc}{\contentsline {paragraph}{Internal validity.}{29}{section*.24}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {17}{\ignorespaces Mutation operators and kill rates.}}{30}{table.17}\protected@file@percent }
-\newlabel{tab:eval-mutations}{{17}{30}{Mutation operators and kill rates}{table.17}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {18}{\ignorespaces Causes of suboptimal verdicts on the ProoVer set.}}{30}{table.18}\protected@file@percent }
-\newlabel{tab:eval-errors}{{18}{30}{Causes of suboptimal verdicts on the ProoVer set}{table.18}{}}
-\@writefile{toc}{\contentsline {paragraph}{External validity.}{30}{section*.25}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Construct validity.}{30}{section*.26}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.10}Summary}{30}{subsection.7.10}\protected@file@percent }
-\newlabel{subsec:eval-summary}{{7.10}{30}{Summary}{subsection.7.10}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {8}Discussion}{30}{section.8}\protected@file@percent }
-\newlabel{sec:discussion}{{8}{30}{Discussion}{section.8}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Interpretation of the Results}{31}{subsection.8.1}\protected@file@percent }
-\newlabel{subsec:disc-results}{{8.1}{31}{Interpretation of the Results}{subsection.8.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Scoring Policy and Its Limits}{31}{subsection.8.2}\protected@file@percent }
-\newlabel{subsec:disc-scoring}{{8.2}{31}{Scoring Policy and Its Limits}{subsection.8.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}Trusted Computing Base and Soundness}{31}{subsection.8.3}\protected@file@percent }
-\newlabel{subsec:disc-tcb}{{8.3}{31}{Trusted Computing Base and Soundness}{subsection.8.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Design Trade-offs}{32}{subsection.8.4}\protected@file@percent }
-\newlabel{subsec:disc-tradeoffs}{{8.4}{32}{Design Trade-offs}{subsection.8.4}{}}
-\@writefile{toc}{\contentsline {paragraph}{Internal checks and ATP fallback.}{32}{section*.27}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Modularity.}{32}{section*.28}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Python.}{32}{section*.29}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Process isolation.}{32}{section*.30}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.5}Limitations}{33}{subsection.8.5}\protected@file@percent }
-\newlabel{subsec:disc-limitations}{{8.5}{33}{Limitations}{subsection.8.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {9}Conclusion and Future Work}{33}{section.9}\protected@file@percent }
-\newlabel{sec:conclusion}{{9}{33}{Conclusion and Future Work}{section.9}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}Summary}{33}{subsection.9.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}Answers to the Research Questions}{33}{subsection.9.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{RQ1: Which rules and fragments must be supported?}{33}{section*.31}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{RQ2: How does modularity keep the trusted part small and extensible?}{34}{section*.32}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{RQ3: How do correctness, run time, and memory behave?}{34}{section*.33}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}Contributions Revisited}{34}{subsection.9.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {9.4}Future Work}{34}{subsection.9.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {10}Notes on form}{35}{section.10}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}Formatting}{35}{subsection.10.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.2}Citation}{35}{subsection.10.2}\protected@file@percent }
-\newlabel{sec:cit}{{10.2}{35}{Citation}{subsection.10.2}{}}
-\citation{hale}
-\citation{sprouse}
-\citation{hale}
-\citation{sprouse}
-\citation{hale}
-\citation{sprouse}
-\citation{hale}
-\citation{sprouse}
-\citation{hale}
-\citation{sprouse}
-\citation{hale}
-\citation{sprouse}
-\citation{hale}
-\citation{sprouse}
-\citation{hale}
-\citation{sprouse}
-\citation{hale}
-\citation{sprouse}
-\citation{hale}
-\citation{sprouse}
-\citation{hale}
-\citation{sprouse}
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.3}Bibliography}{36}{subsection.10.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {11}General Addenda}{37}{section.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {11.1}Detailed Addition}{37}{subsection.11.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {12}Figures}{37}{section.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {12.1}Example 1}{37}{subsection.12.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {12.2}Example 2}{37}{subsection.12.2}\protected@file@percent }
+\citation{proover-competition}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Taxonomy of checks for TSTP refutations, after \citet  {taprogge2026lightweight}. The abbreviations are those of the paper.}}{14}{table.2}\protected@file@percent }
+\newlabel{tab:check-taxonomy}{{2}{14}{Taxonomy of checks for TSTP refutations, after \citet {taprogge2026lightweight}. The abbreviations are those of the paper}{table.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Trust.}{14}{section*.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Limitations observed in the literature.}{14}{section*.24}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Check taxonomy.}{14}{section*.25}\protected@file@percent }
+\citation{proover-competition}
+\citation{proover-competition}
+\citation{proover-competition}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.8}Competition Setting: ProoVer 2026}{15}{subsection.2.8}\protected@file@percent }
+\newlabel{subsec:proover2026}{{2.8}{15}{Competition Setting: ProoVer 2026}{subsection.2.8}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Related Work}{16}{section.3}\protected@file@percent }
+\newlabel{sec:related-work}{{3}{16}{Related Work}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Approaches to Proof Checking}{16}{subsection.3.1}\protected@file@percent }
+\newlabel{subsec:rw-approaches}{{3.1}{16}{Approaches to Proof Checking}{subsection.3.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Semantic checking with external provers.}{16}{section*.26}\protected@file@percent }
+\citation{proover-competition}
+\citation{ProoVer2026Proceedings}
+\citation{ProoVer2026Proceedings}
+\citation{Sutcliffe2006GDV}
+\citation{Sutcliffe2006GDV,GDVSeminar}
+\citation{ProoVer2026Proceedings}
+\citation{GDVSeminar}
+\citation{Sutcliffe2025GDVLP}
+\@writefile{toc}{\contentsline {paragraph}{Internal replay.}{17}{section*.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Translation to a logical framework or proof assistant.}{17}{section*.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Hybrids.}{17}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Systems of ProoVer 2026}{17}{subsection.3.2}\protected@file@percent }
+\newlabel{subsec:rw-proover}{{3.2}{17}{Systems of ProoVer 2026}{subsection.3.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}GDV and N\"orgler}{17}{subsection.3.3}\protected@file@percent }
+\newlabel{subsec:rw-gdv-norgler}{{3.3}{17}{GDV and N\"orgler}{subsection.3.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{GDV.}{17}{section*.30}\protected@file@percent }
+\citation{taprogge2026lightweight}
+\citation{taprogge2026lightweight}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Systems entered in ProoVer 2026, as described in their system descriptions. ``Ext.'' lists external tools the system relies on at run time.}}{18}{table.3}\protected@file@percent }
+\newlabel{tab:proover-systems}{{3}{18}{Systems entered in ProoVer 2026, as described in their system descriptions. ``Ext.'' lists external tools the system relies on at run time}{table.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{N\"orgler.}{18}{section*.31}\protected@file@percent }
+\citation{taprogge2026lightweight}
+\citation{proover-competition}
+\citation{GDVSeminar}
+\citation{taprogge2026lightweight}
+\citation{proover-competition}
+\citation{taprogge2026lightweight,GDVSeminar}
+\citation{taprogge2026lightweight}
+\citation{TPTPQuickGuideDerivations}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}GDV as the Reference Point of This Thesis}{19}{subsection.3.4}\protected@file@percent }
+\newlabel{subsec:rw-gdv-comparison}{{3.4}{19}{GDV as the Reference Point of This Thesis}{subsection.3.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{What is shared.}{19}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Where the verifier differs.}{19}{section*.33}\protected@file@percent }
+\citation{RiazanovVoronkov2002,KovacsVoronkov2013}
+\citation{Sutcliffe2006GDV}
+\citation{ProoVer2026Proceedings}
+\citation{LeanOnVampire2026}
+\citation{Bohme2010Sledgehammer}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Checks of GDV, N\"orgler, and this verifier. ``n.s.'': not stated in the sources. ``added later'': missing in the studied version of GDV, added afterwards.}}{20}{table.4}\protected@file@percent }
+\newlabel{tab:check-comparison}{{4}{20}{Checks of GDV, N\"orgler, and this verifier. ``n.s.'': not stated in the sources. ``added later'': missing in the studied version of GDV, added afterwards}{table.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{Check-by-check comparison.}{20}{section*.34}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Vampire as a Step Validator}{20}{subsection.3.5}\protected@file@percent }
+\newlabel{subsec:rw-vampire}{{3.5}{20}{Vampire as a Step Validator}{subsection.3.5}{}}
+\citation{Wetzler2014DRATtrim}
+\citation{Schurr2021Alethe}
+\citation{Delahaye2013ZenonModulo}
+\citation{Bohme2010Sledgehammer}
+\citation{Ebner2016GAPT}
+\citation{ProoVer2026Proceedings}
+\citation{ProoVer2026Proceedings}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Proof Checking Beyond TPTP}{21}{subsection.3.6}\protected@file@percent }
+\newlabel{subsec:rw-other}{{3.6}{21}{Proof Checking Beyond TPTP}{subsection.3.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.7}Positioning of This Thesis}{21}{subsection.3.7}\protected@file@percent }
+\newlabel{subsec:rw-positioning}{{3.7}{21}{Positioning of This Thesis}{subsection.3.7}{}}
+\citation{proover-competition}
+\citation{ProoVer2026Proceedings}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Comparison of the closest related systems with this thesis, according to their system descriptions \citep  {ProoVer2026Proceedings}(n/a: not stated in the description.)}}{22}{table.5}\protected@file@percent }
+\newlabel{tab:positioning}{{5}{22}{Comparison of the closest related systems with this thesis, according to their system descriptions \citep {ProoVer2026Proceedings}(n/a: not stated in the description.)}{table.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Requirements}{22}{section.4}\protected@file@percent }
+\newlabel{sec:requirements}{{4}{22}{Requirements}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Task and Assumptions}{22}{subsection.4.1}\protected@file@percent }
+\newlabel{subsec:req-context}{{4.1}{22}{Task and Assumptions}{subsection.4.1}{}}
+\citation{ProoVer2026Proceedings}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Scoring and Its Consequences}{23}{subsection.4.2}\protected@file@percent }
+\newlabel{subsec:req-scoring}{{4.2}{23}{Scoring and Its Consequences}{subsection.4.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Functional Requirements}{23}{subsection.4.3}\protected@file@percent }
+\newlabel{subsec:req-functional}{{4.3}{23}{Functional Requirements}{subsection.4.3}{}}
+\gdef \LT@i {\LT@entry 
+    {4}{30.34167pt}\LT@entry 
+    {1}{391.20255pt}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Expected score of accepting, rejecting, and abstaining as a function of the probability $p$ that the proof is valid, under the ProoVer 2026 scoring scheme. Accepting beats abstaining only for $p>10/11$, rejecting only for $p<2/3$.}}{24}{figure.2}\protected@file@percent }
+\newlabel{fig:expected-score}{{2}{24}{Expected score of accepting, rejecting, and abstaining as a function of the probability $p$ that the proof is valid, under the ProoVer 2026 scoring scheme. Accepting beats abstaining only for $p>10/11$, rejecting only for $p<2/3$}{figure.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{Functional requirements.}}{24}{table.6}\protected@file@percent }
+\newlabel{tab:fr}{{6}{24}{Functional requirements}{table.6}{}}
+\gdef \LT@ii {\LT@entry 
+    {4}{65.02003pt}\LT@entry 
+    {1}{190.5092pt}\LT@entry 
+    {1}{184.5092pt}}
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Non-functional requirements.}}{25}{table.7}\protected@file@percent }
+\newlabel{tab:nfr}{{7}{25}{Non-functional requirements}{table.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Non-Functional Requirements}{25}{subsection.4.4}\protected@file@percent }
+\newlabel{subsec:req-nonfunctional}{{4.4}{25}{Non-Functional Requirements}{subsection.4.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Traceability}{25}{subsection.4.5}\protected@file@percent }
+\newlabel{subsec:req-traceability}{{4.5}{25}{Traceability}{subsection.4.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8}{Traceability from requirements to modules and tests.}}{25}{table.8}\protected@file@percent }
+\newlabel{tab:trace}{{8}{25}{Traceability from requirements to modules and tests}{table.8}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Design}{26}{section.5}\protected@file@percent }
+\newlabel{sec:design}{{5}{26}{Design}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Design Principles}{26}{subsection.5.1}\protected@file@percent }
+\newlabel{subsec:design-principles}{{5.1}{26}{Design Principles}{subsection.5.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Relation to the de Bruijn criterion.}{27}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Architecture Overview}{27}{subsection.5.2}\protected@file@percent }
+\newlabel{subsec:design-overview}{{5.2}{27}{Architecture Overview}{subsection.5.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Data Model}{27}{subsection.5.3}\protected@file@percent }
+\newlabel{subsec:design-model}{{5.3}{27}{Data Model}{subsection.5.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Global Checks}{27}{subsection.5.4}\protected@file@percent }
+\newlabel{subsec:design-global}{{5.4}{27}{Global Checks}{subsection.5.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{Provenance (FR2).}{27}{section*.36}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Architecture view of the verifier modules and their main dependencies. Parsing, checking, and verdict aggregation run in a worker process with a wall-clock limit.}}{28}{figure.3}\protected@file@percent }
+\newlabel{fig:architecture}{{3}{28}{Architecture view of the verifier modules and their main dependencies. Parsing, checking, and verdict aggregation run in a worker process with a wall-clock limit}{figure.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Dependency graph (FR4, FR5).}{29}{section*.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Termination (FR9).}{29}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Step Dispatch and the Checker Interface}{29}{subsection.5.5}\protected@file@percent }
+\newlabel{subsec:design-dispatch}{{5.5}{29}{Step Dispatch and the Checker Interface}{subsection.5.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{A proof as a graph.}{29}{section*.39}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Dependency graph of the valid benchmark proof \texttt  {PRV089}. Each node is an annotated formula with its name, role, formula, and justification and each edge leads from a parent to the step derived from it. The color shows which check of the verifier validates the node. Generated from the proof file with \texttt  {scripts/gen\_dag\_figure.py}.}}{30}{figure.4}\protected@file@percent }
+\newlabel{fig:design-dag}{{4}{30}{Dependency graph of the valid benchmark proof \texttt {PRV089}. Each node is an annotated formula with its name, role, formula, and justification and each edge leads from a parent to the step derived from it. The color shows which check of the verifier validates the node. Generated from the proof file with \texttt {scripts/gen\_dag\_figure.py}}{figure.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}Rule Checkers}{30}{subsection.5.6}\protected@file@percent }
+\newlabel{subsec:design-rules}{{5.6}{30}{Rule Checkers}{subsection.5.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}Rule Checks by Example}{30}{subsection.5.7}\protected@file@percent }
+\newlabel{subsec:design-examples}{{5.7}{30}{Rule Checks by Example}{subsection.5.7}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Rule families and the principle of their checks.}}{31}{table.9}\protected@file@percent }
+\newlabel{tab:rule-families}{{9}{31}{Rule families and the principle of their checks}{table.9}{}}
+\@writefile{toc}{\contentsline {paragraph}{Structural rules.}{31}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Propositional rules.}{31}{section*.41}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Inference rules occurring in \texttt  {PRV010+1.s} and their intended reading. The readings are derived from the benchmark proofs, since the competition does not specify the rules in full.}}{32}{table.10}\protected@file@percent }
+\newlabel{tab:rules}{{10}{32}{Inference rules occurring in \texttt {PRV010+1.s} and their intended reading. The readings are derived from the benchmark proofs, since the competition does not specify the rules in full}{table.10}{}}
+\@writefile{toc}{\contentsline {paragraph}{Quantifier rules.}{32}{section*.42}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Junction rules.}{33}{section*.43}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Clausal and equational rules.}{33}{section*.44}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Skolemization.}{33}{section*.45}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Steps decided by the prover.}{34}{section*.46}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Summary.}{34}{section*.47}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.8}Checking Skolemization}{34}{subsection.5.8}\protected@file@percent }
+\newlabel{subsec:design-skolem}{{5.8}{34}{Checking Skolemization}{subsection.5.8}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Validation flow for a \texttt  {skolemize} step.}}{35}{figure.5}\protected@file@percent }
+\newlabel{fig:skolem-check-flow}{{5}{35}{Validation flow for a \texttt {skolemize} step}{figure.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{Polarity.}{36}{section*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Herbrand symbols.}{36}{section*.49}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.9}Delegation to an External ATP}{36}{subsection.5.9}\protected@file@percent }
+\newlabel{subsec:design-atp}{{5.9}{36}{Delegation to an External ATP}{subsection.5.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.10}Verdicts and Soundness Argument}{36}{subsection.5.10}\protected@file@percent }
+\newlabel{subsec:design-verdict}{{5.10}{36}{Verdicts and Soundness Argument}{subsection.5.10}{}}
+\citation{ProoVer2026Proceedings}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Decision flow for aggregating step-level outcomes into the final proof verdict.}}{37}{figure.6}\protected@file@percent }
+\newlabel{fig:verdict-aggregation-flow}{{6}{37}{Decision flow for aggregating step-level outcomes into the final proof verdict}{figure.6}{}}
+\@writefile{toc}{\contentsline {paragraph}{Soundness argument.}{37}{section*.50}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Verdicts, printed SZS status, and score under the ProoVer 2026 scheme.}}{38}{table.11}\protected@file@percent }
+\newlabel{tab:verdicts}{{11}{38}{Verdicts, printed SZS status, and score under the ProoVer 2026 scheme}{table.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.11}Resource Control}{38}{subsection.5.11}\protected@file@percent }
+\newlabel{subsec:design-resources}{{5.11}{38}{Resource Control}{subsection.5.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.12}Diagnostics}{38}{subsection.5.12}\protected@file@percent }
+\newlabel{subsec:design-diagnostics}{{5.12}{38}{Diagnostics}{subsection.5.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.13}Design Decisions and Alternatives}{38}{subsection.5.13}\protected@file@percent }
+\newlabel{subsec:design-alternatives}{{5.13}{38}{Design Decisions and Alternatives}{subsection.5.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.14}Summary}{38}{subsection.5.14}\protected@file@percent }
+\newlabel{subsec:design-summary}{{5.14}{38}{Summary}{subsection.5.14}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces Main design decisions and the alternatives considered.}}{39}{table.12}\protected@file@percent }
+\newlabel{tab:design-decisions}{{12}{39}{Main design decisions and the alternatives considered}{table.12}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Implementation}{39}{section.6}\protected@file@percent }
+\newlabel{sec:implementation}{{6}{39}{Implementation}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Overview}{39}{subsection.6.1}\protected@file@percent }
+\newlabel{subsec:impl-overview}{{6.1}{39}{Overview}{subsection.6.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces Module structure of the implementation (approximate line counts).}}{40}{table.13}\protected@file@percent }
+\newlabel{tab:impl-modules}{{13}{40}{Module structure of the implementation (approximate line counts)}{table.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Internal Representation}{40}{subsection.6.2}\protected@file@percent }
+\newlabel{subsec:impl-model}{{6.2}{40}{Internal Representation}{subsection.6.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Parser}{41}{subsection.6.3}\protected@file@percent }
+\newlabel{subsec:impl-parser}{{6.3}{41}{Parser}{subsection.6.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Driver and Dispatch}{41}{subsection.6.4}\protected@file@percent }
+\newlabel{subsec:impl-driver}{{6.4}{41}{Driver and Dispatch}{subsection.6.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{Verdict.}{41}{section*.51}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Call sequence of \texttt  {check\_proof\_file} including parser, global checks, rule dispatch, ATP fallback, and verdict aggregation.}}{42}{figure.7}\protected@file@percent }
+\newlabel{fig:sequence-check-proof}{{7}{42}{Call sequence of \texttt {check\_proof\_file} including parser, global checks, rule dispatch, ATP fallback, and verdict aggregation}{figure.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Global Checks}{42}{subsection.6.5}\protected@file@percent }
+\newlabel{subsec:impl-global}{{6.5}{42}{Global Checks}{subsection.6.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Structure of the alpha-equivalence check (pseudocode, simplified).}}{43}{figure.8}\protected@file@percent }
+\newlabel{fig:impl-alpha}{{8}{43}{Structure of the alpha-equivalence check (pseudocode, simplified)}{figure.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.6}Structural, Propositional, and Quantifier Rules}{43}{subsection.6.6}\protected@file@percent }
+\newlabel{subsec:impl-simple-rules}{{6.6}{43}{Structural, Propositional, and Quantifier Rules}{subsection.6.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.7}Skolemization}{44}{subsection.6.7}\protected@file@percent }
+\newlabel{subsec:impl-skolem}{{6.7}{44}{Skolemization}{subsection.6.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.8}Equality and Clausal Reasoning}{44}{subsection.6.8}\protected@file@percent }
+\newlabel{subsec:impl-clausal}{{6.8}{44}{Equality and Clausal Reasoning}{subsection.6.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{Overview of the rule checkers.}{44}{section*.52}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces Rule families, their internal checks, and the behavior on a failed check.}}{45}{table.14}\protected@file@percent }
+\newlabel{tab:impl-rules}{{14}{45}{Rule families, their internal checks, and the behavior on a failed check}{table.14}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.9}Delegation to the External ATP}{45}{subsection.6.9}\protected@file@percent }
+\newlabel{subsec:impl-atp}{{6.9}{45}{Delegation to the External ATP}{subsection.6.9}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Result mapping of the ATP fallback.}}{46}{figure.9}\protected@file@percent }
+\newlabel{fig:impl-atp}{{9}{46}{Result mapping of the ATP fallback}{figure.9}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Timeout handling of the driver (excerpt from \texttt  {main.py}).}}{46}{figure.10}\protected@file@percent }
+\newlabel{fig:impl-timeout}{{10}{46}{Timeout handling of the driver (excerpt from \texttt {main.py})}{figure.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.10}Resource Control}{46}{subsection.6.10}\protected@file@percent }
+\newlabel{subsec:impl-resources}{{6.10}{46}{Resource Control}{subsection.6.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.11}Test Suite}{47}{subsection.6.11}\protected@file@percent }
+\newlabel{subsec:impl-testing}{{6.11}{47}{Test Suite}{subsection.6.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.12}Tooling for Reporting and Evaluation}{47}{subsection.6.12}\protected@file@percent }
+\newlabel{subsec:impl-tooling}{{6.12}{47}{Tooling for Reporting and Evaluation}{subsection.6.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.13}Selected Algorithms}{48}{subsection.6.13}\protected@file@percent }
+\newlabel{subsec:impl-algorithms}{{6.13}{48}{Selected Algorithms}{subsection.6.13}{}}
+\@writefile{toc}{\contentsline {paragraph}{Template matching.}{48}{section*.53}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Unification.}{48}{section*.54}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Resolution.}{48}{section*.55}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces Template matching with capture check (excerpt of \texttt  {formula\_utils.py}, abbreviated).}}{49}{figure.11}\protected@file@percent }
+\newlabel{fig:impl-match}{{11}{49}{Template matching with capture check (excerpt of \texttt {formula\_utils.py}, abbreviated)}{figure.11}{}}
+\@writefile{toc}{\contentsline {paragraph}{Negation of the conjecture.}{49}{section*.56}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.14}Worked Examples}{49}{subsection.6.14}\protected@file@percent }
+\newlabel{subsec:impl-example}{{6.14}{49}{Worked Examples}{subsection.6.14}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces Unification with occurs check (excerpt of \texttt  {clausal\_checker.py}).}}{50}{figure.12}\protected@file@percent }
+\newlabel{fig:impl-unify}{{12}{50}{Unification with occurs check (excerpt of \texttt {clausal\_checker.py})}{figure.12}{}}
+\@writefile{toc}{\contentsline {paragraph}{The valid proof.}{50}{section*.57}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces Structure of the resolution check (excerpt of \texttt  {clausal\_checker.py}, abbreviated).}}{51}{figure.13}\protected@file@percent }
+\newlabel{fig:impl-resolution}{{13}{51}{Structure of the resolution check (excerpt of \texttt {clausal\_checker.py}, abbreviated)}{figure.13}{}}
+\@writefile{toc}{\contentsline {paragraph}{The invalid proof.}{51}{section*.58}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The report.}{52}{section*.59}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.15}Defects Found During Testing}{52}{subsection.6.15}\protected@file@percent }
+\newlabel{subsec:impl-bugs}{{6.15}{52}{Defects Found During Testing}{subsection.6.15}{}}
+\@writefile{toc}{\contentsline {paragraph}{Doubly negated conjecture.}{52}{section*.60}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Variable capture in \texttt  {instantiate}.}{52}{section*.61}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Resolution without standardizing apart and without occurs check.}{52}{section*.62}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Polarity below implications.}{52}{section*.63}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Defects found in the final code review.}{53}{section*.64}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Lessons.}{53}{section*.65}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.16}Deviations from the Design}{53}{subsection.6.16}\protected@file@percent }
+\newlabel{subsec:impl-limitations}{{6.16}{53}{Deviations from the Design}{subsection.6.16}{}}
+\citation{ProoVer2026Proceedings}
+\@writefile{toc}{\contentsline {section}{\numberline {7}Evaluation}{54}{section.7}\protected@file@percent }
+\newlabel{sec:evaluation}{{7}{54}{Evaluation}{section.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Setup}{54}{subsection.7.1}\protected@file@percent }
+\newlabel{subsec:eval-setup}{{7.1}{54}{Setup}{subsection.7.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Benchmarks.}{54}{section*.66}\protected@file@percent }
+\citation{KovacsVoronkov2013}
+\citation{Sut16}
+\citation{CASC30}
+\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces Groups of the TST set.}}{55}{table.15}\protected@file@percent }
+\newlabel{tab:eval-tst}{{15}{55}{Groups of the TST set}{table.15}{}}
+\@writefile{toc}{\contentsline {paragraph}{Metrics.}{55}{section*.67}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{External prover.}{55}{section*.68}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {16}{\ignorespaces Verdicts on the ProoVer set (number of proofs) and resulting score.}}{56}{table.16}\protected@file@percent }
+\newlabel{tab:eval-matrix}{{16}{56}{Verdicts on the ProoVer set (number of proofs) and resulting score}{table.16}{}}
+\@writefile{toc}{\contentsline {paragraph}{Environment.}{56}{section*.69}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Correctness and Score}{56}{subsection.7.2}\protected@file@percent }
+\newlabel{subsec:eval-correctness}{{7.2}{56}{Correctness and Score}{subsection.7.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {17}{\ignorespaces Results on the TST set by group (agreeing / total without edge cases).}}{57}{table.17}\protected@file@percent }
+\newlabel{tab:eval-tst-results}{{17}{57}{Results on the TST set by group (agreeing / total without edge cases)}{table.17}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Rule-Level Test Suite}{57}{subsection.7.3}\protected@file@percent }
+\newlabel{subsec:eval-extra}{{7.3}{57}{Rule-Level Test Suite}{subsection.7.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Rule Coverage (RQ1)}{57}{subsection.7.4}\protected@file@percent }
+\newlabel{subsec:eval-coverage}{{7.4}{57}{Rule Coverage (RQ1)}{subsection.7.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {18}{\ignorespaces Results on the Extra set by rule. ``By the rule check'' counts the invalid proofs for which the checker of the rule itself, and not only the final step, reports the error.}}{58}{table.18}\protected@file@percent }
+\newlabel{tab:eval-extra}{{18}{58}{Results on the Extra set by rule. ``By the rule check'' counts the invalid proofs for which the checker of the rule itself, and not only the final step, reports the error}{table.18}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {19}{\ignorespaces Rules in the ProoVer set and how their steps were decided.}}{59}{table.19}\protected@file@percent }
+\newlabel{tab:eval-coverage}{{19}{59}{Rules in the ProoVer set and how their steps were decided}{table.19}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces Inference rules of the ProoVer set by the number of proofs that use them. Blue rules have an internal checker, red rules are decided by the external prover. The labels give the number of steps.}}{60}{figure.14}\protected@file@percent }
+\newlabel{fig:eval-rule-coverage}{{14}{60}{Inference rules of the ProoVer set by the number of proofs that use them. Blue rules have an internal checker, red rules are decided by the external prover. The labels give the number of steps}{figure.14}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {20}{\ignorespaces Size and statement coverage of the modules (measured with \texttt  {pytest-cov}).}}{61}{table.20}\protected@file@percent }
+\newlabel{tab:eval-size}{{20}{61}{Size and statement coverage of the modules (measured with \texttt {pytest-cov})}{table.20}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}Architecture Metrics (RQ2)}{61}{subsection.7.5}\protected@file@percent }
+\newlabel{subsec:eval-modularity}{{7.5}{61}{Architecture Metrics (RQ2)}{subsection.7.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.6}Run Time and Memory (RQ3)}{61}{subsection.7.6}\protected@file@percent }
+\newlabel{subsec:eval-runtime}{{7.6}{61}{Run Time and Memory (RQ3)}{subsection.7.6}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {15}{\ignorespaces Wall-clock time per proof of the ProoVer set against the number of steps. Proofs in which the external prover was called are drawn in red. The dashed line is the time limit.}}{62}{figure.15}\protected@file@percent }
+\newlabel{fig:eval-runtime}{{15}{62}{Wall-clock time per proof of the ProoVer set against the number of steps. Proofs in which the external prover was called are drawn in red. The dashed line is the time limit}{figure.15}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {21}{\ignorespaces The six slowest proofs of the ProoVer set (median of the runs). Times in the columns are wall-clock times of the phases, ``MB'' is the peak resident memory.}}{62}{table.21}\protected@file@percent }
+\newlabel{tab:eval-slowest}{{21}{62}{The six slowest proofs of the ProoVer set (median of the runs). Times in the columns are wall-clock times of the phases, ``MB'' is the peak resident memory}{table.21}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {22}{\ignorespaces Mutation operators and kill rates. ``Survivors still valid'' are mutants that the verifier accepts and that Vampire confirms to follow from the premises.}}{63}{table.22}\protected@file@percent }
+\newlabel{tab:eval-mutations}{{22}{63}{Mutation operators and kill rates. ``Survivors still valid'' are mutants that the verifier accepts and that Vampire confirms to follow from the premises}{table.22}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.7}Robustness (RQ3)}{63}{subsection.7.7}\protected@file@percent }
+\newlabel{subsec:eval-robustness}{{7.7}{63}{Robustness (RQ3)}{subsection.7.7}{}}
+\@writefile{toc}{\contentsline {paragraph}{Mutation test.}{63}{section*.70}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Malformed input.}{63}{section*.71}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {16}{\ignorespaces Outcome of the mutation test per operator: mutants rejected by the verifier, mutants accepted that still follow from their premises, and mutants accepted that do not (none).}}{64}{figure.16}\protected@file@percent }
+\newlabel{fig:eval-mutations}{{16}{64}{Outcome of the mutation test per operator: mutants rejected by the verifier, mutants accepted that still follow from their premises, and mutants accepted that do not (none)}{figure.16}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {23}{\ignorespaces Outcome for malformed inputs. \texttt  {error} means that the parser raised an error and the proof was not verified.}}{64}{table.23}\protected@file@percent }
+\newlabel{tab:eval-inputs}{{23}{64}{Outcome for malformed inputs. \texttt {error} means that the parser raised an error and the proof was not verified}{table.23}{}}
+\@writefile{toc}{\contentsline {paragraph}{Missing prover.}{64}{section*.72}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {24}{\ignorespaces ProoVer set with and without the external prover. The three-valued score counts steps for which no verdict could be reached as uncertain (zero points).}}{65}{table.24}\protected@file@percent }
+\newlabel{tab:eval-noatp}{{24}{65}{ProoVer set with and without the external prover. The three-valued score counts steps for which no verdict could be reached as uncertain (zero points)}{table.24}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.8}Ablations}{65}{subsection.7.8}\protected@file@percent }
+\newlabel{subsec:eval-ablation}{{7.8}{65}{Ablations}{subsection.7.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{Internal checkers against the prover.}{65}{section*.73}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Three-valued verdict.}{65}{section*.74}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {25}{\ignorespaces Single steps, internal verdict against Vampire. ``Prover \emph  {no}'' includes steps for which Vampire did not finish within 10\,s (status \texttt  {Timeout}).}}{66}{table.25}\protected@file@percent }
+\newlabel{tab:eval-internal}{{25}{66}{Single steps, internal verdict against Vampire. ``Prover \emph {no}'' includes steps for which Vampire did not finish within 10\,s (status \texttt {Timeout})}{table.25}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.9}Error Analysis}{66}{subsection.7.9}\protected@file@percent }
+\newlabel{subsec:eval-errors}{{7.9}{66}{Error Analysis}{subsection.7.9}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {26}{\ignorespaces Causes of suboptimal verdicts on the ProoVer set.}}{67}{table.26}\protected@file@percent }
+\newlabel{tab:eval-errors}{{26}{67}{Causes of suboptimal verdicts on the ProoVer set}{table.26}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.10}Threats to Validity}{67}{subsection.7.10}\protected@file@percent }
+\newlabel{subsec:eval-threats}{{7.10}{67}{Threats to Validity}{subsection.7.10}{}}
+\@writefile{toc}{\contentsline {paragraph}{Internal validity.}{67}{section*.75}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{External validity.}{67}{section*.76}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Construct validity.}{67}{section*.77}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.11}Summary}{68}{subsection.7.11}\protected@file@percent }
+\newlabel{subsec:eval-summary}{{7.11}{68}{Summary}{subsection.7.11}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8}Discussion}{68}{section.8}\protected@file@percent }
+\newlabel{sec:discussion}{{8}{68}{Discussion}{section.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Interpretation of the Results}{68}{subsection.8.1}\protected@file@percent }
+\newlabel{subsec:disc-results}{{8.1}{68}{Interpretation of the Results}{subsection.8.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Scoring Policy and Its Limits}{69}{subsection.8.2}\protected@file@percent }
+\newlabel{subsec:disc-scoring}{{8.2}{69}{Scoring Policy and Its Limits}{subsection.8.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}Trusted Computing Base and Soundness}{69}{subsection.8.3}\protected@file@percent }
+\newlabel{subsec:disc-tcb}{{8.3}{69}{Trusted Computing Base and Soundness}{subsection.8.3}{}}
+\citation{Sutcliffe2025GDVLP}
+\citation{RiazanovVoronkov2002,KovacsVoronkov2013}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Design Trade-offs}{70}{subsection.8.4}\protected@file@percent }
+\newlabel{subsec:disc-tradeoffs}{{8.4}{70}{Design Trade-offs}{subsection.8.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{Internal checks and ATP fallback.}{70}{section*.78}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Modularity.}{70}{section*.79}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Python.}{70}{section*.80}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Process isolation.}{70}{section*.81}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {27}{\ignorespaces Verifier on unmodified Vampire proofs (142 proofs).}}{71}{table.27}\protected@file@percent }
+\newlabel{tab:disc-transfer-a}{{27}{71}{Verifier on unmodified Vampire proofs (142 proofs)}{table.27}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.5}Transfer to Other Provers: A Case Study with Vampire}{71}{subsection.8.5}\protected@file@percent }
+\newlabel{subsec:disc-transfer}{{8.5}{71}{Transfer to Other Provers: A Case Study with Vampire}{subsection.8.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{Setup.}{71}{section*.82}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Experiment A: Can the verifier read Vampire's proofs?}{71}{section*.83}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {28}{\ignorespaces Internal Skolem check against an entailment oracle ($C \models  P$ with Vampire). Numbers are mutants rejected / accepted.}}{72}{table.28}\protected@file@percent }
+\newlabel{tab:disc-transfer-b}{{28}{72}{Internal Skolem check against an entailment oracle ($C \models P$ with Vampire). Numbers are mutants rejected / accepted}{table.28}{}}
+\@writefile{toc}{\contentsline {paragraph}{Experiment B: Skolemization and an entailment oracle.}{72}{section*.84}\protected@file@percent }
+\citation{Wetzler2014DRATtrim,Carcara2023}
+\citation{Bohme2010Sledgehammer}
+\citation{SchulzCV2019}
+\@writefile{toc}{\contentsline {paragraph}{Why a good competition verifier transfers poorly.}{73}{section*.85}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Consequences.}{73}{section*.86}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Threats to validity.}{74}{section*.87}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.6}Limitations}{74}{subsection.8.6}\protected@file@percent }
+\newlabel{subsec:disc-limitations}{{8.6}{74}{Limitations}{subsection.8.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {9}Conclusion and Future Work}{75}{section.9}\protected@file@percent }
+\newlabel{sec:conclusion}{{9}{75}{Conclusion and Future Work}{section.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}Summary}{75}{subsection.9.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}Answers to the Research Questions}{75}{subsection.9.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{RQ1: Which rules and fragments must be supported?}{75}{section*.88}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{RQ2: How does modularity keep the trusted part small and extensible?}{75}{section*.89}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{RQ3: How do correctness, run time, and memory behave?}{75}{section*.90}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}Contributions Revisited}{76}{subsection.9.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.4}Future Work}{76}{subsection.9.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A}Reproduction}{76}{appendix.A}\protected@file@percent }
+\newlabel{app:reproduction}{{A}{76}{Reproduction}{appendix.A}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {29}{\ignorespaces Command-line options of the verifier.}}{77}{table.29}\protected@file@percent }
+\newlabel{tab:app-cli}{{29}{77}{Command-line options of the verifier}{table.29}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {30}{\ignorespaces Statuses printed by the verifier.}}{77}{table.30}\protected@file@percent }
+\newlabel{tab:app-status}{{30}{77}{Statuses printed by the verifier}{table.30}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Requirements}{77}{subsection.A.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}Checking Proofs}{77}{subsection.A.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {31}{\ignorespaces Parts of the evaluation driver \texttt  {scripts/eval\_all.py}.}}{78}{table.31}\protected@file@percent }
+\newlabel{tab:app-parts}{{31}{78}{Parts of the evaluation driver \texttt {scripts/eval\_all.py}}{table.31}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}Tests and Evaluation}{78}{subsection.A.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {B}Example Reports}{78}{appendix.B}\protected@file@percent }
+\newlabel{app:reports}{{B}{78}{Example Reports}{appendix.B}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {C}Results per Proof}{78}{appendix.C}\protected@file@percent }
+\newlabel{app:per-proof}{{C}{78}{Results per Proof}{appendix.C}{}}
+\gdef \LT@iii {\LT@entry 
+    {4}{51.98952pt}\LT@entry 
+    {1}{52.74458pt}\LT@entry 
+    {4}{70.9981pt}\LT@entry 
+    {4}{43.02086pt}\LT@entry 
+    {1}{49.02142pt}\LT@entry 
+    {1}{48.27731pt}}
+\@writefile{lot}{\contentsline {table}{\numberline {32}{Results for each proof of the ProoVer set (official proofs and samples).}}{79}{table.32}\protected@file@percent }
+\newlabel{tab:app-prv}{{32}{79}{Results for each proof of the ProoVer set (official proofs and samples)}{table.32}{}}
+\gdef \LT@iv {\LT@entry 
+    {4}{51.98952pt}\LT@entry 
+    {1}{52.74458pt}\LT@entry 
+    {4}{70.9981pt}\LT@entry 
+    {4}{70.68051pt}\LT@entry 
+    {1}{49.02142pt}\LT@entry 
+    {1}{48.27731pt}}
+\@writefile{lot}{\contentsline {table}{\numberline {33}{Results for each proof of the TST set (own test proofs).}}{81}{table.33}\protected@file@percent }
+\newlabel{tab:app-tst}{{33}{81}{Results for each proof of the TST set (own test proofs)}{table.33}{}}
+\gdef \LT@v {\LT@entry 
+    {4}{51.98952pt}\LT@entry 
+    {1}{52.74458pt}\LT@entry 
+    {4}{70.9981pt}\LT@entry 
+    {4}{54.25554pt}\LT@entry 
+    {1}{49.02142pt}\LT@entry 
+    {1}{48.27731pt}}
+\@writefile{lot}{\contentsline {table}{\numberline {34}{Results for each proof of the Extra set (generated rule-level test proofs).}}{83}{table.34}\protected@file@percent }
+\newlabel{tab:app-ext}{{34}{83}{Results for each proof of the Extra set (generated rule-level test proofs)}{table.34}{}}
+\citation{TPTPSyntaxBNF}
+\citation{taprogge2026lightweight}
+\citation{ProoVer2026Proceedings}
 \bibstyle{language-dt}
-\bibdata{bibliography}
-\bibcite{PLACEHOLDER_GDVLP}{{1}{}{{PLA}}{{}}}
-\bibcite{LeanOnVampire2026}{{2}{2026}{{Lea}}{{}}}
-\bibcite{PLACEHOLDER_PROOVER_PROC}{{3}{2026}{{PLA}}{{}}}
-\bibcite{Carcara2023}{{4}{2023}{{Andreotti et~al.}}{{Andreotti and colleagues}}}
-\bibcite{PLACEHOLDER_SLEDGEHAMMER}{{5}{2010}{{B{\"o}hme \& Nipkow}}{{B{\"o}hme und Nipkow}}}
+\bibdata{bibliography,bibliography_additions}
+\bibcite{ProoVer2026Proceedings}{{1}{2026}{{Pro}}{{}}}
+\bibcite{Carcara2023}{{2}{2023}{{Andreotti et~al.}}{{Andreotti and colleagues}}}
+\bibcite{BarendregtWiedijk2005}{{3}{2005}{{Barendregt \& Wiedijk}}{{Barendregt und Wiedijk}}}
+\bibcite{LeanOnVampire2026}{{4}{2026}{{Bodingbauer et~al.}}{{Bodingbauer and colleagues}}}
+\bibcite{Bohme2010Sledgehammer}{{5}{2010}{{B{\"o}hme \& Nipkow}}{{B{\"o}hme und Nipkow}}}
 \bibcite{butt}{{6}{1998}{{Butt \& Geuder}}{{Butt und Geuder}}}
 \bibcite{proover-competition}{{7}{2026}{{Cailler \& Guilloud}}{{Cailler und Guilloud}}}
-\bibcite{croft}{{8}{1998}{{Croft}}{{}}}
+\bibcite{chihani2013foundational}{{8}{2013}{{Chihani et~al.}}{{Chihani and colleagues}}}
+\bibcite{croft}{{9}{1998}{{Croft}}{{}}}
 \citation{butt}
-\bibcite{PLACEHOLDER_DEDUKTI}{{9}{2013}{{Delahaye et~al.}}{{Delahaye and colleagues}}}
-\bibcite{donohue}{{10}{2009}{{Donohue}}{{}}}
-\bibcite{dorian}{{11}{1989}{{Dorian}}{{}}}
-\bibcite{PLACEHOLDER_GAPT}{{12}{2016}{{Ebner et~al.}}{{Ebner and colleagues}}}
-\bibcite{Fitting1996}{{13}{1996}{{Fitting}}{{}}}
-\bibcite{gropen}{{14}{1989}{{Gropen et~al.}}{{Gropen and colleagues}}}
-\bibcite{hale}{{15}{1980}{{Hale \& {White Eagle}}}{{Hale und {White Eagle}}}}
-\bibcite{haspelmath1993grammar}{{16}{1993}{{Haspelmath}}{{}}}
-\bibcite{hymes-foundations}{{17}{1974{a}}{{Hymes}}{{}}}
-\@writefile{toc}{\contentsline {section}{Bibliography}{40}{section*.35}\protected@file@percent }
-\bibcite{hymes-studies}{{18}{1974{b}}{{Hymes}}{{}}}
-\bibcite{hymes-language}{{19}{1980}{{Hymes}}{{}}}
-\bibcite{KovacsVoronkov2013}{{20}{2013}{{Kov{\'a}cs \& Voronkov}}{{Kov{\'a}cs und Voronkov}}}
-\bibcite{miner}{{21}{1990}{{Miner}}{{}}}
-\bibcite{morgan2015experimental}{{22}{2015}{{Morgan et~al.}}{{Morgan and colleagues}}}
-\bibcite{perlmutter}{{23}{1978}{{Perlmutter}}{{}}}
-\bibcite{poser}{{24}{1984}{{Poser}}{{}}}
-\bibcite{prince}{{25}{1991}{{Prince}}{{}}}
-\bibcite{RiazanovVoronkov2002}{{26}{2002}{{Riazanov \& Voronkov}}{{Riazanov und Voronkov}}}
-\bibcite{rice}{{27}{1989}{{Rice}}{{}}}
-\bibcite{saltzman}{{28}{2008}{{Saltzman et~al.}}{{Saltzman and colleagues}}}
-\bibcite{vandersandt}{{29}{1992}{{van~der Sandt}}{{}}}
-\bibcite{SchulzCV2019}{{30}{2019}{{Schulz et~al.}}{{Schulz and colleagues}}}
-\bibcite{PLACEHOLDER_ALETHE}{{31}{2021}{{Schurr et~al.}}{{Schurr and colleagues}}}
-\bibcite{singler}{{32}{1992}{{Singler}}{{}}}
-\bibcite{sprouse}{{33}{2011}{{Sprouse et~al.}}{{Sprouse and colleagues}}}
-\bibcite{stockwell}{{34}{1993}{{Stockwell}}{{}}}
-\bibcite{sundell}{{35}{2009}{{Sundell}}{{}}}
-\bibcite{Sut06-CASC-J3}{{36}{2006{a}}{{Sutcliffe}}{{}}}
-\bibcite{Sut06-FLAIRS}{{37}{2006{b}}{{Sutcliffe}}{{}}}
-\bibcite{Sut06}{{38}{2006{c}}{{Sutcliffe}}{{}}}
-\bibcite{Sut06-CASC}{{39}{2006{d}}{{Sutcliffe}}{{}}}
-\bibcite{Sut07-CSR}{{40}{2007}{{Sutcliffe}}{{}}}
-\bibcite{Sut08-KEAPPA}{{41}{2008}{{Sutcliffe}}{{}}}
-\bibcite{Sut10}{{42}{2010}{{Sutcliffe}}{{}}}
-\bibcite{Sut16}{{43}{2016}{{Sutcliffe}}{{}}}
-\bibcite{Sut24}{{44}{2024}{{Sutcliffe}}{{}}}
-\bibcite{Sutcliffe2000SOTPTP}{{45}{2000}{{Sutcliffe}}{{}}}
-\bibcite{PLACEHOLDER_GDV}{{46}{2006{e}}{{Sutcliffe}}{{}}}
-\bibcite{Sutcliffe2017}{{47}{2017}{{Sutcliffe}}{{}}}
-\bibcite{SutcliffeSCV2006}{{48}{2006}{{Sutcliffe et~al.}}{{Sutcliffe and colleagues}}}
-\bibcite{PLACEHOLDER_NORGLER}{{49}{2026}{{Taprogge}}{{}}}
-\bibcite{tiersma}{{50}{1993}{{Tiersma}}{{}}}
-\bibcite{PLACEHOLDER_DRAT}{{51}{2014}{{Wetzler et~al.}}{{Wetzler and colleagues}}}
-\bibcite{wilson}{{52}{1975}{{Wilson}}{{}}}
-\bibcite{yip}{{53}{1991}{{Yip}}{{}}}
+\bibcite{Delahaye2013ZenonModulo}{{10}{2013}{{Delahaye et~al.}}{{Delahaye and colleagues}}}
+\bibcite{donohue}{{11}{2009}{{Donohue}}{{}}}
+\bibcite{dorian}{{12}{1989}{{Dorian}}{{}}}
+\bibcite{Ebner2016GAPT}{{13}{2016}{{Ebner et~al.}}{{Ebner and colleagues}}}
+\bibcite{Fitting1996}{{14}{1996}{{Fitting}}{{}}}
+\bibcite{GordonMilnerWadsworth1979}{{15}{1979}{{Gordon et~al.}}{{Gordon and colleagues}}}
+\bibcite{gropen}{{16}{1989}{{Gropen et~al.}}{{Gropen and colleagues}}}
+\@writefile{toc}{\contentsline {section}{Bibliography}{89}{section*.92}\protected@file@percent }
+\bibcite{hale}{{17}{1980}{{Hale \& {White Eagle}}}{{Hale und {White Eagle}}}}
+\bibcite{Harrison2009HOLLight}{{18}{2009}{{Harrison}}{{}}}
+\bibcite{haspelmath1993grammar}{{19}{1993}{{Haspelmath}}{{}}}
+\bibcite{hymes-foundations}{{20}{1974{a}}{{Hymes}}{{}}}
+\bibcite{hymes-studies}{{21}{1974{b}}{{Hymes}}{{}}}
+\bibcite{hymes-language}{{22}{1980}{{Hymes}}{{}}}
+\bibcite{KovacsVoronkov2013}{{23}{2013}{{Kov{\'a}cs \& Voronkov}}{{Kov{\'a}cs und Voronkov}}}
+\bibcite{miner}{{24}{1990}{{Miner}}{{}}}
+\bibcite{morgan2015experimental}{{25}{2015}{{Morgan et~al.}}{{Morgan and colleagues}}}
+\bibcite{NonnengartWeidenbach2001}{{26}{2001}{{Nonnengart \& Weidenbach}}{{Nonnengart und Weidenbach}}}
+\bibcite{perlmutter}{{27}{1978}{{Perlmutter}}{{}}}
+\bibcite{Pollack1998}{{28}{1998}{{Pollack}}{{}}}
+\bibcite{poser}{{29}{1984}{{Poser}}{{}}}
+\bibcite{prince}{{30}{1991}{{Prince}}{{}}}
+\bibcite{RiazanovVoronkov2002}{{31}{2002}{{Riazanov \& Voronkov}}{{Riazanov und Voronkov}}}
+\bibcite{rice}{{32}{1989}{{Rice}}{{}}}
+\bibcite{HandbookAR2001}{{33}{2001}{{Robinson \& Voronkov}}{{Robinson und Voronkov}}}
+\bibcite{saltzman}{{34}{2008}{{Saltzman et~al.}}{{Saltzman and colleagues}}}
+\bibcite{vandersandt}{{35}{1992}{{van~der Sandt}}{{}}}
+\bibcite{SchulzCV2019}{{36}{2019}{{Schulz et~al.}}{{Schulz and colleagues}}}
+\bibcite{Schurr2021Alethe}{{37}{2021}{{Schurr et~al.}}{{Schurr and colleagues}}}
+\bibcite{singler}{{38}{1992}{{Singler}}{{}}}
+\bibcite{sprouse}{{39}{2011}{{Sprouse et~al.}}{{Sprouse and colleagues}}}
+\bibcite{stockwell}{{40}{1993}{{Stockwell}}{{}}}
+\bibcite{sundell}{{41}{2009}{{Sundell}}{{}}}
+\bibcite{Sut06-CASC-J3}{{42}{2006{a}}{{Sutcliffe}}{{}}}
+\bibcite{Sut06-FLAIRS}{{43}{2006{b}}{{Sutcliffe}}{{}}}
+\bibcite{Sut06}{{44}{2006{c}}{{Sutcliffe}}{{}}}
+\bibcite{Sut06-CASC}{{45}{2006{d}}{{Sutcliffe}}{{}}}
+\bibcite{Sut07-CSR}{{46}{2007}{{Sutcliffe}}{{}}}
+\bibcite{Sut08-KEAPPA}{{47}{2008{a}}{{Sutcliffe}}{{}}}
+\bibcite{Sut10}{{48}{2010}{{Sutcliffe}}{{}}}
+\bibcite{Sut16}{{49}{2016}{{Sutcliffe}}{{}}}
+\bibcite{Sut24}{{50}{2024}{{Sutcliffe}}{{}}}
+\bibcite{Sutcliffe2000SOTPTP}{{51}{2000}{{Sutcliffe}}{{}}}
+\bibcite{Sutcliffe2006GDV}{{52}{2006{e}}{{Sutcliffe}}{{}}}
+\bibcite{Sutcliffe2008SZS}{{53}{2008{b}}{{Sutcliffe}}{{}}}
+\bibcite{Sutcliffe2017}{{54}{2017}{{Sutcliffe}}{{}}}
+\bibcite{CASC30}{{55}{2025}{{Sutcliffe}}{{}}}
+\bibcite{GDVSeminar}{{56}{2026{a}}{{Sutcliffe}}{{}}}
+\bibcite{SZSOntologyWeb}{{57}{2026{b}}{{Sutcliffe}}{{}}}
+\bibcite{TPTPSyntaxBNF}{{58}{2026{c}}{{Sutcliffe}}{{}}}
+\bibcite{TPTPQuickGuideDerivations}{{59}{2026{d}}{{Sutcliffe}}{{}}}
+\bibcite{TSTPLibrary}{{60}{2026{e}}{{Sutcliffe}}{{}}}
+\bibcite{Sutcliffe2025GDVLP}{{61}{2025}{{Sutcliffe et~al.}}{{Sutcliffe and colleagues}}}
+\bibcite{SutcliffeSCV2006}{{62}{2006}{{Sutcliffe et~al.}}{{Sutcliffe and colleagues}}}
+\bibcite{taprogge2026formal}{{63}{2026{a}}{{Taprogge et~al.}}{{Taprogge and colleagues}}}
+\bibcite{taprogge2026lightweight}{{64}{2026{b}}{{Taprogge et~al.}}{{Taprogge and colleagues}}}
+\bibcite{tiersma}{{65}{1993}{{Tiersma}}{{}}}
+\bibcite{Wetzler2014DRATtrim}{{66}{2014}{{Wetzler et~al.}}{{Wetzler and colleagues}}}
+\bibcite{wilson}{{67}{1975}{{Wilson}}{{}}}
+\bibcite{yip}{{68}{1991}{{Yip}}{{}}}
 \citation{*}
 \providecommand\@xdylanguage[2]{}
 \@xdylanguage{main}{english}
@@ -371,4 +603,4 @@
 \@xdylanguage{acronym}{english}
 \providecommand\@gls@codepage[2]{}
 \@gls@codepage{acronym}{utf8}
-\gdef \@abspage@last{49}
+\gdef \@abspage@last{101}

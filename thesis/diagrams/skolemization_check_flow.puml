@@ -1,0 +1,46 @@
+@startuml
+' Validation flow for one skolemize step (skolem_checker.check_skolemization + freshness in the driver)
+skinparam shadowing false
+skinparam defaultFontSize 11
+start
+:check metadata:\nrule skolemize, exactly one parent,\nat least one status, all of them esa;
+note right: violations are recorded,\nthe check continues
+:check annotations:\nexactly one new_symbols(skolem, [sK]),\nskolemize(Var, Term) present;
+if (annotations complete?) then (yes)
+else (no)
+  :issue: missing annotation;
+  stop
+endif
+if (Term is sK or sK(...) with the declared symbol?) then (yes)
+else (no)
+  :issue: wrong Skolem term;
+  stop
+endif
+:locate the quantifier binding Var in the parent,\ntracking polarity (negation, antecedent of =>,\nright side of <=, ~|, ~&);
+if (quantifier below <=> or <~>?) then (yes)
+  :issue: polarity not defined;
+  stop
+elseif (Var bound and effectively existential?) then (yes)
+else (no)
+  :issue: not bound / only universal /\nexistential in negative position;
+  stop
+endif
+:collect the universal variables in scope;
+if (arguments of Term = variables in scope?) then (yes)
+else (no)
+  :issue: wrong dependencies;
+endif
+:replace Var by Term in the parent\n(bound variables renamed apart);
+if (result alpha-equivalent to the conclusion?) then (yes)
+else (no)
+  :issue: not a correct Skolemization;
+endif
+partition "driver (main.py)" {
+  if (sK occurs in the problem or was introduced before?) then (yes)
+    :issue: Skolem symbol not fresh;
+  else (no)
+  endif
+  :remember sK as introduced;
+}
+stop
+@enduml

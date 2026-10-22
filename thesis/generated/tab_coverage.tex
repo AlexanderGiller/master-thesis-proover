@@ -1,0 +1,44 @@
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{@{}l r r r r r r@{}}
+\toprule
+Rule & Proofs & Steps & Internal & ATP fallback & ATP only & Unresolved \\
+\midrule
+\texttt{modus\_ponens} & 13 & 10012 & 10012 & 0 & 0 & 0 \\
+\texttt{skolemize} & 47 & 5086 & 5086 & 0 & 0 & 0 \\
+\texttt{consequence} & 95 & 96 & 0 & 0 & 96 & 0 \\
+\texttt{instantiate} & 30 & 68 & 68 & 0 & 0 & 0 \\
+\texttt{existential\_gen} & 14 & 45 & 45 & 0 & 0 & 0 \\
+\texttt{split\_conjunct} & 7 & 33 & 33 & 0 & 0 & 0 \\
+\texttt{duplicate} & 1 & 30 & 30 & 0 & 0 & 0 \\
+\texttt{weaken} & 8 & 27 & 26 & 1 & 0 & 0 \\
+\texttt{rename\_variable} & 9 & 26 & 26 & 0 & 0 & 0 \\
+\texttt{conjunction} & 11 & 24 & 24 & 0 & 0 & 0 \\
+\texttt{excluded\_middle} & 7 & 22 & 22 & 0 & 0 & 0 \\
+\texttt{double\_negation} & 7 & 17 & 17 & 0 & 0 & 0 \\
+\texttt{commute} & 7 & 16 & 16 & 0 & 0 & 0 \\
+\texttt{copy} & 12 & 12 & 12 & 0 & 0 & 0 \\
+\texttt{reflexivity} & 7 & 11 & 11 & 0 & 0 & 0 \\
+\texttt{add\_hypothesis} & 5 & 11 & 0 & 0 & 11 & 0 \\
+\texttt{remove\_double\_negation} & 5 & 9 & 9 & 0 & 0 & 0 \\
+\texttt{resolution} & 5 & 8 & 7 & 0 & 1 & 0 \\
+\texttt{horn} & 4 & 8 & 0 & 0 & 8 & 0 \\
+\texttt{paramodulation} & 4 & 5 & 5 & 0 & 0 & 0 \\
+\texttt{rewrite} & 1 & 4 & 4 & 0 & 0 & 0 \\
+\texttt{instantiate\_mp} & 2 & 3 & 3 & 0 & 0 & 0 \\
+\texttt{assume} & 3 & 3 & 0 & 0 & 3 & 0 \\
+\texttt{alpha} & 1 & 2 & 0 & 0 & 2 & 0 \\
+\texttt{ex\_falso} & 2 & 2 & 0 & 0 & 2 & 0 \\
+\texttt{de\_morgan} & 1 & 1 & 0 & 0 & 1 & 0 \\
+\texttt{contrapositive} & 1 & 1 & 0 & 0 & 1 & 0 \\
+\texttt{disjunctive\_syllogism} & 1 & 1 & 0 & 0 & 1 & 0 \\
+\texttt{transitivity} & 1 & 1 & 1 & 0 & 0 & 0 \\
+\texttt{case\_analysis} & 1 & 1 & 0 & 0 & 1 & 0 \\
+\texttt{reassociate} & 1 & 1 & 0 & 0 & 1 & 0 \\
+\texttt{over\_generalize} & 1 & 1 & 0 & 0 & 1 & 0 \\
+\texttt{tautology} & 1 & 1 & 0 & 0 & 1 & 0 \\
+\texttt{simplify} & 1 & 1 & 0 & 0 & 1 & 0 \\
+\texttt{project} & 1 & 1 & 0 & 0 & 1 & 0 \\
+\midrule
+Total (35 rules) & 100 & 15590 & 15457 & 1 & 132 & 0 \\
+\bottomrule
+\end{tabular}}

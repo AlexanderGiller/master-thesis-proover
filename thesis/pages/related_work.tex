@@ -1,5 +1,4 @@
 % Benötigt: \usepackage{booktabs,array}
-% Keys: proover-competition (deine Bib), alle PLACEHOLDER_* durch echte Keys ersetzen.
 % Fakten zu den ProoVer-2026-Systemen stammen aus den Proceedings und der Wettbewerbsseite (Stand: Oktober 2026).
 
 \section{Related Work}
@@ -36,19 +35,18 @@ The systems in Section~\ref{subsec:rw-proover} illustrate the full spectrum.
 \subsection{Systems of ProoVer 2026}
 \label{subsec:rw-proover}
 
-ProoVer 2026 is the first edition of the ProoVer competition and was held on 27 July 2026 in Lisbon, alongside CASC-J13 at FLoC~2026 \citep{proover-competition}. % TODO: verify date and venue against the proceedings
-Systems receive FOF problems with TSTP proofs and must classify each proof as verified, failed, or uncertain; some proofs are deliberately flawed.
-Correct verdicts earn points, abstention scores zero, and wrongly accepting a bad proof is penalized most heavily \citep{PLACEHOLDER_PROOVER_PROC}.
+ProoVer 2026 is the first edition of the ProoVer competition and was held on 27 July 2026 in Lisbon, alongside CASC-J13 at FLoC~2026 \citep{proover-competition}.
+Systems receive FOF problems with TSTP proofs and must classify each proof as verified, failed, or uncertain.
+Correct verdicts earn points, abstaining scores zero, and wrongly accepting a bad proof is penalized most heavily \citep{ProoVer2026Proceedings}.
 Ten systems were entered, eight in the regular division and two (GDV and GDV-LP) in a demonstration division.
-Table~\ref{tab:proover-systems} summarizes them according to their system descriptions in the proceedings \citep{PLACEHOLDER_PROOVER_PROC}.
-[TODO: add the final ranking and scores once the official results are available, e.g.\ from the CASC-J13 result pages.]
+Table~\ref{tab:proover-systems} summarizes them according to their system descriptions in the proceedings \citep{ProoVer2026Proceedings}.
 
-\begin{table}[t]
+\begin{table}[tbp]
 \centering
 \small
 \caption{Systems entered in ProoVer 2026, as described in their system descriptions. ``Ext.'' lists external tools the system relies on at run time.}
 \label{tab:proover-systems}
-\begin{tabular}{@{}l l p{3.4cm} p{4.6cm}@{}}
+\begin{tabular}{@{}l l P{3.4cm} P{4.6cm}@{}}
 \toprule
 System & Language & Core approach & Ext. tools \\
 \midrule
@@ -70,34 +68,125 @@ Three observations are relevant for this thesis.
 First, most entrants delegate entailment steps to external provers (E, Vampire) and use model finders such as Mace4 to reject wrong steps; only CheckProof and GAPT rely on internal reasoning engines.
 Second, Skolemization is a recurring special case: several systems, including ProofGuard and PyCheck, check it structurally, with a freshness check on the introduced symbol, instead of via entailment, in line with the discussion in Section~\ref{subsec:normal-forms}.
 Third, two systems, ProofGuard and PyCheck, are written in Python.
-They are therefore the closest points of comparison for the implementation language and are discussed in Section~\ref{subsec:rw-positioning}.
+They are therefore the closest points of comparison for this thesis regarding the implementation language and are discussed in Section~\ref{subsec:rw-positioning}.
 
 \subsection{GDV and N\"orgler}
 \label{subsec:rw-gdv-norgler}
 
 \paragraph{GDV.}
-The Derivation Verifier GDV is the established tool for checking TSTP derivations \citep{PLACEHOLDER_GDV}.
-It verifies a derivation in four phases: structural checks, checks of the leaf formulas against the problem, rule-specific checks, and finally the verification of inference steps by calling trusted ATPs via SystemOnTPTP.
+The Derivation Verifier GDV is the established tool for checking TSTP derivations \citep{Sutcliffe2006GDV} and in Section~\ref{subsec:gdv} its techniques are already described in detail.
+In short, it combines a \emph{structural} verification of the derivation DAG with a \emph{semantic} verification in which trusted ATP systems, called through SystemOnTPTP, discharge one obligation per formula \citep{Sutcliffe2006GDV,GDVSeminar}.
+In ProoVer 2026 it took part in the demonstration division as GDV~2.0, which is described there as a four-phase verification: structural checks, checks of the leaf formulas against the problem, rule-specific checks, and finally the verification of inference steps by calling trusted ATPs \citep{ProoVer2026Proceedings}.
 GDV is thus the reference for the semantic checking approach.
 Its dependence on external provers makes it comparatively slow and ties its trust to the ATPs it calls.
-GDV-LP~\citep{PLACEHOLDER_GDVLP} addresses the latter by translating proofs of individual steps into LambdaPi terms, so that the ATP no longer needs to be trusted.
+The documentation of GDV discusses this circularity and recommends weak trusted systems that only discharge small obligations \citep{GDVSeminar}.
+GDV-LP \citep{Sutcliffe2025GDVLP} addresses the trust problem by translating the proofs of individual obligations into LambdaPi terms, so that the ATP no longer needs to be trusted.
 
 \paragraph{N\"orgler.}
-N\"orgler \citep{PLACEHOLDER_NORGLER} is a light-weight checker for TSTP refutations that follows the semantic approach of GDV.
-It checks global and local structure, logical correctness, and faithfulness to the problem, uses an internal procedure for Skolemization steps, external provers for entailment, and a model finder to reject incorrect steps.
-In the evaluation reported by its authors, it verified the same 1972 correct proofs as GDV, rejected more of 1952 falsified proofs than GDV in its best configurations, and was faster on average (0.084\,s versus 0.542\,s per proof in its fastest mode). % TODO: verify all numbers against the Norgler paper
+N\"orgler \citep{taprogge2026lightweight} is a light-weight checker for TSTP refutations that explicitly builds on and extends the approach of GDV.
+It organizes the checks into global structure, local structure, logical correctness, and faithfulness to the problem (Table~\ref{tab:check-taxonomy}), uses an internal procedure for Skolemization steps, external provers (E and Vampire) for entailment, and the model finder Mace4 to reject incorrect steps.
+It adds two checks that the studied version of GDV lacked, namely that only the negated conjecture carries the status \texttt{cth} (NSC) and that only the negated conjecture is used as a parent of other steps (ONU).
+Important to note is that GDV later added both of these missing checks in later versions.
+In the evaluation of its authors on 1976 correct and 1952 falsified FOF proofs, both N\"orgler and GDV verify 1972 of the correct proofs.
+Of the falsified proofs, GDV rejects 1845, whereas the configurations of N\"orgler reject between 1845 and 1952, the latter if the model finder is always used.
+The average time per correct proof is between 0.08\,s and 0.31\,s for N\"orgler and 0.54\,s for GDV \citep{taprogge2026lightweight}.
 These results show that a careful treatment of Skolemization and parallel checking can close much of the performance gap to internal replay, and they provide a useful baseline for the evaluation in Chapter~\ref{sec:evaluation}.
-[TODO: compare on the same benchmark set if possible.]
+A direct comparison on the same benchmark was not possible within this thesis: the evaluation of N\"orgler uses proofs from the TSTP library, which differ in rule vocabulary from the ProoVer proofs (Section~\ref{subsec:disc-transfer}).
+
+\subsection{GDV as the Reference Point of This Thesis}
+\label{subsec:rw-gdv-comparison}
+
+GDV and N\"orgler solve the same problem as this thesis, and the ProoVer files follow the TPTP derivation conventions (SZS statuses, \texttt{new\_symbols} and \texttt{skolemize} annotations) for which GDV is the established verifier.
+We therefore use GDV as the reference against which the design of the verifier is explained.
+The comparison has two parts: where the verifier follows GDV, and where it deliberately differs.
+
+\paragraph{What is shared.}
+All three verifiers split the task into structural and semantic checks, work on the derivation DAG, require refutations, treat the negated conjecture specially, and use an ATP only to discharge entailment questions.
+All three give up (\texttt{Timeout} or \texttt{Unknown}) rather than accept a step they cannot establish.
+The verdicts \texttt{VerifiedGood}, \texttt{VerifiedBad}, \texttt{Timeout}, and \texttt{Unknown} of N\"orgler and of this thesis come from the ProoVer design \citep{taprogge2026lightweight}.
+
+\paragraph{Where the verifier differs.}
+\begin{itemize}
+  \item \textbf{Internal replay before delegation.} GDV discharges the obligation of every inference with a trusted ATP. The ProoVer rules prescribe instead that a set of specified rules, among them axiom and conjecture import, \texttt{negated\_conjecture}, and \texttt{skolemize}, be verified \emph{internally}, and that an ATP may only be called on a single step with its premises and only for the status \texttt{thm} or \texttt{cth} \citep{proover-competition}. This verifier extends the internal part to the structural, propositional, and quantifier rules of the benchmark and uses the ATP as a restricted fallback.
+  \item \textbf{Skolemization.} GDV checks a Skolemized formula by proving the \emph{parent} from it, an inverse consequence that its documentation calls incomplete \citep{GDVSeminar}; without the \texttt{new\_symbols} and \texttt{skolemize} annotations it falls back to entailment in both directions, and the failure of this fallback does not reject the proof \citep{taprogge2026lightweight}. This verifier checks the shape of the transformation, the dependencies of the Skolem term on the universal variables in scope, and the freshness of the symbol (Section~\ref{subsec:design-skolem}).
+  \item \textbf{Faithfulness.} N\"orgler requires that a formula taken from the problem file is a syntactically equal copy (COO). The ProoVer rules and this verifier accept formulas that are alpha-equivalent to the referenced one \citep{proover-competition}.
+  \item \textbf{Scope of checks.} GDV and the N\"orgler paper aim at an \emph{informative} verification, which additionally requires that no formula is unused and that axioms and premises are satisfiable. The competition scores only whether a proof is correct, so this verifier omits these checks (see below).
+\end{itemize}
+
+\paragraph{Check-by-check comparison.}
+Table~\ref{tab:check-comparison} compares the three verifiers along the check taxonomy of Table~\ref{tab:check-taxonomy}.
+The entries for GDV and N\"orgler are taken from the N\"orgler paper and the GDV documentation \citep{taprogge2026lightweight,GDVSeminar}, whereas the entries for this verifier were derived from its source code. Two entries, EIF and NAU, were missing in an earlier version of the verifier, which was detected through this comparison, later confirmed on small hand-made derivations, and then fixed.
+\begin{table}[tbp]
+\centering
+\small
+\caption{Checks of GDV, N\"orgler, and this verifier. ``n.s.'': not stated in the sources. ``added later'': missing in the studied version of GDV, added afterwards.}
+\label{tab:check-comparison}
+\begin{tabular}{@{}l l l l l@{}}
+\toprule
+Check & Group & GDV & N\"orgler & This verifier \\
+\midrule
+EIF & global structure & yes & yes & yes \\
+IAA & global structure & yes & yes & yes \\
+NAU & global structure & n.s. & yes & yes \\
+NUF & global structure & yes & omitted & no \\
+IPE & local structure & yes & yes & yes \\
+ONU & local structure & added later & yes & yes \\
+DCP & local structure & yes & omitted & no \\
+ICN & logical correctness & yes & yes & yes \\
+ICE & logical correctness & ATP & ATP & internal rules, ATP fallback \\
+ICS & logical correctness & ASk, inverse & ASk & internal \\
+APS, PIS & logical correctness & optional & omitted & no \\
+COO & faithfulness & yes (copy) & yes (equal copy) & yes (alpha-equivalent) \\
+\bottomrule
+\end{tabular}
+\end{table}
+Most differences are intentional.
+NUF, DCP, APS, and PIS belong to the properties that make a proof \emph{informative}.
+N\"orgler omits them as well, and they do not affect whether a proof is correct \citep{taprogge2026lightweight}.
+Two rows concern correctness and deserve attention.
+First, EIF requires that the derivation ends in \texttt{\$false}.
+By the soundness argument of Section~\ref{subsec:proof-objects-soundness} this is part of correctness, since sound steps alone do not make a refutation.
+The comparison showed that an earlier version of the verifier did not check this: a derivation that stops after the negated conjecture and never derives \texttt{\$false} was accepted (benchmark proof TST036).
+The verifier now requires a derived step, i.e.\ one that is neither an axiom nor a conjecture and carries an inference, whose formula is \texttt{\$false}.
+Second, NAU: the TPTP conventions require unique formula names \citep{TPTPQuickGuideDerivations}, but the earlier version resolved a parent to the first definition of a name and checked later steps with the same name on their own (benchmark proof TST044).
+The verifier now rejects every derivation in which a name is defined more than once.
+Both checks are cheap, run before any prover is called, and among the 176 benchmark proofs they flag exactly the two seeded faults above; only the verdict of TST036 changes, since TST044 was already rejected for other reasons.
+
+\subsection{Vampire as a Step Validator}
+\label{subsec:rw-vampire}
+
+Vampire \citep{RiazanovVoronkov2002,KovacsVoronkov2013} appears in this thesis in two different roles, which should be kept apart.
+As a \emph{proof producer} it is the source of the derivations that a checker has to read.
+In Section~\ref{subsec:disc-transfer} it is examined how far the verifier developed here carries over to such output.
+And on the other hand as a \emph{step validator}, where it functions as a black box that decides whether a single inference step is logically valid, which is the role discussed here.
+
+The idea is not new.
+GDV \citep{Sutcliffe2006GDV} already verifies a derivation by asking an automated prover whether the conclusion of each inference step follows from its parents and interprets the SZS status of the answer.
+Most ProoVer 2026 entrants that check entailment follow the same scheme (Table~\ref{tab:proover-systems}): N\"orgler, mrs-proover, ProofCheck, and VaLeaDate call Vampire, usually alongside E and, to reject wrong steps, a model finder such as Mace4.
+VaLeaDate \citep{ProoVer2026Proceedings} calls Vampire for every step and additionally checks the whole proof in Lean, and the short paper on Lean and Vampire proofs \citep{LeanOnVampire2026} addresses the related question of validating Vampire's own output in a proof assistant.
+Proof reconstruction in interactive provers, such as Sledgehammer \citep{Bohme2010Sledgehammer}, is the same idea in a stronger form: the answer of the prover is not trusted but replayed in a kernel.
+
+Using a prover as a validator has two properties that determine how a verifier must be built.
+First, the prover is only \emph{complete in the limit}.
+A positive answer (\emph{Theorem}) is evidence for a valid step, but a timeout says nothing, so a verifier cannot treat ``no answer'' as ``invalid''.
+Second, every call costs time that is charged against the per-proof limit of the competition, and the cost varies by orders of magnitude between steps.
+Our verifier therefore uses Vampire in CASC mode only for steps that no internal checker handles and treats a timeout as ``not confirmed''.
+The consequences for each different verdict are listed separately in Section~\ref{subsec:impl-limitations}.
+
+How good such a validator is on the steps of the competition proofs is measured in Section~\ref{subsec:eval-ablation}.
+Among the \EvalIntSteps{} compared steps, Vampire confirms \EvalIntAccYes{} of the internal acceptances, and \EvalIntAccNo{} acceptances remain unconfirmed because Vampire times out.
+Conversely, Vampire would accept \EvalIntRejYes{} steps that the internal checkers reject, both in invalid proofs.
+The prover is thus a useful cross-check but not an oracle: it can neither replace the internal checkers (it is too slow on some steps) nor settle the cases in which they disagree.
 
 \subsection{Proof Checking Beyond TPTP}
 \label{subsec:rw-other}
 
 The idea of independently checking solver output is much older than ProoVer and is established in neighboring areas.
-For propositional satisfiability, proof formats such as DRAT and LRAT allow solvers to produce certificates that small verified checkers validate \citep{PLACEHOLDER_DRAT}.
-For SMT, the Alethe format and checkers such as Carcara play this role \citep{PLACEHOLDER_ALETHE}.
-For first-order proofs, the Dedukti logical framework and its translators, for example from Zenon Modulo or Vampire output, enable verification by a small kernel \citep{PLACEHOLDER_DEDUKTI}.
-In interactive theorem proving, proof reconstruction replays the output of external provers inside the kernel of a proof assistant, as in Sledgehammer for Isabelle/HOL \citep{PLACEHOLDER_SLEDGEHAMMER}.
-GAPT \citep{PLACEHOLDER_GAPT} provides infrastructure for importing and transforming proofs of various provers.
+For propositional satisfiability, proof formats such as DRAT and LRAT allow solvers to produce certificates that small verified checkers validate \citep{Wetzler2014DRATtrim}.
+For SMT, the Alethe format and checkers such as Carcara play this role \citep{Schurr2021Alethe}.
+For first-order proofs, the Dedukti logical framework and its translators, for example from Zenon Modulo, enable verification by a small kernel \citep{Delahaye2013ZenonModulo}.
+In interactive theorem proving, proof reconstruction replays the output of external provers inside the kernel of a proof assistant, as in Sledgehammer for Isabelle/HOL \citep{Bohme2010Sledgehammer}.
+GAPT \citep{Ebner2016GAPT} provides infrastructure for importing and transforming proofs of various provers.
 These approaches generally give stronger guarantees than the direct checking considered here, but they require a proof format that is far more detailed than TSTP, or additional translation steps.
 In contrast, TSTP derivations contain coarse inference steps whose justification is left to the checker, which is the setting of this thesis.
 
@@ -106,11 +195,10 @@ In contrast, TSTP derivations contain coarse inference steps whose justification
 
 Table~\ref{tab:positioning} compares this thesis with the closest systems along the dimensions that matter for its goals.
 
-% TODO: Spalte "This thesis" nach deiner tatsächlichen Implementierung ausfüllen.
-\begin{table}[t]
+\begin{table}[tbp]
 \centering
 \small
-\caption{Comparison of the closest related systems with this thesis. [TODO: fill in the last column according to the implementation; verify the other entries against the system descriptions.]}
+\caption{Comparison of the closest related systems with this thesis, according to their system descriptions \citep{ProoVer2026Proceedings}(n/a: not stated in the description.)}
 \label{tab:positioning}
 \begin{tabular}{@{}l c c c c@{}}
 \toprule
@@ -119,8 +207,8 @@ Dimension & GDV & N\"orgler & ProofGuard / PyCheck & This thesis \\
 Implementation language & C & Scala & Python & Python \\
 Needs external ATP for entailment & yes & yes & yes (E) & yes (Vampire) \\
 Internal Skolem check & -- & yes & yes & yes \\
-Modular per-rule components & [TODO] & [TODO] & [TODO] & yes \\
-Diagnostics per failed step & [TODO] & [TODO] & [TODO] & yes \\
+Reports the offending step & n/a & n/a & n/a & yes \\
+Mutation-based testing & n/a & n/a & ProofGuard & yes \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -130,5 +218,9 @@ This thesis does not claim to be better than these systems in general.
 Instead, it explores a particular trade-off: a small, modular Python checker in which every rule check is an independently testable function, internal checks are tried before any external prover is called, and the verdict policy is derived explicitly from the competition's scoring scheme (Section~\ref{subsec:req-scoring}).
 Compared with GDV and N\"orgler, which send most entailment steps to external provers, it validates the structural, propositional, quantifier, and Skolemization steps itself and uses an ATP only as a fallback.
 This reduces run time and the dependence on the ATP, but increases the amount of checker code that has to be trusted (Chapter~\ref{sec:discussion}).
-Compared with the other Python-based entrants ProofGuard and PyCheck, the differences lie in [TODO: verify against their system descriptions, e.g.\ rule coverage, diagnostics, test strategy].
+Compared with the other Python-based entrants ProofGuard and PyCheck, the differences lie in rule coverage and testing.
+ProofGuard is likewise written in plain Python and is deliberately conservative, but it checks only the negated conjecture and the Skolemization internally and sends all other theorem steps to E.
+It was tested on the published examples, on proofs generated by E, and on mutated variants.
+PyCheck reuses the parser and data structures of PyRes and combines structural checks with calls to an external prover.
+In contrast, this thesis checks \EvalRulesInternal{} rules internally, which is why \EvalInternalPct\,\% of the derived steps do not need a prover (Chapter~\ref{sec:evaluation}), and it uses Vampire instead of E.
 The evaluation in Chapter~\ref{sec:evaluation} substantiates these differences with measurements.
