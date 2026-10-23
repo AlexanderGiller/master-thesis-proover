@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import sys
 import time
 from multiprocessing import Process, Queue
 from pathlib import Path
@@ -683,8 +684,14 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
     return result
 
 
-def _check_proof_worker(proof_path: str, problem_path: str, result_queue: Queue) -> None:
+def _check_proof_worker(
+    proof_path: str, problem_path: str, result_queue: Queue, debug: bool = False
+) -> None:
     """Run proof checking in a subprocess and return result through a queue."""
+    # The flag is passed explicitly: with the "spawn" start method (Windows, macOS)
+    # the child re-imports this module and would otherwise see the default False.
+    global DEBUG_PROOF_FLOW
+    DEBUG_PROOF_FLOW = DEBUG_PROOF_FLOW or debug
     try:
         result = run_with_larger_stack(lambda: check_proof_file(proof_path, problem_path))
         result_queue.put(("result", result))
@@ -693,7 +700,7 @@ def _check_proof_worker(proof_path: str, problem_path: str, result_queue: Queue)
 
 
 def check_proof_file_with_timeout(
-    proof_path: str, problem_path: str, timeout_seconds: float
+    proof_path: str, problem_path: str, timeout_seconds: float, debug: bool | None = None
 ) -> tuple[str, dict | str | None]:
     """Run proof checking with a wall-clock timeout.
 
@@ -702,8 +709,12 @@ def check_proof_file_with_timeout(
         ("timeout", None) on timeout,
         ("error", str) on runtime failure.
     """
+    if debug is None:
+        debug = DEBUG_PROOF_FLOW
     result_queue: Queue = Queue()
-    process = Process(target=_check_proof_worker, args=(proof_path, problem_path, result_queue))
+    process = Process(
+        target=_check_proof_worker, args=(proof_path, problem_path, result_queue, debug)
+    )
     process.start()
 
     # Read the result before joining: a child that has put a large result into the
@@ -735,85 +746,96 @@ def report_proof_check(
     problem_path: str,
     timeout_seconds: float = PER_PROOF_TIMEOUT_SECONDS,
     binary_verdict: bool = False,
+    quiet: bool = False,
+    szs_name: str | None = None,
 ) -> tuple[str, dict | None]:
-    """Run the proof check, print a report, and return the overall status and details."""
-    print(f"\n{'='*70}")
-    print(f"Checking proof: {proof_path}")
-    print(f"Against problem: {problem_path}")
-    print(f"{'='*70}")
+    """Run the proof check, print a report, and return the overall status and details.
+
+    With ``quiet`` only the final ``% SZS status`` line is printed (errors go to stderr);
+    ``szs_name`` appends ``for <name>`` to that line, which batch mode uses.
+    """
+    say = (lambda *a, **k: None) if quiet else print
+    suffix = f" for {szs_name}" if szs_name else ""
+    say(f"\n{'='*70}")
+    say(f"Checking proof: {proof_path}")
+    say(f"Against problem: {problem_path}")
+    say(f"{'='*70}")
 
     outcome, payload = check_proof_file_with_timeout(proof_path, problem_path, timeout_seconds)
 
     if outcome == "timeout":
-        print(f"\n[TIMEOUT] Exceeded wall-clock limit of {timeout_seconds:.1f} seconds")
-        print("\n% SZS status Timeout")
+        say(f"\n[TIMEOUT] Exceeded wall-clock limit of {timeout_seconds:.1f} seconds")
+        print(("" if quiet else "\n") + f"% SZS status Timeout{suffix}")
         return "Timeout", None
     elif outcome == "error":
-        print(f"\n[ERROR] Failed to check proof: {payload}")
-        print("\n% SZS status VerifiedBad")
+        if quiet:
+            print(f"[ERROR] Failed to check proof: {payload}", file=sys.stderr)
+        else:
+            print(f"\n[ERROR] Failed to check proof: {payload}")
+        print(("" if quiet else "\n") + f"% SZS status VerifiedBad{suffix}")
         return "VerifiedBad", None
     else:
         result = payload
 
         if result["circular_dependency_issues"]:
-            print("\n[FAIL] Circular Dependency Issues:")
+            say("\n[FAIL] Circular Dependency Issues:")
             for name, reasons in result["circular_dependency_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] No circular dependencies detected")
+            say("\n[OK] No circular dependencies detected")
 
         for key, label in (
             ("duplicate_name_issues", "Duplicate Name"),
             ("no_false_issues", "Missing $false"),
         ):
             if result[key]:
-                print(f"\n[FAIL] {label} Issues:")
+                say(f"\n[FAIL] {label} Issues:")
                 for name, reasons in result[key].items():
                     for reason in reasons:
-                        print(f"  - {name}: {reason}")
+                        say(f"  - {name}: {reason}")
             else:
-                print(f"\n[OK] No {label.lower()} issues")
+                say(f"\n[OK] No {label.lower()} issues")
 
         if result["axiom_issues"]:
-            print("\n[FAIL] Axiom Provenance Issues:")
+            say("\n[FAIL] Axiom Provenance Issues:")
             for name, reasons in result["axiom_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All axioms verified correctly")
+            say("\n[OK] All axioms verified correctly")
 
         if result["conjecture_issues"]:
-            print("\n[FAIL] Conjecture Provenance Issues:")
+            say("\n[FAIL] Conjecture Provenance Issues:")
             for name, reasons in result["conjecture_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All conjectures verified correctly")
+            say("\n[OK] All conjectures verified correctly")
 
         if result["negated_conjecture_issues"]:
-            print("\n[FAIL] Negated Conjecture Issues:")
+            say("\n[FAIL] Negated Conjecture Issues:")
             for name, reasons in result["negated_conjecture_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All negated conjectures verified correctly")
+            say("\n[OK] All negated conjectures verified correctly")
 
         if result["instantiate_issues"]:
-            print("\n[FAIL] Instantiate Issues:")
+            say("\n[FAIL] Instantiate Issues:")
             for name, reasons in result["instantiate_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All instantiate steps verified correctly")
+            say("\n[OK] All instantiate steps verified correctly")
 
         if result["existential_gen_issues"]:
-            print("\n[FAIL] Existential Gen Issues:")
+            say("\n[FAIL] Existential Gen Issues:")
             for name, reasons in result["existential_gen_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All existential generalization steps verified correctly")
+            say("\n[OK] All existential generalization steps verified correctly")
 
         for key, label in (
             ("modus_ponens_issues", "Modus Ponens"),
@@ -834,35 +856,35 @@ def report_proof_check(
             ("rewrite_issues", "Rewrite"),
         ):
             if result[key]:
-                print(f"\n[FAIL] {label} Issues:")
+                say(f"\n[FAIL] {label} Issues:")
                 for name, reasons in result[key].items():
                     for reason in reasons:
-                        print(f"  - {name}: {reason}")
+                        say(f"  - {name}: {reason}")
             else:
-                print(f"\n[OK] All {label.lower()} steps verified correctly")
+                say(f"\n[OK] All {label.lower()} steps verified correctly")
 
         if result["skolem_issues"]:
-            print("\n[FAIL] Skolem Issues:")
+            say("\n[FAIL] Skolem Issues:")
             for name, reasons in result["skolem_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All skolem steps verified correctly")
+            say("\n[OK] All skolem steps verified correctly")
 
         if result["external_atp_issues"]:
-            print("\n[FAIL] External ATP Issues:")
+            say("\n[FAIL] External ATP Issues:")
             for name, reasons in result["external_atp_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All ATP-checked steps verified correctly")
+            say("\n[OK] All ATP-checked steps verified correctly")
 
         verdict = result.get("verdict") or classify_verdict(result)
         if verdict == VERDICT_UNKNOWN and binary_verdict:
             verdict = VERDICT_BAD
         if verdict == VERDICT_UNKNOWN:
-            print("\n[UNKNOWN] No defect found, but some steps could not be decided; abstaining")
-        print(f"\n% SZS status {verdict}")
+            say("\n[UNKNOWN] No defect found, but some steps could not be decided; abstaining")
+        print(("" if quiet else "\n") + f"% SZS status {verdict}{suffix}")
         return verdict, result
 
 
@@ -881,7 +903,7 @@ def collect_example_pairs(example_dir: Path):
         if problem.exists():
             pairs.append((str(proof), str(problem)))
         else:
-            print(f"Warning: problem file not found for {proof} -> expected {problem}")
+            print(f"Warning: problem file not found for {proof} -> expected {problem}", file=sys.stderr)
     return pairs
 
 
@@ -1008,12 +1030,28 @@ def parse_cli_args() -> argparse.Namespace:
         help="Report VerifiedBad instead of Unknown when a step cannot be decided "
         "(two-valued output).",
     )
+    parser.add_argument(
+        "--debug",
+        default=False,
+        action="store_true",
+        help="Print debug information about the proof flow and ATP calls (sets DEBUG_PROOF_FLOW).",
+    )
+    parser.add_argument(
+        "--quiet",
+        default=False,
+        action="store_true",
+        help="Print only the final SZS status line per proof (batch mode: '%% SZS status X for NAME'); "
+        "errors go to stderr, result CSVs are still written.",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     base = Path(__file__).parent
     args = parse_cli_args()
+    if args.debug:
+        DEBUG_PROOF_FLOW = True
+    out = (lambda *a, **k: None) if args.quiet else print
 
     if args.proof:
         proof_path = Path(args.proof)
@@ -1037,7 +1075,11 @@ if __name__ == "__main__":
             raise SystemExit("Timeout must be greater than zero.")
 
         status, _ = report_proof_check(
-            str(proof_path), str(problem_path), args.timeout, binary_verdict=args.binary_verdict
+            str(proof_path),
+            str(problem_path),
+            args.timeout,
+            binary_verdict=args.binary_verdict,
+            quiet=args.quiet,
         )
         raise SystemExit(0 if status == "VerifiedGood" else 1)
 
@@ -1060,9 +1102,9 @@ if __name__ == "__main__":
         expected_file = base / expected_file
     scorer = ProofScorer(str(expected_file))
     if scorer.expected:
-        print(f"✓ Loaded {len(scorer.expected)} expected results from {expected_file}")
+        out(f"✓ Loaded {len(scorer.expected)} expected results from {expected_file}")
     else:
-        print(f"⚠ Warning: No expected results loaded from {expected_file}")
+        out(f"⚠ Warning: No expected results loaded from {expected_file}")
     
     # Initialize performance tracker
     tracker = PerformanceTracker()
@@ -1099,12 +1141,17 @@ if __name__ == "__main__":
     scoring_results = []
 
     if total == 0:
-        print(f"No proof/problem pairs found in {prover_directory}")
+        print(f"No proof/problem pairs found in {prover_directory}", file=sys.stderr)
     else:
         for proof_sub_path, problem_sub_path in all_pairs:
             tracker.start()
             status, details = report_proof_check(
-                proof_sub_path, problem_sub_path, args.timeout, binary_verdict=args.binary_verdict
+                proof_sub_path,
+                problem_sub_path,
+                args.timeout,
+                binary_verdict=args.binary_verdict,
+                quiet=args.quiet,
+                szs_name=Path(proof_sub_path).stem if args.quiet else None,
             )
             proof_name = Path(proof_sub_path).name
             tracker.stop(proof_name)
@@ -1151,63 +1198,65 @@ if __name__ == "__main__":
                 skolem_failure_count += len(details["skolem_issues"])
                 external_atp_failure_count += len(details["external_atp_issues"])
 
-    print(f"\n{'='*70}")
-    print("Summary")
-    print(f"{'='*70}")
-    print(f"Total proofs checked: {total}")
-    print(f"VerifiedGood: {verified_count}")
-    print(f"VerifiedBad: {not_verified_count}")
-    print(f"Unknown: {unknown_count}")
-    print(f"Timeout: {timeout_count}")
-    print("Failed steps:")
-    print(f"  Axiom verification: {axiom_failure_count}")
-    print(f"  Conjecture verification: {conjecture_failure_count}")
-    print(f"  Negated conjecture: {negated_conjecture_failure_count}")
-    print(f"  Instantiate: {instantiate_failure_count}")
-    print(f"  Existential gen: {existential_gen_failure_count}")
-    print(f"  Modus ponens: {modus_ponens_failure_count}")
-    print(f"  Conjunction: {conjunction_failure_count}")
-    print(f"  Split conjunct: {split_conjunct_failure_count}")
-    print(f"  Copy: {copy_failure_count}")
-    print(f"  Duplicate: {duplicate_failure_count}")
-    print(f"  Rename variable: {rename_variable_failure_count}")
-    print(f"  Double negation: {double_negation_failure_count}")
-    print(f"  Remove double negation: {remove_double_negation_failure_count}")
-    print(f"  Weaken: {weaken_failure_count}")
-    print(f"  Commute: {commute_failure_count}")
-    print(f"  Excluded middle: {excluded_middle_failure_count}")
-    print(f"  Resolution: {resolution_failure_count}")
-    print(f"  Paramodulation: {paramodulation_failure_count}")
-    print(f"  Reflexivity: {reflexivity_failure_count}")
-    print(f"  Transitivity: {transitivity_failure_count}")
-    print(f"  Rewrite: {rewrite_failure_count}")
-    print(f"  Skolemization: {skolem_failure_count}")
-    print(f"  External ATP: {external_atp_failure_count}")
-    print_prv_results_table(prv_results)
+    out(f"\n{'='*70}")
+    out("Summary")
+    out(f"{'='*70}")
+    out(f"Total proofs checked: {total}")
+    out(f"VerifiedGood: {verified_count}")
+    out(f"VerifiedBad: {not_verified_count}")
+    out(f"Unknown: {unknown_count}")
+    out(f"Timeout: {timeout_count}")
+    out("Failed steps:")
+    out(f"  Axiom verification: {axiom_failure_count}")
+    out(f"  Conjecture verification: {conjecture_failure_count}")
+    out(f"  Negated conjecture: {negated_conjecture_failure_count}")
+    out(f"  Instantiate: {instantiate_failure_count}")
+    out(f"  Existential gen: {existential_gen_failure_count}")
+    out(f"  Modus ponens: {modus_ponens_failure_count}")
+    out(f"  Conjunction: {conjunction_failure_count}")
+    out(f"  Split conjunct: {split_conjunct_failure_count}")
+    out(f"  Copy: {copy_failure_count}")
+    out(f"  Duplicate: {duplicate_failure_count}")
+    out(f"  Rename variable: {rename_variable_failure_count}")
+    out(f"  Double negation: {double_negation_failure_count}")
+    out(f"  Remove double negation: {remove_double_negation_failure_count}")
+    out(f"  Weaken: {weaken_failure_count}")
+    out(f"  Commute: {commute_failure_count}")
+    out(f"  Excluded middle: {excluded_middle_failure_count}")
+    out(f"  Resolution: {resolution_failure_count}")
+    out(f"  Paramodulation: {paramodulation_failure_count}")
+    out(f"  Reflexivity: {reflexivity_failure_count}")
+    out(f"  Transitivity: {transitivity_failure_count}")
+    out(f"  Rewrite: {rewrite_failure_count}")
+    out(f"  Skolemization: {skolem_failure_count}")
+    out(f"  External ATP: {external_atp_failure_count}")
+    if not args.quiet:
+        print_prv_results_table(prv_results)
     
     # Print performance summary
     if tracker.get_all_measurements():
-        print(f"\n{'='*70}")
-        print("PERFORMANCE SUMMARY")
-        print(f"{'='*70}")
+        out(f"\n{'='*70}")
+        out("PERFORMANCE SUMMARY")
+        out(f"{'='*70}")
         
         overall = tracker.get_overall_summary()
-        print(f"Total proofs checked:  {overall['total_measurements']}")
-        print(f"Av. WC Time:           {overall['avg_wc_time']:.4f} seconds")
-        print(f"Av. CPU Time:          {overall['avg_cpu_time']:.4f} seconds")
-        print(f"Total WC Time:         {overall['total_wc_time']:.2f} seconds")
-        print(f"Total CPU Time:        {overall['total_cpu_time']:.2f} seconds")
-        print(f"Min WC Time:           {overall['min_wc_time']:.4f} seconds")
-        print(f"Max WC Time:           {overall['max_wc_time']:.4f} seconds")
+        out(f"Total proofs checked:  {overall['total_measurements']}")
+        out(f"Av. WC Time:           {overall['avg_wc_time']:.4f} seconds")
+        out(f"Av. CPU Time:          {overall['avg_cpu_time']:.4f} seconds")
+        out(f"Total WC Time:         {overall['total_wc_time']:.2f} seconds")
+        out(f"Total CPU Time:        {overall['total_cpu_time']:.2f} seconds")
+        out(f"Min WC Time:           {overall['min_wc_time']:.4f} seconds")
+        out(f"Max WC Time:           {overall['max_wc_time']:.4f} seconds")
         
         # Calculate overhead
         total_overhead = overall['total_wc_time'] - overall['total_cpu_time']
         overhead_pct = (total_overhead / overall['total_wc_time'] * 100) if overall['total_wc_time'] > 0 else 0
-        print(f"Total Overhead:        {total_overhead:.2f} seconds ({overhead_pct:.1f}%)")
-        print(f"{'='*70}\n")
+        out(f"Total Overhead:        {total_overhead:.2f} seconds ({overhead_pct:.1f}%)")
+        out(f"{'='*70}\n")
         
         # Print detailed performance table
-        print_performance_table(tracker)
+        if not args.quiet:
+            print_performance_table(tracker)
         
         # Export performance data to CSV
         perf_csv_file = base / "results" / f"{run_name}_performance.csv"
@@ -1218,7 +1267,7 @@ if __name__ == "__main__":
             for m in tracker.get_all_measurements():
                 overhead = m.wc_time - m.cpu_time
                 writer.writerow([m.operation_name, f"{m.wc_time:.4f}", f"{m.cpu_time:.4f}", f"{overhead:.4f}"])
-        print(f"Performance data exported to: {perf_csv_file}\n")
+        out(f"Performance data exported to: {perf_csv_file}\n")
 
     # Print scoring summary
     if scoring_results:
@@ -1228,4 +1277,4 @@ if __name__ == "__main__":
         # Export results to CSV
         output_csv = base / "results" / f"{run_name}_results.csv"
         scorer.export_results_to_csv(scoring_results, str(output_csv))
-        print(f"\nScoring results exported to: {output_csv}")
+        out(f"\nScoring results exported to: {output_csv}")

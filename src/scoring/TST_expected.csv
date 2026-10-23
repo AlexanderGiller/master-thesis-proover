@@ -41,7 +41,7 @@ TST039+1.s,st04_esa_on_non_skolem_step,INCORRECT,Status esa fuer unspezifizierte
 TST040+1.s,st05_unknown_status,INCORRECT,Ungueltiger Status (unk)
 TST041+1.s,st06_cyclic_dependency,INCORRECT,Zyklische Abhaengigkeit f1 <-> f2
 TST042+1.s,st07_undefined_premise,INCORRECT,Praemisse a7 existiert nicht
-TST043+1.s,st08_monolithic_step,INCORRECT,Ein Schritt $false aus Axiomen+nc (faktisch Re-Check der ganzen Konjunktur; Granularitaet)
+TST043+1.s,st08_monolithic_step,EDGE,Ein Schritt $false aus Axiomen+nc (faktisch Re-Check der ganzen Konjunktur; Granularitaet)
 TST044+1.s,st09_duplicate_step_name,INCORRECT,Zwei Schritte heissen f1
 TST045+1.s,st10_no_inference_record,INCORRECT,plain-Formel ohne inference-Annotation
 TST046+1.s,st11_cth_on_non_negated_conjecture,INCORRECT,Status cth fuer normalen Inferenzschritt

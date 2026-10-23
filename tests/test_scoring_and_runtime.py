@@ -80,11 +80,11 @@ def test_introduced_formula_cannot_be_verified(tmp_path):
 # --- timeout wrapper ---------------------------------------------------------------
 
 
-def _slow_worker(proof_path, problem_path, result_queue):
+def _slow_worker(proof_path, problem_path, result_queue, debug=False):
     time.sleep(5)
 
 
-def _dying_worker(proof_path, problem_path, result_queue):
+def _dying_worker(proof_path, problem_path, result_queue, debug=False):
     sys.exit(3)
 
 

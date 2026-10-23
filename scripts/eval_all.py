@@ -45,6 +45,14 @@ sys.path.insert(0, str(ROOT))
 
 OUT = ROOT / "results" / "eval"
 GEN = ROOT / "thesis" / "generated"
+# the nine sample proofs that were not scored in the competition; all ProoVer statistics
+# of the thesis refer to the 91 official pairs, the deprecated ones only appear in the totals
+DEPRECATED = {p.name for p in (ROOT / "ProoVer2026" / "Deprecated").glob("*.s")}
+
+
+def is_official(r: dict) -> bool:
+    proof = str(r["proof"]).replace("\\", "/")
+    return "/Deprecated/" not in proof and proof.rsplit("/", 1)[-1] not in DEPRECATED
 DIAG = ROOT / "thesis" / "diagrams"
 WORKER = ROOT / "scripts" / "_eval_worker.py"
 TIME_LIMIT = 30.0
@@ -122,6 +130,7 @@ def collect() -> list[dict]:
 
 def run_worker(proof: str, problem: str, env: dict | None = None, timeout: float = TIME_LIMIT) -> dict:
     t0 = time.perf_counter()
+    t0_abs = time.time()
     e = dict(os.environ)
     if env:
         e.update(env)
@@ -133,7 +142,10 @@ def run_worker(proof: str, problem: str, env: dict | None = None, timeout: float
     for line in cp.stdout.splitlines():
         if line.startswith("@@JSON@@"):
             rec = json.loads(line[8:])
-            rec["total_wall"] = total
+            # total = process start until the end of the check (what the competition measures);
+            # the extra parse measurement of the worker after the check is not included
+            rec["process_wall"] = total
+            rec["total_wall"] = rec["t_check_end"] - t0_abs if rec.get("t_check_end") else total
             rec["timeout"] = False
             return rec
     return dict(timeout=False, error=(cp.stderr.strip().splitlines() or ["worker produced no output"])[-1], total_wall=total, all_ok=None)
@@ -224,7 +236,10 @@ def part_runs(reps: int, tag: str = "runs", env: dict | None = None) -> list[dic
     out = []
     for i, it in enumerate(items, 1):
         recs = [run_worker(it["proof"], it["problem"], env) for _ in range(reps)]
-        r = dict(recs[0])
+        # keep the phases (start-up, parsing, ATP, checks) of the median repetition, so that
+        # they add up to the reported median total (Table tab:eval-slowest)
+        med_rec = sorted(recs, key=lambda x: x["total_wall"])[len(recs) // 2]
+        r = dict(med_rec)
         r.update(it)
         r["total_wall_reps"] = [x["total_wall"] for x in recs]
         r["wall_reps"] = [x.get("wall") for x in recs if x.get("wall") is not None]
@@ -272,7 +287,8 @@ def step_classes(rec: dict) -> list[dict]:
 def make_tables() -> None:
     runs = load("runs")
     info = json.loads((OUT / "env.json").read_text(encoding="utf-8"))
-    prv = [r for r in runs if r["group"] == "PRV"]
+    prv_all = [r for r in runs if r["group"] == "PRV"]
+    prv = [r for r in prv_all if is_official(r)]
     tst = [r for r in runs if r["group"] == "TST"]
     M: dict[str, object] = {}
 
@@ -294,14 +310,14 @@ def make_tables() -> None:
     def count(rs, exp, ver):
         return sum(1 for r in rs if r["expected"] == exp and verdict(r) == ver)
 
-    n_val = sum(r["expected"] == "CORRECT" for r in prv)
-    n_inv = sum(r["expected"] == "INCORRECT" for r in prv)
+    n_val = sum(r["expected"] == "CORRECT" for r in prv_all)
+    n_inv = sum(r["expected"] == "INCORRECT" for r in prv_all)
     rows = []
     score = 0
     wrong_acc = 0
     cells = {}
     for exp, label, n in (("CORRECT", "valid", n_val), ("INCORRECT", "invalid", n_inv)):
-        rs_e = [r for r in prv if r["expected"] == exp]
+        rs_e = [r for r in prv_all if r["expected"] == exp]
         v = sum(1 for r in rs_e if ternary(r) == "verified")
         t = sum(1 for r in rs_e if verdict(r) == "Timeout")
         u = sum(1 for r in rs_e if ternary(r) == "uncertain") - t
@@ -312,18 +328,11 @@ def make_tables() -> None:
         if exp == "INCORRECT":
             wrong_acc = v
         rows.append(f"{label} ({n}) & {v} & {b} & {u} & {t} & ${pts:+d}$ \\\\")
-    body = "\n".join(rows)
-    write(
-        GEN / "tab_matrix.tex",
-        "\\begin{tabular}{@{}l c c c c r@{}}\n\\toprule\nExpected $\\backslash$ verdict & verified & failed & unknown & timeout & Points \\\\\n\\midrule\n"
-        + body
-        + f"\n\\midrule\nTotal & {cells['CORRECT'][0] + cells['INCORRECT'][0]} & {cells['CORRECT'][1] + cells['INCORRECT'][1]} & {cells['CORRECT'][2] + cells['INCORRECT'][2]} & {cells['CORRECT'][3] + cells['INCORRECT'][3]} & ${score:+d}$ \\\\\n\\bottomrule\n\\end{{tabular}}\n",
-    )
     maxscore = n_val + 2 * n_inv
     M.update(
         EvalNValid=n_val,
         EvalNInvalid=n_inv,
-        EvalNPrv=len(prv),
+        EvalNPrv=len(prv_all),
         EvalAccValid=cells["CORRECT"][0],
         EvalRejValid=cells["CORRECT"][1],
         EvalUnknownValid=cells["CORRECT"][2],
@@ -339,7 +348,7 @@ def make_tables() -> None:
     )
 
     # --- official competition proofs (ProoVer2026/PRV) versus the sample proofs (ProoVer2026/Deprecated)
-    off = [r for r in prv if "/Deprecated/" not in r["proof"].replace("\\", "/")]
+    off = [r for r in prv_all if is_official(r)]
     off_val = [r for r in off if r["expected"] == "CORRECT"]
     off_inv = [r for r in off if r["expected"] == "INCORRECT"]
     off_score = sum(points(r["expected"], ternary(r)) for r in off)
@@ -354,7 +363,46 @@ def make_tables() -> None:
         EvalOffWrongAcc=sum(1 for r in off_inv if verdict(r) == "VerifiedGood"),
         EvalOffScore=off_score,
         EvalOffMaxScore=len(off_val) + 2 * len(off_inv),
-        EvalSampleN=len(prv) - len(off),
+        EvalSampleN=len(prv_all) - len(off),
+    )
+
+    # verdict matrix (Table tab:eval-matrix): the official pairs are the primary result,
+    # the deprecated sample proofs are only added as a total row
+    def matrix_cells(rs):
+        out = {}
+        for exp in ("CORRECT", "INCORRECT"):
+            rs_e = [r for r in rs if r["expected"] == exp]
+            t_ = sum(1 for r in rs_e if verdict(r) == "Timeout")
+            out[exp] = (
+                sum(1 for r in rs_e if ternary(r) == "verified"),
+                sum(1 for r in rs_e if ternary(r) == "failed"),
+                sum(1 for r in rs_e if ternary(r) == "uncertain") - t_,
+                t_,
+                sum(points(exp, ternary(r)) for r in rs_e),
+                len(rs_e),
+            )
+        return out
+
+    oc = matrix_cells(off)
+    mrows = [
+        f"{label} ({oc[exp][5]}) & {oc[exp][0]} & {oc[exp][1]} & {oc[exp][2]} & {oc[exp][3]} & ${oc[exp][4]:+d}$ \\\\"
+        for exp, label in (("CORRECT", "valid"), ("INCORRECT", "invalid"))
+    ]
+    tot = [oc["CORRECT"][i] + oc["INCORRECT"][i] for i in range(5)]
+    allc = [cells["CORRECT"][i] + cells["INCORRECT"][i] for i in range(5)]
+    write(
+        GEN / "tab_matrix.tex",
+        "\\begin{tabular}{@{}l c c c c r@{}}\n\\toprule\nExpected $\\backslash$ verdict & verified & failed & unknown & timeout & Points \\\\\n\\midrule\n"
+        + "\n".join(mrows)
+        + f"\n\\midrule\nTotal ({len(off)} official pairs) & {tot[0]} & {tot[1]} & {tot[2]} & {tot[3]} & ${tot[4]:+d}$ \\\\\n"
+        + f"incl. {len(prv_all) - len(off)} deprecated ({len(prv_all)}) & {allc[0]} & {allc[1]} & {allc[2]} & {allc[3]} & ${allc[4]:+d}$ \\\\\n"
+        + "\\bottomrule\n\\end{tabular}\n",
+    )
+    M.update(
+        EvalOffRejValid=oc["CORRECT"][1],
+        EvalOffUnknownValid=oc["CORRECT"][2],
+        EvalOffUnknownInvalid=oc["INCORRECT"][2],
+        EvalOffScorePct=pct(off_score, len(off_val) + 2 * len(off_inv)),
     )
 
     # --- TST by group
@@ -481,7 +529,7 @@ def make_tables() -> None:
         EvalAtpCalls=sum(r.get("atp_calls", 0) for r in prv),
         EvalAtpMean=fmt_t(st.mean([c["t"] for r in prv for calls in (r.get("atp") or {}).values() for c in calls]) if any(r.get("atp") for r in prv) else 0),
         EvalAtpMedian=fmt_t(st.median([c["t"] for r in prv for calls in (r.get("atp") or {}).values() for c in calls]) if any(r.get("atp") for r in prv) else 0),
-        EvalInterpStart=fmt_t(st.median([r["t_import"] for r in base_runs if r.get("t_import")])),
+        EvalInterpStart=fmt_t(st.median([(r["total_wall"] - r["wall"]) if r.get("t_check_end") else r.get("t_import", 0) for r in base_runs if r.get("wall") is not None and not r.get("timeout")])),
         EvalNoAtpMedian=fmt_t(st.median([r["total_wall_median"] for r in prv if not r.get("atp_calls") and not r.get("timeout")]) if any(not r.get("atp_calls") for r in prv) else 0),
     )
 
@@ -510,9 +558,16 @@ def make_tables() -> None:
         total = r["total_wall_median"]
         atp_t = r.get("atp_time", 0)
         parse = r.get("parse_warm", 0)
-        rest = max(total - atp_t - parse - r.get("t_import", 0), 0)
+        # all phases come from the median repetition: start-up = total minus the check itself,
+        # rule checks = check minus parsing minus prover
+        if r.get("t_check_end"):
+            startup = max(total - r.get("wall", 0), 0)
+            rest = max(r.get("wall", 0) - atp_t - parse, 0)
+        else:  # results of an older worker version (total included extra parse passes)
+            startup = r.get("t_import", 0)
+            rest = max(total - atp_t - parse - startup, 0)
         rows.append(
-            f"{tt(r['name'])} & {len(r.get('steps', []))} & {r.get('atp_calls', 0)} & {fmt_t(r.get('t_import', 0))} & {fmt_t(parse)} & {fmt_t(atp_t)} & {fmt_t(rest)} & {fmt_t(total)} & {r.get('maxrss_kb', 0) / 1024:.0f} \\\\"
+            f"{tt(r['name'])} & {len(r.get('steps', []))} & {r.get('atp_calls', 0)} & {fmt_t(startup)} & {fmt_t(parse)} & {fmt_t(atp_t)} & {fmt_t(rest)} & {fmt_t(total)} & {r.get('maxrss_kb', 0) / 1024:.0f} \\\\"
         )
     write(
         GEN / "tab_slowest.tex",
@@ -577,17 +632,18 @@ def make_tables() -> None:
         return sum(points(r["expected"], f(r)) for r in rs)
 
     M.update(
-        EvalScoreBinary=score_policy(prv, binary),
+        EvalScoreBinary=score_policy(prv_all, binary),
         EvalOffScoreBinary=off_score_bin,
-        EvalScoreTernary=score_policy(prv, ternary),
+        EvalScoreTernary=score_policy(prv_all, ternary),
         EvalUncertainCount=sum(1 for r in prv if ternary(r) == "uncertain"),
     )
 
     # --- no-ATP ablation
     if (OUT / "noatp.json").exists():
-        na = [r for r in load("noatp") if r["group"] == "PRV"]
+        # only the 91 official pairs (ProoVer2026/PRV), as in the main evaluation
+        na = [r for r in load("noatp") if r["group"] == "PRV" and "/Deprecated/" not in r["proof"].replace("\\", "/")]
         rowsn = []
-        for label, rs in (("with prover", prv), ("without prover", na)):
+        for label, rs in (("with prover", off), ("without prover", na)):
             ver_v = sum(1 for r in rs if r["expected"] == "CORRECT" and verdict(r) == "VerifiedGood")
             ver_i = sum(1 for r in rs if r["expected"] == "INCORRECT" and verdict(r) == "VerifiedGood")
             rej_i = sum(1 for r in rs if r["expected"] == "INCORRECT" and verdict(r) != "VerifiedGood")
@@ -664,7 +720,7 @@ def part_internal(cap_per_proof: int = 8, max_total: int = 700) -> None:
     from src.checker.external_atp_checker import validate_step_with_atp
 
     V.DEBUG_PROOF_FLOW = False
-    runs = [r for r in load("runs") if r["group"] == "PRV"]
+    runs = [r for r in load("runs") if r["group"] == "PRV" and is_official(r)]
     rows = []
     rng = random.Random(7)
     for r in runs:
@@ -692,7 +748,7 @@ def part_internal(cap_per_proof: int = 8, max_total: int = 700) -> None:
 
 
 def tables_internal() -> None:
-    rows = json.loads((OUT / "internal.json").read_text(encoding="utf-8"))
+    rows = [r for r in json.loads((OUT / "internal.json").read_text(encoding="utf-8")) if r["proof"] not in DEPRECATED]
     per = defaultdict(Counter)
     times = []
     for r in rows:
@@ -842,7 +898,7 @@ def part_mutation(per_op: int = 2, max_steps: int = 80) -> None:
     from src.checker.external_atp_checker import validate_step_with_atp
 
     V.DEBUG_PROOF_FLOW = False
-    runs = [r for r in load("runs") if r["group"] in ("PRV",) and r["expected"] == "CORRECT" and verdict(r) == "VerifiedGood" and len(r.get("steps", [])) <= max_steps]
+    runs = [r for r in load("runs") if r["group"] in ("PRV",) and is_official(r) and r["expected"] == "CORRECT" and verdict(r) == "VerifiedGood" and len(r.get("steps", [])) <= max_steps]
     rng = random.Random(2026)
     orig_load = V.load_proof
     rows = []
@@ -888,7 +944,7 @@ def part_mutation(per_op: int = 2, max_steps: int = 80) -> None:
 
 
 def tables_mutation() -> None:
-    rows = json.loads((OUT / "mutation.json").read_text(encoding="utf-8"))
+    rows = [r for r in json.loads((OUT / "mutation.json").read_text(encoding="utf-8")) if r["proof"] not in DEPRECATED]
     lines = []
     tot = Counter()
     for op in OPERATORS:

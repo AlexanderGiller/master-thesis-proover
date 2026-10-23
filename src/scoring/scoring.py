@@ -1,6 +1,7 @@
 """Scoring system for proof verification results."""
 
 import csv
+import sys
 from pathlib import Path
 
 
@@ -121,7 +122,7 @@ class ProofScorer:
         path = Path(file_path)
 
         if not path.exists():
-            print(f"Warning: Expected results file not found: {file_path}")
+            print(f"Warning: Expected results file not found: {file_path}", file=sys.stderr)
             return expected
 
         try:
@@ -138,7 +139,7 @@ class ProofScorer:
                     if status:
                         expected[row[0].strip()] = status
         except Exception as e:
-            print(f"Error loading expected results: {e}")
+            print(f"Error loading expected results: {e}", file=sys.stderr)
 
         return expected
 
