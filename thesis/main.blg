@@ -4,52 +4,45 @@ The top-level auxiliary file: main.aux
 Reallocating 'name_of_file' (item size: 1) to 12 items.
 The style file: language-dt.bst
 Reallocating 'name_of_file' (item size: 1) to 13 items.
-Reallocating 'name_of_file' (item size: 1) to 23 items.
 Database file #1: bibliography.bib
-Database file #2: bibliography_additions.bib
-Warning--to sort, need author or key in ProoVer2026Proceedings
-Warning--empty booktitle in RiazanovVoronkov2002
-Warning--can't use both volume and number fields in RiazanovVoronkov2002
-Warning--empty journal in taprogge2026formal
-You've used 68 entries,
+You've used 44 entries,
             2865 wiz_defined-function locations,
-            1030 strings with 15359 characters,
-and the built_in function-call counts, 38031 in all, are:
-= -- 3101
-> -- 1094
-< -- 138
-+ -- 398
-- -- 285
-* -- 2641
-:= -- 5396
-add.period$ -- 290
-call.type$ -- 68
-change.case$ -- 492
-chr.to.int$ -- 73
-cite$ -- 74
-duplicate$ -- 3227
-empty$ -- 3238
-format.name$ -- 489
-if$ -- 7930
-int.to.chr$ -- 12
+            910 strings with 12536 characters,
+and the built_in function-call counts, 26975 in all, are:
+= -- 2231
+> -- 814
+< -- 84
++ -- 291
+- -- 218
+* -- 1945
+:= -- 3706
+add.period$ -- 198
+call.type$ -- 44
+change.case$ -- 342
+chr.to.int$ -- 46
+cite$ -- 44
+duplicate$ -- 2298
+empty$ -- 2241
+format.name$ -- 366
+if$ -- 5641
+int.to.chr$ -- 6
 int.to.str$ -- 1
-missing$ -- 596
-newline$ -- 359
-num.names$ -- 281
-pop$ -- 1131
+missing$ -- 429
+newline$ -- 236
+num.names$ -- 181
+pop$ -- 819
 preamble$ -- 1
-purify$ -- 401
+purify$ -- 276
 quote$ -- 0
-skip$ -- 1260
+skip$ -- 863
 stack$ -- 0
-substring$ -- 1739
-swap$ -- 1566
-text.length$ -- 22
+substring$ -- 1278
+swap$ -- 1187
+text.length$ -- 21
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 579
-warning$ -- 4
-while$ -- 226
+type$ -- 387
+warning$ -- 0
+while$ -- 166
 width$ -- 0
-write$ -- 919
-(There were 4 warnings)
+write$ -- 615

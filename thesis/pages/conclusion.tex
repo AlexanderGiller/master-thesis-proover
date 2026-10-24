@@ -4,32 +4,32 @@
 \subsection{Summary}
 
 This thesis designed and implemented a Python-based verifier for TSTP derivations for the ProoVer 2026 competition.
-The starting point was the observation that the competition's scoring scheme is highly asymmetric: a wrongly accepted proof costs ten points, a correct acceptance gains one.
-From the expected score of the three possible answers, we derived a fail-closed policy with a three-valued verdict: the verifier accepts only if every step is validated positively, rejects only if it has found a concrete defect, and abstains otherwise.
-The verifier realizes this policy as a modular pipeline: a parser, global checks of provenance, dependencies, and the negated conjecture, rule-local checkers for structural, propositional, quantifier, and clausal rules, a dedicated check for Skolemization including the freshness of the introduced symbols, and a restricted fallback to an external prover for the remaining steps.
+The starting point was the strongly asymmetric scoring scheme of the competition, in which a wrongly accepted proof costs ten points and a correct acceptance gains one.
+From the expected score of the three possible answers we derived a fail-closed policy with a three-valued verdict. The verifier accepts only if every step is validated, rejects only if it has found a concrete defect, and abstains otherwise.
+The verifier implements this policy as a modular pipeline with a parser, global checks of provenance, dependencies, and the negated conjecture, rule-local checkers for structural, propositional, quantifier, and clausal rules, a dedicated check for Skolemization including the freshness of the introduced symbols, and a restricted fallback to an external prover for the remaining steps.
 A soundness argument shows that acceptance implies unsatisfiability of the axioms together with the negated conjecture, under the assumption that the rule checkers are correct and the prover is sound.
 
 \subsection{Answers to the Research Questions}
 
 \paragraph{RQ1: Which rules and fragments must be supported?}
 The ProoVer set uses \EvalRulesInSet{} distinct inference rules.
-Of these, \EvalRulesInternal{} are checked internally, which covers \EvalInternalPct\,\% of all \EvalDerivedSteps{} derived steps (the share is dominated by three very long proofs; the median over proofs is \EvalInternalMedianShare\,\%); the remaining \EvalRulesDelegated{} rules, among them \texttt{consequence}, are delegated to the prover.
-Skolemization is the one rule that has to be checked internally, since it preserves only satisfiability and cannot be validated by entailment, and the checks for quantifier scope, polarity, and freshness are needed to reject the subtle errors in the invalid proofs.
+Of these, \EvalRulesInternal{} are checked internally, which covers \EvalInternalPct\,\% of all \EvalDerivedSteps{} derived steps (the share is dominated by three very long proofs, the median over proofs is \EvalInternalMedianShare\,\%). The remaining \EvalRulesDelegated{} rules, among them \texttt{consequence}, are delegated to the prover.
+Skolemization is the one rule that has to be checked internally, because it only preserves satisfiability and cannot be validated by entailment. The checks for quantifier scope, polarity, and freshness are what rejects the small but decisive errors in the invalid proofs.
 
 \paragraph{RQ2: How does modularity keep the trusted part small and extensible?}
 Every rule check is a function of a step and its parents and returns structured issues.
 The checkers can be tested in isolation, which is reflected in a test suite of 293 tests with a statement coverage of \EvalCheckerCov\,\% for the checker package, and an error can be attributed to a step and a reason.
 The trusted part consists of the parser, the alpha-equivalence check, the rule checkers, the serialization to the prover, and the verdict aggregation, in total about 4\,500 lines (\EvalCheckerLines{} of them in the checker package), plus the external prover as an assumption (Section~\ref{subsec:disc-tcb}).
-The dispatcher is still a chain of conditions, so that a new rule needs one function and one branch in the driver; the registry of the design remains future work (Section~\ref{subsec:impl-limitations}).
+A new rule needs one function and one branch in the driver, because the registry of the design is not yet implemented (Section~\ref{subsec:disc-limitations}).
 
 \paragraph{RQ3: How do correctness, run time, and memory behave?}
-On the \EvalOffN{} proofs of the benchmark, the verifier reaches \EvalOffScore{} of \EvalOffMaxScore{} points under the default three-valued verdict (\EvalOffScoreBinary{} with the binary option; \EvalScore{} of \EvalMaxScore{} including the \EvalSampleN{} deprecated proofs) with \EvalWrongAcc{} wrong acceptances, a median run time of \EvalWallMedian{} and a maximum of \EvalWallMax; \EvalTimeouts{} proofs hit the time limit, and the peak memory is \EvalRssMax\,MB.
-The mutation experiment rejects all \EvalMutKilled{} mutants that are no longer valid (of \EvalMutN{}; the \EvalMutEq{} survivors are still valid), and with the prover removed the verifier still makes no wrong acceptance, which confirms the fail-closed property empirically.
-For typical proofs the run time is dominated by the start-up of the interpreter, for the three very long proofs by parsing and rule checks, and the prover takes \EvalAtpShare\,\% of the time; the exception is \texttt{PRV099}, whose single prover call takes about 8.5\,s.
+On the \EvalOffN{} proofs of the benchmark, the verifier reaches \EvalOffScore{} of \EvalOffMaxScore{} points under the default three-valued verdict (\EvalOffScoreBinary{} with the binary option, \EvalScore{} of \EvalMaxScore{} including the \EvalSampleN{} deprecated proofs) with \EvalWrongAcc{} wrong acceptances, a median run time of \EvalWallMedian{}, and a maximum of \EvalWallMax. \EvalTimeouts{} proofs hit the time limit, and the peak memory is \EvalRssMax\,MB.
+The mutation experiment rejects all \EvalMutKilled{} mutants that are no longer valid (out of \EvalMutN{} mutants, the \EvalMutEq{} survivors are still valid), and with the prover removed the verifier still makes no wrong acceptance, which confirms the fail-closed property empirically.
+For typical proofs the run time is dominated by the start-up of the interpreter, for the three very long proofs by parsing, and the prover takes \EvalAtpShare\,\% of the time. The exception is \texttt{PRV099}, whose prover call for one step takes about 9\,s.
 
 \subsection{Contributions Revisited}
 
-The thesis contributes (i) a verdict policy for proof checking derived from the scoring scheme, together with a soundness argument that accounts for the different semantics of \texttt{thm} and \texttt{esa} steps; (ii) a modular architecture and its implementation with a dedicated Skolem check and a restricted ATP fallback; and (iii) an evaluation on the competition benchmark and on a suite of mutated and hand-written proofs that measures correctness, coverage, run time, and robustness, with an analysis of the remaining limitations.
+The thesis contributes (i) a verdict policy for proof checking derived from the scoring scheme, together with a soundness argument that accounts for the different semantics of \texttt{thm} and \texttt{esa} steps, (ii) a modular architecture and its implementation with a dedicated Skolem check and a restricted ATP fallback, and (iii) an evaluation on the competition benchmark and on a suite of mutated and hand-written proofs that measures correctness, coverage, run time, and robustness, with an analysis of the remaining limitations.
 
 \subsection{Future Work}
 
@@ -37,8 +37,8 @@ Several directions follow from the limitations of Section~\ref{subsec:disc-limit
 \begin{itemize}
   \item \textbf{Registry-based dispatch.} Replace the \texttt{if}/\texttt{elif} dispatcher by the registry of the design, so that adding a rule needs one entry and one function.
   \item \textbf{Stronger checks for weak rules.} Reconstruct the missing demodulating equation of \texttt{rewrite} steps (a plain entailment test is not enough, because it would accept steps that follow from the parent but not by the cited rule), clarify the semantics of the rule \texttt{trivial} with status \texttt{esa} with the organizers, and add checks for Herbrand symbols once their meaning is fixed by the specification.
-  \item \textbf{Counter-model search.} Use a model finder to reject steps that are not entailed, as N\"orgler does, which would turn more unresolved steps into defects and thereby recover the $+2$ for invalid proofs.
-  \item \textbf{Parallel and budgeted prover calls.} Run the prover calls for independent steps in parallel under a shared time budget, and cache results across steps.
-  \item \textbf{Smaller trusted base.} Move closer to the de Bruijn criterion: reduce the rule checkers to a small LCF-style kernel of primitive operations, validate the internal checks themselves, for example by formalizing the Skolem conditions in a proof assistant, or replace prover calls by certificates that a small kernel can check, following the approaches discussed in Chapter~\ref{sec:related-work}.
+  \item \textbf{Counter-model search.} Use a model finder to reject steps that are not entailed, as N\"orgler does, which would turn more unresolved steps into defects and so recover the $+2$ for invalid proofs.
+  \item \textbf{Parallel and budgeted prover calls.} Run the prover calls for independent steps in parallel under a shared time budget, give every call a short limit first so that cheap defects such as the one in \texttt{PRV099} are found before hard steps use up the budget, stop once a definite defect is found, and cache results across steps.
+  \item \textbf{Smaller trusted base.} Move closer to the de Bruijn criterion by reducing the rule checkers to a small LCF-style kernel of primitive operations, by validating the internal checks themselves, for example by formalizing the Skolem conditions in a proof assistant, or by replacing prover calls by certificates that a small kernel can check, following the approaches discussed in Chapter~\ref{sec:related-work}.
   \item \textbf{Broader input.} Support CNF proofs and further rule vocabularies, and compare the verifier with GDV and N\"orgler on a common benchmark.
 \end{itemize}

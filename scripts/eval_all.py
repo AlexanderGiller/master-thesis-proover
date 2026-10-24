@@ -514,7 +514,7 @@ def make_tables() -> None:
     walls = [r["total_wall_median"] for r in prv if not r.get("timeout")]
     all_w = sorted(walls)
     p90 = all_w[int(0.9 * (len(all_w) - 1))] if all_w else 0
-    base_runs = [r for r in runs if r["group"] != "EXT"]  # PRV and TST; the EXT suite is reported separately
+    base_runs = prv  # run time and memory refer to the official pairs, like all other ProoVer statistics
     rss = [r["maxrss_kb"] / 1024 for r in base_runs if r.get("maxrss_kb")]
     n_to = sum(1 for r in prv if r.get("timeout"))
     M.update(

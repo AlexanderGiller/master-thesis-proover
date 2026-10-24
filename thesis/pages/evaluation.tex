@@ -1,10 +1,3 @@
-% Benötigt: \usepackage{booktabs,array,graphicx}
-% Alle Zahlen stammen aus `python scripts/eval_all.py --parts all` und stehen als Makros bzw. Tabellen in thesis/generated/.
-% In main.tex (Präambel oder hier) einbinden:
-%   \input{generated/eval_macros}  \input{generated/eval_internal_macros}  \input{generated/eval_mutation_macros}
-%   \input{generated/eval_inputs_macros}  \input{generated/eval_extra_macros}  \input{generated/eval_size_macros}
-% Offen: CASC30-URL pruefen.
-
 \input{generated/eval_macros}\input{generated/eval_internal_macros}\input{generated/eval_mutation_macros}
 \input{generated/eval_inputs_macros}\input{generated/eval_extra_macros}\input{generated/eval_size_macros}
 
@@ -21,10 +14,10 @@ Section~\ref{subsec:eval-modularity} reports the properties of the architecture 
 
 \paragraph{Benchmarks.}
 The evaluation uses three proof sets.
-The \emph{ProoVer set} consists of the \EvalNPrv{} problem/proof pairs that were initially provided for ProoVer 2026, of which \EvalNValid{} are valid and \EvalNInvalid{} contain a deliberate error according to the expected results.
-Of these, only \EvalOffN{} pairs (directory \texttt{PRV}, \EvalOffValid{} valid, \EvalOffInvalid{} invalid) form the actual benchmark.
-The remaining \EvalSampleN{} pairs (directory \texttt{Deprecated}) no longer appear in the results published by the organizers and were apparently not scored in the competition, whose scores refer to the \EvalOffN{} pairs. Their expected results are only known from the version of the benchmark distributed before the results, so that a verdict on them cannot be scored reliably.
-We therefore treat the score on the \EvalOffN{} pairs as the primary result and report the full set of \EvalNPrv{} pairs only for completeness. Where a deprecated proof serves as an example below (\texttt{PRV005}, \texttt{PRV057}), this is noted.
+Of the \EvalNPrv{} problem/proof pairs that were initially provided for ProoVer 2026, only \EvalOffN{} pairs (directory \texttt{PRV}, \EvalOffValid{} valid, \EvalOffInvalid{} invalid) form the actual benchmark. These \EvalOffN{} pairs are called the \emph{ProoVer set} in this chapter, and all statistics below refer to them.
+The remaining \EvalSampleN{} pairs (directory \texttt{Deprecated}) no longer appear in the results published by the organizers and were apparently not scored in the competition, whose scores refer to the \EvalOffN{} pairs.
+Of the \EvalSampleN{} deprecated pairs, the expected results are only known from the version of the benchmark distributed before the results.
+A verdict on them therefore cannot be scored reliably. They only appear where this is stated explicitly, namely in the last row of the verdict matrix (Table~\ref{tab:eval-matrix}), in the comparison of versions on all proofs (Section~\ref{subsec:eval-extra}), and as examples (\texttt{PRV005}, \texttt{PRV057}).
 The expected results of the \EvalOffN{} pairs are taken from the file \texttt{results.csv} that the organizers provide with the benchmark \citep{ProoVer2026Proceedings}, those of the deprecated pairs from the earlier version of the benchmark.
 The \emph{TST set} (directory \texttt{Test}) consists of 76 proofs written for this thesis to test individual checks (Table~\ref{tab:eval-tst}).
 Each has an expected result of \emph{correct} or \emph{incorrect}. Five are \emph{edge cases} whose expected result is open (for example two negated conjectures, or a quantifier block in a different order), and are excluded from the agreement counts.
@@ -60,42 +53,42 @@ In addition we report the verdict matrix, the wrong acceptances separately, the 
 \paragraph{External prover.}
 All steps that no internal checker decides are delegated to Vampire~\citep{KovacsVoronkov2013} in its CASC mode, and we use no other prover.
 The reason is that Vampire is the reference system for this task.
-It is the most successful system of the CASC competition~\citep{Sut16}: it won all eight divisions of CASC-30 in 2025~\citep{CASC30} and has collected a large number of trophies in the first-order divisions since 1999, so that it is generally regarded as the state of the art in automated theorem proving for first-order logic.
-For a verifier that treats the prover as a source of \emph{negative} information as well (a step that Vampire cannot prove is rejected), the strength of the prover directly determines how many valid steps are wrongly rejected, which is why we chose the strongest available system instead of comparing several.
+It has been among the strongest systems of the CASC competitions for many years~\citep{Sut16} and won all eight divisions of CASC-30 in 2025~\citep{CASC30}, so that it is generally regarded as the state of the art in automated theorem proving for first-order logic.
+For a verifier that needs a confirmation of the prover for every delegated step (a step that Vampire cannot prove stays undecided and prevents acceptance), the strength of the prover directly determines how many valid proofs can be verified, which is why we chose the strongest available system instead of comparing several.
 The verifier addresses it through one command line (variables \texttt{EXTERNAL\_ATP\_BINARY} and \texttt{EXTERNAL\_ATP\_COMMAND}) and reads only the SZS status, so that another prover could be used with minimal changes, but this is not evaluated here.
 We used \EvalVampire.
 
 \paragraph{Environment.}
 All measurements were made on a laptop with \EvalCPU{} (\EvalCores{} threads, \EvalRAM{} RAM available to the virtual machine) under \EvalOS{} (WSL~2 on Windows), with Python~\EvalPython{} and \texttt{lark}~\EvalLark{}, with the time limit of 30\,s per proof.
 Each proof was checked in a fresh worker process and run \EvalReps{} times. Run times are medians of these repetitions.
-Every run includes the start-up of the interpreter and the import of the verifier (median \EvalInterpStart), because the competition measures the whole process.
+Every run includes the start-up of the interpreter and the import of the verifier (median \EvalInterpStart), because the competition measures the whole process. The time of a run ends with the verdict of the proof, as in the competition. The breakdown into phases in Table~\ref{tab:eval-slowest} uses a separate measurement of the parse time after the check, which does not count towards the total, and all phases of a proof come from the same repetition.
 The measurements were made on \EvalDate{} with commit \EvalCommit.
 All numbers in this chapter are produced by \texttt{scripts/eval\_all.py}, which writes the tables and macros used here into \texttt{thesis/generated}.
 
 \subsection{Correctness and Score}
 \label{subsec:eval-correctness}
 
-Table~\ref{tab:eval-matrix} shows the verdicts of the verifier on the ProoVer set.
-The verifier accepts \EvalAccValid{} of the \EvalNValid{} valid proofs, rejects \EvalRejInvalid{} of the \EvalNInvalid{} invalid proofs, answers \emph{unknown} for \EvalUnknownInvalid{} invalid proof, runs into the time limit on \EvalTimeouts{} proofs, and accepts no invalid proof.
-On the \EvalOffN{} proofs of the actual benchmark, the primary result, the score is \EvalOffScore{} of \EvalOffMaxScore{} points.
-Including the \EvalSampleN{} deprecated proofs, whose expected results come only from the earlier version of the benchmark, it is \EvalScore{} out of a maximum of $\EvalNValid + 2\cdot \EvalNInvalid = \EvalMaxScore$ points (\EvalScorePct\,\%). The verdicts on the deprecated proofs all agree with the expected results given for them.
-The two missing points stem from one proof, \texttt{PRV097}: it is invalid, and the verifier finds no error, but it also cannot verify the step with the rule \texttt{trivial} (status \texttt{esa}), for which neither a checker nor a prover justification exists, and therefore answers unknown instead of failed.
-With the binary policy the proof is rejected, and the score is \EvalScoreBinary{} (\EvalOffScoreBinary{} on the competition proofs), that is, the maximum.
+Table~\ref{tab:eval-matrix} shows the verdicts of the verifier on the \EvalOffN{} official pairs of the ProoVer set.
+The verifier accepts \EvalOffAccValid{} of the \EvalOffValid{} valid proofs, rejects \EvalOffRejInvalid{} of the \EvalOffInvalid{} invalid proofs, answers \emph{unknown} for \EvalOffUnknownInvalid{} invalid proof, runs into the time limit on \EvalOffTimeouts{} proofs, and accepts no invalid proof.
+This gives \EvalOffScore{} of a maximum of $\EvalOffValid + 2\cdot \EvalOffInvalid = \EvalOffMaxScore$ points (\EvalOffScorePct\,\%), which is the primary result of this chapter.
+The last row of the table adds the \EvalSampleN{} deprecated proofs, whose expected results come only from the earlier version of the benchmark. With them the score is \EvalScore{} of \EvalMaxScore{} points, and the verdicts on the deprecated proofs all agree with the expected results given for them.
+The two missing points stem from one proof, \texttt{PRV097}. It is invalid, and the verifier finds no error, but it also cannot verify the step with the rule \texttt{trivial} (status \texttt{esa}), for which neither a checker nor a prover justification exists, and therefore answers unknown instead of failed.
+With the binary policy the proof is rejected, and the score is \EvalOffScoreBinary{} (\EvalScoreBinary{} including the deprecated proofs), that is, the maximum.
 All other verdicts are optimal. One proof (\texttt{PRV099}) is close to the limit for the prover and is discussed in Section~\ref{subsec:eval-errors}.
 Two invalid proofs (\texttt{PRV091} and the deprecated \texttt{PRV057}) are rejected because they are not well-formed TSTP, which is the intended defect of these proofs. Section~\ref{subsec:eval-errors} discusses them.
 
 \begin{table}[tbp]
 \centering
 \small
-\caption{Verdicts on the ProoVer set (number of proofs) and resulting score.}
+\caption{Verdicts on the \EvalOffN{} official ProoVer pairs (number of proofs) and resulting score. The last row also includes the \EvalSampleN{} deprecated proofs.}
 \label{tab:eval-matrix}
 \input{generated/tab_matrix}
 \end{table}
 
 The central safety property is that no invalid proof is accepted, because a wrong acceptance costs ten points.
-It holds for the ProoVer set ($\EvalWrongAcc$ wrong acceptances) under both policies.
+It holds for the ProoVer set and also for the deprecated proofs ($\EvalWrongAcc$ wrong acceptances on all \EvalNPrv{} pairs) under both policies.
 On the TST set, the verdicts agree with the expectation in \EvalTstAgree{} of \EvalTstTotal{} proofs (excluding the \EvalTstEdge{} edge cases, Table~\ref{tab:eval-tst-results}).
-The remaining proof, \texttt{TST043}, is accepted although the test author marked it as incorrect: it derives \texttt{\$false} from the axioms and the negated conjecture in a single step, which is a valid inference, only of coarse granularity.
+The remaining proof, \texttt{TST043}, is accepted although the test author marked it as incorrect. It derives \texttt{\$false} from the axioms and the negated conjecture in a single step, which is a valid inference, only of coarse granularity.
 This is a matter of the definition of a correct proof rather than of unsound reasoning, and we discuss it in Section~\ref{subsec:eval-errors}.
 A second proof, \texttt{TST072}, which imports an axiom of the problem with the role \texttt{hypothesis}, was accepted in the first runs because the driver did not check formulas with this role at all. This defect is corrected (Section~\ref{subsec:impl-bugs}), and the proof is now rejected.
 
@@ -112,7 +105,7 @@ A second proof, \texttt{TST072}, which imports an axiom of the problem with the 
 
 The TST set concentrates on provenance, the negated conjecture, and Skolemization, the points on which the competition proofs are most likely to contain errors.
 It therefore says little about the checkers of the other rules.
-To test them, we generated the Extra set with \texttt{scripts/gen\_extra\_tests.py}: for each of \EvalExtraRules{} rules, the generator produces a small problem and a proof that applies the rule correctly, and several variants with a specific defect (a wrong premise, an inverted conclusion, a missing side condition, a capture of a variable).
+To test them, we generated the Extra set with \texttt{scripts/gen\_extra\_tests.py}. For each of \EvalExtraRules{} rules, the generator produces a small problem and a proof that applies the rule correctly, and several variants with a specific defect (a wrong premise, an inverted conclusion, a missing side condition, a capture of a variable).
 Overall the set contains \EvalExtraValid{} valid proofs, \EvalExtraInvalid{} invalid proofs, and \EvalExtraEdge{} edge cases, that is, proofs that are sound but unusual (for example a reflexivity step in an unusual orientation).
 Each case is a proof together with its problem file, and the set is run through the same batch mode of \texttt{main.py} as the other sets (\texttt{--dir ProoVer2026/Extra}).
 Of the \EvalExtRunsN{} cases, \EvalExtRunsAgree{} agree with the expectation (the edge cases not counted), there is no wrong acceptance and no wrong rejection, and the score is \EvalExtRunsScore{} points. The median run time is \EvalExtRunsWallMedian.
@@ -132,16 +125,16 @@ The result above is the state after three corrections that the first run of the 
 Before them, the verifier accepted an invalid proof in which a doubly negated conjecture was ``negated'' by adding a negation, accepted a variable capture by \texttt{instantiate}, and accepted a resolution step whose premises shared a variable name or whose unifier was circular.
 We describe these defects and their corrections in Section~\ref{subsec:impl-bugs}.
 The corrections do not change any verdict on the ProoVer set, which we confirmed by re-running it with and without them.
-This also illustrates a limitation: the ProoVer set could not detect these defects, because it contains no proof that exercises them.
+This also shows a limitation. The ProoVer set could not detect these defects, because it contains no proof that exercises them.
 The same holds for the defects found later, the polarity of a quantifier in the antecedent of an implication and the unchecked role \texttt{hypothesis} (Section~\ref{subsec:impl-bugs}).
-We compared the old and the corrected version on all 285 proofs of the four directories: the corrected Skolem check additionally rejects the step \texttt{s1} of \texttt{TST064}, a proof that was already rejected, and the corrected provenance check rejects \texttt{TST072}, which was wrongly accepted before. No other finding and no verdict on the ProoVer and Extra sets changes.
+We compared the old and the corrected version on all 285 proofs of the four directories. The corrected Skolem check additionally rejects the step \texttt{s1} of \texttt{TST064}, a proof that was already rejected, and the corrected provenance check rejects \texttt{TST072}, which was wrongly accepted before. No other finding and no verdict on the ProoVer and Extra sets changes.
 
 \subsection{Rule Coverage (RQ1)}
 \label{subsec:eval-coverage}
 
 Table~\ref{tab:eval-coverage} lists, for each inference rule occurring in the ProoVer set, how many proofs and steps use it, and how its steps were decided: by the internal checker, by the external prover after a failed internal check, by the external prover because no internal checker exists, or not at all.
-The \EvalNPrv{} proofs contain \EvalDerivedSteps{} derived steps of \EvalRulesInSet{} different rules.
-Of these steps, \EvalInternalSteps{} (\EvalInternalPct\,\%) are decided by an internal checker, \EvalAtpOnlySteps{} are decided by the prover alone, \EvalFallbackSteps{} step needs the fallback, and no step of an accepted proof is unresolved. One further step, in the invalid proof \texttt{PRV097}, uses the rule \texttt{trivial} with the status \texttt{esa}, for which neither a checker nor a prover justification exists. The driver does not log this step, so it is not part of the table.
+The \EvalOffN{} official proofs contain \EvalDerivedSteps{} derived steps of \EvalRulesInSet{} different rules.
+Of these steps, \EvalInternalSteps{} (\EvalInternalPct\,\%) are decided by an internal checker, \EvalAtpOnlySteps{} are decided by the prover alone, \EvalFallbackSteps{} step needs the fallback, and no step of an accepted proof is unresolved. The undecided \texttt{trivial} step of \texttt{PRV097} (Section~\ref{subsec:eval-correctness}) is not logged by the driver and therefore not part of the table.
 
 \begin{table}[tbp]
 \centering
@@ -158,17 +151,17 @@ Of these steps, \EvalInternalSteps{} (\EvalInternalPct\,\%) are decided by an in
 \label{fig:eval-rule-coverage}
 \end{figure}
 
-Figure~\ref{fig:eval-rule-coverage} shows the same data from the perspective of the proofs: for each rule, the number of proofs that use it and whether its steps are decided internally or by the prover.
+Figure~\ref{fig:eval-rule-coverage} shows the same data from the perspective of the proofs. For each rule it shows the number of proofs that use it and whether its steps are decided internally or by the prover.
 The two views differ considerably.
 Counted by steps, \texttt{modus\_ponens} and \texttt{skolemize} dominate, because the three large proofs consist almost entirely of them.
-Counted by proofs, \texttt{consequence} is the most frequent rule (95 of 100 proofs), followed by \texttt{skolemize} (47) and \texttt{instantiate} (30), and apart from \texttt{consequence}, which has no syntactic criterion, every rule that occurs in more than five proofs has an internal checker.
+Counted by proofs, \texttt{consequence} is the most frequent rule (87 of \EvalOffN{} proofs), followed by \texttt{skolemize} (41) and \texttt{instantiate} (29), and apart from \texttt{consequence}, which has no syntactic criterion, every rule that occurs in more than five proofs has an internal checker.
 Of the \EvalRulesDelegated{} rules without an internal checker, only \texttt{consequence} and \texttt{add\_hypothesis} occur in more than four proofs. The others occur in at most four proofs, most of them in a single one.
-This long tail is where delegation is worth it: a checker for each of these rules would add code, and therefore trusted code, for a handful of steps, whereas the prover decides them with the same mechanism as \texttt{consequence}.
+This long tail is where delegation pays off. A checker for each of these rules would add code, and therefore trusted code, for a handful of steps, whereas the prover decides them with the same mechanism as \texttt{consequence}.
 
 The aggregate share is dominated by three proofs (\texttt{PRV071}--\texttt{PRV073}) with 10\,005 steps each, which consist almost entirely of \texttt{modus\_ponens} and \texttt{skolemize} steps.
-We therefore also give the median over proofs: in half of the proofs, at least \EvalInternalMedianShare\,\% of the steps are decided internally, and the remaining steps are almost always the final \texttt{consequence} step (it occurs in 95 proofs) and \texttt{add\_hypothesis}.
-This is intended: \texttt{consequence} is a generic ``follows from'' step for which no syntactic criterion exists.
-Besides these, 13 further rules (among them \texttt{horn}, \texttt{de\_morgan}, \texttt{contrapositive}, \texttt{disjunctive\_syllogism}, and \texttt{over\_generalize}) have no internal checker and are decided by the prover. Most of them occur in a single proof.
+We therefore also give the median over proofs. In half of the proofs, at least \EvalInternalMedianShare\,\% of the steps are decided internally, and the remaining steps are almost always the final \texttt{consequence} step (it occurs in 87 proofs) and \texttt{add\_hypothesis}.
+This is intended, because \texttt{consequence} is a generic ``follows from'' step for which no syntactic criterion exists.
+Besides these, 12 further rules (among them \texttt{horn}, \texttt{de\_morgan}, \texttt{contrapositive}, \texttt{disjunctive\_syllogism}, and \texttt{over\_generalize}) have no internal checker and are decided by the prover. Most of them occur in a single proof.
 In answer to RQ1, a verifier that covers \texttt{skolemize}, \texttt{instantiate}, \texttt{existential\_gen}, \texttt{modus\_ponens}, \texttt{split\_conjunct}, \texttt{conjunction}, and the structural rules checks the bulk of the benchmark itself, and delegation to a prover handles the long tail of rules.
 
 \subsection{Architecture Metrics (RQ2)}
@@ -178,7 +171,7 @@ To assess whether the architecture keeps the trusted part small and extensible, 
 Table~\ref{tab:eval-size} gives the size of each checker module and its statement coverage by the unit tests.
 The checker package has \EvalCheckerLines{} lines, ranging from \EvalSmallestLines{} to \EvalBiggestLines{} lines per module (the largest is \EvalBiggestChecker{}). The driver \texttt{main.py} adds \EvalMainLines{} lines.
 The tests cover \EvalCheckerCov\,\% of the statements of the checker package and \EvalTotalCov\,\% of the whole \texttt{src} directory.
-The share of steps that are decided without the prover (Section~\ref{subsec:eval-coverage}) is the second measure: it determines how much of a verdict depends on the prover.
+The share of steps that are decided without the prover (Section~\ref{subsec:eval-coverage}) is the second measure. It determines how much of a verdict depends on the prover.
 
 \begin{table}[tbp]
 \centering
@@ -188,15 +181,15 @@ The share of steps that are decided without the prover (Section~\ref{subsec:eval
 \input{generated/tab_size}
 \end{table}
 
-Modularity matters in practice because each module can be tested alone: the \emph{rule-level} tests of Section~\ref{subsec:eval-extra} call the checkers directly with a few formulas, without parsing a proof or starting a prover.
-We have not measured the effort to add a new rule, because the driver dispatches by a chain of conditions and not by the registry described in the design (Section~\ref{subsec:impl-driver}). Adding a rule therefore means one new function and one new branch in the driver.
+Modularity matters in practice because each module can be tested alone. The \emph{rule-level} tests of Section~\ref{subsec:eval-extra} call the checkers directly with a few formulas, without parsing a proof or starting a prover.
+Adding a rule means writing one new checker function and adding one branch to the driver (Section~\ref{subsec:disc-limitations}).
 
 \subsection{Run Time and Memory (RQ3)}
 \label{subsec:eval-runtime}
 
 Figure~\ref{fig:eval-runtime} plots the wall-clock time of each proof of the ProoVer set against its number of steps.
 The median time per proof is \EvalWallMedian, the 90th percentile \EvalWallPNinety, and the maximum \EvalWallMax.
-Only \EvalOverTen{} proof needs more than 10\,s: \texttt{PRV099}, whose time goes into a single prover call. The slowest of the three proofs with 10\,005 steps needs 6.9\,s.
+Only \EvalOverTen{} proof needs more than 10\,s, namely \texttt{PRV099}, whose time goes into a single prover call. The three proofs with 10\,005 steps need about 4.3\,s each.
 The peak memory of the worker process is \EvalRssMedian\,MB at the median and \EvalRssMax\,MB at the maximum.
 Of the median run time of \EvalWallMedian, about \EvalInterpStart{} are start-up of the interpreter and the import of the verifier, which is slow under WSL~2 because the files are read from the Windows file system. The checks themselves are therefore cheap for the typical proof.
 
@@ -210,11 +203,11 @@ Of the median run time of \EvalWallMedian, about \EvalInterpStart{} are start-up
 The external prover is not the bottleneck for the typical proof.
 The \EvalAtpCalls{} prover calls in the ProoVer set take \EvalAtpMean{} on average and \EvalAtpMedian{} at the median, and altogether \EvalAtpShare\,\% of the total time.
 This contradicts the assumption we had at the beginning of the work, based on preliminary measurements of single proofs, that the prover would dominate the run time.
-The mean is, however, determined by a few outliers: \texttt{PRV099} alone spends 8.5\,s in its prover call, and no other call takes longer than 0.3\,s.
+The mean is, however, driven by a few outliers. \texttt{PRV099} alone spends 9.0\,s in one prover call, and no other call takes longer than 0.3\,s.
 Table~\ref{tab:eval-slowest} shows where the time goes for the slowest proofs.
-\texttt{PRV099} is the only proof that is dominated by the prover. The step \texttt{hard} is a resolution step that the internal check does not decide, and Vampire confirms it (\texttt{ContradictoryAxioms}) after 8.5\,s.
-The three large proofs spend about 2.5\,s in parsing and between 3.0 and 3.6\,s in the rule checks, and less than 0.1\,s in the prover.
-Parsing and the rule checks are therefore the first things to improve for very large proofs, and the prover is the first for hard single steps.
+\texttt{PRV099} is the only proof that is dominated by the prover. The step \texttt{hard} derives \texttt{\$false} from the negated conjecture alone, which no internal check decides, and Vampire confirms it (\texttt{ContradictoryAxioms}) after 9.0\,s. The negated conjecture is the pigeonhole formula for ten pigeons and nine holes, with 90 propositional variables and 415 short clauses. For this formula every resolution refutation has exponential size \citep{Haken1985}, so a saturation prover needs much more time than for any other step of the benchmark, although the formula is small.
+The three large proofs spend most of their time in parsing (2.6 to 2.9\,s) and in the start-up, less than 0.2\,s in the rule checks, and less than 0.1\,s in the prover.
+Parsing is therefore the first thing to improve for very large proofs, and the prover is the first for hard single steps.
 
 \begin{table}[tbp]
 \centering
@@ -234,13 +227,13 @@ We generate variants of the valid proofs by applying one mutation each to a deri
 The operators change a connective, swap the sides of an implication, swap a quantifier, negate an atom, delete a premise, cite a different earlier step as premise, or change the status \texttt{thm} to \texttt{cth}.
 Per proof and operator, up to two applicable steps were mutated, in \EvalMutProofs{} valid proofs with at most 80 steps. This gives \EvalMutN{} mutants.
 A mutant that the verifier accepts is not necessarily a miss, because many mutations preserve validity (swapping the operands of a symmetric connective, for example).
-We therefore check each surviving mutant with Vampire: if the mutated step still follows from its premises, it is counted as ``still valid'', and otherwise as a real miss.
+We therefore check each surviving mutant with Vampire. If the mutated step still follows from its premises, it is counted as ``still valid'', and otherwise as a real miss.
 Of the \EvalMutN{} mutants, \EvalMutKilled{} are rejected, \EvalMutEq{} survive and are still valid, and \EvalMutMiss{} survive and are not valid. The kill rate on the mutants that are no longer valid is \EvalMutRate\,\%.
 Figure~\ref{fig:eval-mutations} shows the outcome per operator.
 The operators that change the formula itself (connective, implication, quantifier, atom) are killed almost completely, and their few survivors are mutations that preserve validity, such as swapping the operands of a symmetric connective or negating an atom of a tautology.
 Removing or redirecting a premise is also detected in most cases. The survivors of redirection are steps whose conclusion also follows from the other premise, typically because the proof contains two similar formulas.
 No bar has a part for accepted mutants that are no longer valid.
-The majority of the survivors (45 of 64) come from the status change: the verifier ignores the status \texttt{cth} of a step if the step is entailed by its premises, which is correct for the competition, where status is informational.
+The majority of the survivors (41 of \EvalMutEq{}) come from the status change. The verifier ignores the status \texttt{cth} of a step if the step is entailed by its premises, which is correct for the competition, where status is informational.
 Two limits apply.
 The oracle checks entailment but not the side conditions of rules, so it is blind to defects such as a dropped Skolem dependency. The mutation experiment therefore does not substitute for the TST group \texttt{sk}.
 In addition, the operators are simple, so the result shows that obvious local errors are not missed, not that all errors are detected.
@@ -263,7 +256,7 @@ In addition, the operators are simple, so the result shows that obvious local er
 \paragraph{Malformed input.}
 Table~\ref{tab:eval-inputs} shows the outcome for ten kinds of broken input derived from \texttt{PRV010+1.s}.
 In no case does the verifier crash or hang. \EvalInputsCrash{} inputs end in a parser error, which the driver reports as an error (and the competition scores like a rejection), and the others are rejected by the checks.
-One input is accepted: a file in which the rule name of one step was replaced by an unknown name.
+One input is accepted, a file in which the rule name of one step was replaced by an unknown name.
 This is intended, because an unknown rule is decided by the prover from the premises and the conclusion, and the step is in fact entailed.
 The two deeply nested inputs (3\,000 levels) are handled because the verifier runs in a thread with a larger stack (Section~\ref{subsec:impl-resources}).
 
@@ -276,16 +269,16 @@ The two deeply nested inputs (3\,000 levels) are handled because the verifier ru
 \end{table}
 
 \paragraph{Missing prover.}
-We repeat the ProoVer run with a prover command that does not exist (Table~\ref{tab:eval-noatp}).
+We repeat the run on the \EvalOffN{} official ProoVer pairs with a prover command that does not exist (Table~\ref{tab:eval-noatp}).
 No invalid proof is accepted (\EvalNoAtpWrongAcc{} wrong acceptances), which verifies the fail-closed policy empirically (NFR1).
-Only \EvalNoAtpVerifiedValid{} of the \EvalNValid{} valid proofs are still accepted, because nearly every proof ends with a \texttt{consequence} step. The score under the binary policy falls from \EvalScoreBinary{} to \EvalNoAtpScoreBinary{} points. Under the default policy, the \EvalNoAtpUncertain{} proofs with an undecidable step are unknown and the score is \EvalNoAtpScoreTernary{} points.
+Only \EvalNoAtpVerifiedValid{} of the \EvalOffValid{} valid proofs are still accepted, because nearly every proof ends with a \texttt{consequence} step. The score under the binary policy falls from \EvalOffScoreBinary{} to \EvalNoAtpScoreBinary{} points. Under the default policy, the \EvalNoAtpUncertain{} proofs with an undecidable step are unknown and the score is \EvalNoAtpScoreTernary{} points.
 This shows how strongly the verifier depends on the prover for acceptance.
-Rejections, in contrast, mostly do not depend on it: the internal checks alone find the error in a large part of the invalid proofs.
+Rejections, in contrast, mostly do not depend on it, since the internal checks alone find the error in a large part of the invalid proofs.
 
 \begin{table}[tbp]
 \centering
 \small
-\caption{ProoVer set with and without the external prover. The three-valued score counts steps for which no verdict could be reached as uncertain (zero points).}
+\caption{The \EvalOffN{} official ProoVer pairs with and without the external prover. The three-valued score counts steps for which no verdict could be reached as uncertain (zero points).}
 \label{tab:eval-noatp}
 \input{generated/tab_noatp}
 \end{table}
@@ -298,11 +291,11 @@ The design checks syntactically first and delegates only when necessary (Table~\
 To see what the internal checkers add, we compare them with the prover step by step.
 From the valid and invalid proofs of the ProoVer set (proofs up to 400 steps), we sampled up to eight steps per proof, for rules with an internal checker, and asked Vampire whether the step follows from its premises (Table~\ref{tab:eval-internal}).
 Of the \EvalIntSteps{} steps, \EvalIntAccYes{} are accepted by the checker and confirmed by the prover, so the two agree.
-In \EvalIntAccNo{} cases the prover does not confirm a step that the checker accepts, and in all of them the answer is a timeout after 10\,s: a \texttt{rename\_variable} step in \texttt{PRV008}, a \texttt{conjunction} step in \texttt{PRV012}, and an \texttt{instantiate\_mp} step in \texttt{PRV018}.
+In \EvalIntUnknown{} cases the prover does not confirm a step that the checker accepts, and in all of them the answer is a timeout after 10\,s: a \texttt{rename\_variable} step in \texttt{PRV008}, a \texttt{conjunction} step in \texttt{PRV012}, and an \texttt{instantiate\_mp} step in \texttt{PRV018}.
 The steps are trivial for the internal checker, but Vampire needs more than 10\,s for them in this form.
-No step is refused by the prover with a counter-model.
-This is a second reason for the internal checkers: a verifier that relies on the prover alone would not verify these proofs within a short per-call limit.
-In two cases the checker rejects a step that the prover accepts (a \texttt{modus\_ponens} step in \texttt{PRV023} and a \texttt{rewrite} step in \texttt{PRV024}, both in invalid proofs): the conclusion follows from the premises, but not by the rule that the step cites.
+None of the steps that the checker accepts is refuted by the prover with a counter-model.
+This is a second reason for the internal checkers. A verifier that relies on the prover alone would not verify these proofs within a short per-call limit.
+In two cases the checker rejects a step that the prover accepts (a \texttt{modus\_ponens} step in \texttt{PRV023} and a \texttt{rewrite} step in \texttt{PRV024}, both in invalid proofs). In both cases the conclusion follows from the premises, but not by the rule that the step cites.
 The internal checkers are therefore stricter than entailment, which is intended, because the task is to verify the stated inference and not only that the conclusion is true.
 A prover alone could not make this distinction.
 The cost of a prover call is moderate in our data (median \EvalIntAtpMedian), so run time is not the main argument for the internal checkers. The arguments are precision, independence from the prover, and robustness against steps that are hard for it.
@@ -310,7 +303,7 @@ The cost of a prover call is moderate in our data (median \EvalIntAtpMedian), so
 \begin{table}[tbp]
 \centering
 \small
-\caption{Single steps, internal verdict against Vampire. ``Prover \emph{no}'' includes steps for which Vampire did not finish within 10\,s (status \texttt{Timeout}).}
+\caption{Single steps, internal verdict against Vampire. ``Unknown'' counts steps for which Vampire did not finish within 10\,s (status \texttt{Timeout}).}
 \label{tab:eval-internal}
 \input{generated/tab_internal}
 \end{table}
@@ -318,27 +311,24 @@ The cost of a prover call is moderate in our data (median \EvalIntAtpMedian), so
 We did not run a configuration in which \emph{all} steps are sent to the prover, because Skolemization steps, which are not logical consequences, cannot be checked by entailment at all, and because the single-step comparison already answers the question of what the internal checks add.
 
 \paragraph{Three-valued verdict.}
-The verifier distinguishes the verdicts verified, failed, and unknown (Section~\ref{subsec:impl-driver}).
-A proof is unknown only if its sole findings are steps that could not be decided (prover time-out or no answer, no checker for the rule). Every step that is refuted by a checker or by the prover makes the proof failed.
-The default policy gives $0$ points for unknown, and the option \texttt{--binary-verdict} maps it to failed.
+The default policy answers \emph{unknown} for a proof whose only findings are undecided steps and scores it with $0$ points, whereas the binary policy maps it to failed (Section~\ref{subsec:eval-setup}).
 To quantify the difference, we score both policies on the same runs (Table~\ref{tab:eval-noatp}).
-On the ProoVer set with the prover, the score is \EvalScoreTernary{} for the default policy and \EvalScoreBinary{} for the binary policy. The default policy is lower by two points because one invalid proof (\texttt{PRV097}), whose step with the rule \texttt{trivial} is not decided, is an abstention instead of a correct rejection.
-Without the prover, the order is reversed: \EvalNoAtpScoreTernary{} points under the default policy against \EvalNoAtpScoreBinary{} under the binary policy, since most proofs are unknown (\EvalNoAtpUncertain{} of \EvalNPrv{}), and a wrongly rejected valid proof costs one point each, whereas an abstention costs nothing.
+On the \EvalOffN{} official pairs with the prover, the score is \EvalOffScore{} for the default policy and \EvalOffScoreBinary{} for the binary policy. The default policy is two points lower because \texttt{PRV097} is an abstention instead of a correct rejection (Section~\ref{subsec:eval-correctness}).
+Without the prover, the order is reversed, with \EvalNoAtpScoreTernary{} points under the default policy against \EvalNoAtpScoreBinary{} under the binary policy, since many proofs are unknown (\EvalNoAtpUncertain{} of \EvalOffN{}), and a wrongly rejected valid proof costs one point each, whereas an abstention costs nothing.
 Abstaining is therefore worthwhile when a missing answer is likely for valid proofs, which is the case when the prover is unavailable or too slow, and it costs points when the undecided step is in an invalid proof, as with \texttt{PRV097}.
-With the prover available, the cost in our data is two points of \EvalMaxScore.
-We keep the three-valued verdict as the default because it is the more honest report (``this step is wrong'' against ``this step could not be checked''), it limits the loss if the prover behaves differently on the hidden benchmark, and it never turns an unverifiable step into an acceptance. The binary policy is available for a setting in which every invalid proof must be rejected.
+We keep the three-valued verdict as the default because it is the more honest report (``this step is wrong'' against ``this step could not be checked''), it limits the loss if the prover behaves differently on the competition machine, and it never turns an unverifiable step into an acceptance. The binary policy is available for a setting in which every invalid proof must be rejected.
 
 \subsection{Error Analysis}
 \label{subsec:eval-errors}
 
-\EvalSuboptimal{} of the \EvalNPrv{} proofs of the ProoVer set ends with a verdict that is not the best possible one (Table~\ref{tab:eval-errors}): the invalid proof \texttt{PRV097}, whose verdict is unknown instead of failed, as described in Section~\ref{subsec:eval-correctness}.
+\EvalSuboptimal{} of the \EvalOffN{} proofs of the ProoVer set ends with a verdict that is not the best possible one (Table~\ref{tab:eval-errors}): the invalid proof \texttt{PRV097}, whose verdict is unknown instead of failed, as described in Section~\ref{subsec:eval-correctness}.
 The step \texttt{trivial} with status \texttt{esa} is a gap in the rule coverage and not an error of the checks. A rule that accepts the step would turn the unknown into a verdict, but we cannot decide from one example which semantics the organizers intend, and a guess could cause a wrong acceptance.
-In one case, however, the result depends on the speed of the prover.
-In an earlier run on a two-core virtual machine with Vampire~5.1.0, the proof \texttt{PRV099} exceeded the time limit of 30\,s: the single call for the step \texttt{hard} used the whole remaining budget, and the proof counted as an abstention, which would have cost two points.
-On the machine of this chapter, with Vampire~5.0.1, the same call takes 8.5\,s.
+In one case, however, the result depends on the speed of the prover. \texttt{PRV099} contains, after the hard step, a second step \texttt{badcheap} that derives \texttt{\$false} from the satisfiable axiom $g(e)$ and is refuted by Vampire in less than 0.1\,s. The proof is apparently designed to test whether a checker spends its time budget on the hard step before it reaches the cheap defect.
+In an earlier run on a two-core virtual machine with Vampire~5.1.0, the proof \texttt{PRV099} exceeded the time limit of 30\,s. The single call for the step \texttt{hard} used the whole remaining budget, and the proof counted as an abstention, which would have cost two points.
+On the machine of this chapter, with Vampire~5.0.1, the same call takes 9.0\,s.
 Because a single prover call is allowed to use the whole time limit, one hard step can consume the budget of the proof.
-A shorter limit per prover call (for example 10\,s) would let the verifier reject such a proof in time instead of abandoning it, but would reject a valid proof if its step needed more time, as for \texttt{PRV099} here. Which choice is better depends on the unknown hardware of the competition.
-The longest prover call outside \texttt{PRV099} takes 0.3\,s.
+A shorter limit per prover call (for example 10\,s) would leave time for the other steps, so that \texttt{PRV099} would still be rejected because of its invalid step \texttt{badcheap}. On the other hand, a valid step that needs more time than this limit would stay undecided, and a valid proof containing it would become unknown. Which choice is better depends on the hardware of the competition, which is discussed in Section~\ref{subsec:eval-threats}.
+The longest prover call outside \texttt{PRV099} takes less than 0.3\,s.
 
 \begin{table}[tbp]
 \centering
@@ -348,8 +338,8 @@ The longest prover call outside \texttt{PRV099} takes 0.3\,s.
 \input{generated/tab_errors}
 \end{table}
 
-The parser errors (\EvalParseErrors{} proofs, \texttt{PRV057} and \texttt{PRV091}) are counted as correct, because the proofs are invalid and the verifier answers failed.
-In both cases the parse error is the intended defect and not a weakness of the grammar: in TPTP, a word that starts with an upper-case letter is a variable, so that a step name or a function symbol must start with a lower-case letter or be quoted.
+The parser errors (\texttt{PRV091} and the deprecated \texttt{PRV057}) are counted as correct, because the proofs are invalid and the verifier answers failed.
+In both cases the parse error is the intended defect and not a weakness of the grammar. In TPTP, a word that starts with an upper-case letter is a variable, so that a step name or a function symbol must start with a lower-case letter or be quoted.
 \texttt{PRV057} cites a premise \texttt{S0}, which is a variable and not a step name (and no such step exists), and \texttt{PRV091} introduces the Skolem symbol \texttt{SK0}, which is a variable and not a function symbol.
 Both proofs are therefore not well-formed TSTP, and rejecting them is the correct verdict for a reason that the specification gives.
 Accepting these names would not make a valid proof verifiable, but it would risk accepting the deliberately malformed ones, so the grammar stays strict.
@@ -375,8 +365,16 @@ The scoring scheme and the 30\,s limit are those of one competition.
 
 \paragraph{Construct validity.}
 The correctness of the accepted proofs relies on the correctness of the rule checkers, which is supported by tests but not proved, and on the soundness of Vampire.
-Run times depend on the hardware and on WSL~2, where start-up is slow. The relations, namely that the prover takes a small part of the time for typical proofs while parsing and rule checks dominate for the large proofs, are less sensitive to this than the absolute values.
+Run times depend on the hardware and on WSL~2, where start-up is slow. The relations, namely that the prover takes a small part of the time for typical proofs while parsing dominates for the large proofs, are less sensitive to this than the absolute values.
 The verdict of the prover can differ between versions and machines when a step is close to the time limit, as the example of \texttt{PRV099} shows. The evaluation uses \EvalVampire.
+
+\paragraph{Hardware of the competition.}
+The competition runs each checker on one of two octa-core Intel Xeon E5-2620 v4 CPUs (2.1\,GHz, 16 threads per CPU, 128\,GiB memory, CentOS~7) and imposes no limit on CPU time \citep{proover-competition}.
+Compared with the laptop used in this chapter, this machine has more cores and much more memory, but a single core is considerably slower. The Xeon is a server processor from 2016 with a maximum clock rate of about 3\,GHz, whereas the laptop processor reaches up to 4.7\,GHz and belongs to a much newer generation.
+The verifier runs on a single core and needs at most \EvalRssMax\,MB of memory, so for its run time only the speed of one core matters.
+If we assume that a core of the competition machine is between 1.5 and 2.5 times slower, which is a rough estimate and not a measurement, the median of \EvalWallMedian{} rises to about two to three seconds, which is still far below the limit of 30\,s. The three proofs with 10\,005 steps would need about 6 to 11\,s.
+The only proof that could come close to the limit is \texttt{PRV099}, whose prover call for the step \texttt{hard} takes 9.0\,s here, so that the whole proof would need about 16 to 28\,s. If it exceeded the limit, the proof would count as an abstention and lose the two points of a correct rejection, but it could not turn into a wrong acceptance.
+The additional cores of the competition machine are not used by the verifier. Running Vampire on several cores or running independent prover calls in parallel could make use of them (Chapter~\ref{sec:conclusion}).
 
 \subsection{Summary}
 \label{subsec:eval-summary}
@@ -384,5 +382,5 @@ The verdict of the prover can differ between versions and machines when a step i
 On the \EvalOffN{} proofs of the benchmark, the verifier reaches \EvalOffScore{} of \EvalOffMaxScore{} points under the default three-valued policy (\EvalScore{} of \EvalMaxScore{} including the deprecated proofs, \EvalOffScoreBinary{} and \EvalScoreBinary{} with the binary policy), without a wrong acceptance (RQ1: \EvalRulesInSet{} rules occur, \EvalInternalPct\,\% of the derived steps are checked without the prover, and the rest are mostly the final \texttt{consequence} step).
 The architecture keeps the checkers small and separately testable (RQ2): \EvalCheckerLines{} lines in the checker package, \EvalCheckerCov\,\% statement coverage, and a rule-level test suite of \EvalExtraN{} proofs, on which the verifier has no wrong verdict.
 The median time per proof is \EvalWallMedian{} and the peak memory \EvalRssMax\,MB at most. The prover is called \EvalAtpCalls{} times and takes \EvalAtpShare\,\% of the time (RQ3).
-Without the prover, no invalid proof is accepted, but almost no valid proof is verified. Against mutations of valid proofs, every mutant that is no longer valid is rejected.
+Without the prover, no invalid proof is accepted, but only half of the valid proofs is verified. Against mutations of valid proofs, every mutant that is no longer valid is rejected.
 The open points are the sensitivity of \texttt{PRV099} to the speed of the prover and the rule \texttt{trivial} with status \texttt{esa}, which makes \texttt{PRV097} unknown.

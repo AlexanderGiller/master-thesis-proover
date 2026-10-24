@@ -3,7 +3,7 @@
 \label{app:reproduction}
 
 This appendix describes how to reproduce the results of the thesis.
-The source code, the proofs, and the scripts are in the repository of the thesis; the commit used for the measurements is \EvalCommit.
+The source code, the proofs, and the scripts are in the repository of the thesis, and the commit used for the measurements is \EvalCommit.
 
 \subsection{Requirements}
 
@@ -20,14 +20,15 @@ export EXTERNAL_ATP_BINARY=/usr/local/bin/vampire
 
 \subsection{Checking Proofs}
 
-A single proof is checked by passing the proof file; the problem file is looked up in the subdirectory \texttt{Problems} next to the proof, or given with \texttt{-p}.
-Without a proof argument, the verifier checks all proofs of a directory (default \texttt{ProoVer2026/PRV}; further sets are \texttt{ProoVer2026/Test}, \texttt{ProoVer2026/Extra}, and \texttt{ProoVer2026/Deprecated}) and prints a summary with the score.
+A single proof is checked by passing the proof file. The problem file is looked up in the subdirectory \texttt{Problems} next to the proof, or given with \texttt{-p}.
+Without a proof argument, the verifier checks all proofs of a directory (by default \texttt{ProoVer2026/PRV}, further sets are \texttt{ProoVer2026/Test}, \texttt{ProoVer2026/Extra}, and \texttt{ProoVer2026/Deprecated}) and prints a summary with the score.
 
 \begin{verbatim}
 python main.py ProoVer2026/PRV/PRV010+1.s
 python main.py proof.s -p problem.p -t 30
 python main.py -d ProoVer2026/Extra
 python main.py --binary-verdict ProoVer2026/PRV/PRV010+1.s
+python main.py --quiet ProoVer2026/PRV/PRV010+1.s
 \end{verbatim}
 
 \begin{table}[tbp]
@@ -39,16 +40,18 @@ python main.py --binary-verdict ProoVer2026/PRV/PRV010+1.s
 \toprule
 Option & Meaning \\
 \midrule
-\texttt{-p}, \texttt{--problem} & Problem file; by default \texttt{Problems/<name>.p} next to the proof. \\
+\texttt{-p}, \texttt{--problem} & Problem file, by default \texttt{Problems/<name>.p} next to the proof. \\
 \texttt{-t}, \texttt{--timeout} & Wall-clock limit per proof in seconds (default 30). \\
-\texttt{-d}, \texttt{--dir} & Batch mode: directory with proofs; the expected results are chosen from the directory name (\texttt{-e} overrides). \\
+\texttt{-d}, \texttt{--dir} & Batch mode: directory with proofs. The expected results are chosen from the directory name (\texttt{-e} overrides this). \\
 \texttt{--prefix} & Batch mode: only check proofs whose file name starts with the prefix. \\
 \texttt{--binary-verdict} & Print \texttt{VerifiedBad} instead of \texttt{Unknown} when a step cannot be decided. \\
+\texttt{--debug} & Print the dispatch of every step and the prover calls (sets \texttt{DEBUG\_PROOF\_FLOW}). \\
+\texttt{--quiet} & Print only the SZS status line per proof, in batch mode with the proof name. Errors go to stderr, the result files are still written. \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The last line of the output is the SZS status.
+The last line of the output is the SZS status, and with \texttt{--quiet} it is the only line.
 Table~\ref{tab:app-status} lists the statuses.
 
 \begin{table}[tbp]
@@ -70,7 +73,7 @@ Status & Meaning \\
 
 \subsection{Tests and Evaluation}
 
-The test suite is run with \texttt{pytest}; the coverage figures of Section~\ref{subsec:eval-modularity} come from the same run.
+The test suite is run with \texttt{pytest}, and the coverage figures of Section~\ref{subsec:eval-modularity} come from the same run.
 The evaluation driver runs the verifier in a fresh process for each proof and writes raw data to \texttt{results/eval} and the tables and macros of Chapter~\ref{sec:evaluation} to \texttt{thesis/generated}.
 
 \begin{verbatim}
@@ -79,8 +82,8 @@ python scripts/eval_all.py --parts all --reps 3
 python scripts/gen_appendix_tables.py
 \end{verbatim}
 
-\noindent The parts of the driver can be run separately with \texttt{--parts}; Table~\ref{tab:app-parts} lists them.
-The run time depends on the machine; the full run needs the prover for all parts except \texttt{noatp}.
+\noindent The parts of the driver can be run separately with \texttt{--parts}, and Table~\ref{tab:app-parts} lists them.
+The run time depends on the machine. The parts \texttt{runs}, \texttt{internal}, \texttt{mutation}, and \texttt{extra} need the prover, the others do not.
 
 \begin{table}[tbp]
 \centering
@@ -107,7 +110,7 @@ Part & Content \\
 \label{app:reports}
 
 The report lists one block per check, and ends with the SZS status.
-The following output is the (shortened) report for the invalid proof \texttt{PRV002+1}, in which the negated conjecture is not the negation of the conjecture; the blocks without finding are omitted and the formulas are abbreviated.
+The following output is the (shortened) report for the invalid proof \texttt{PRV002+1}, in which the negated conjecture is not the negation of the conjecture. Blocks without a finding are omitted and the formulas are abbreviated.
 
 \begin{verbatim}
 Checking proof: ProoVer2026/PRV/PRV002+1.s
@@ -125,7 +128,7 @@ Against problem: ProoVer2026/PRV/Problems/PRV002+1.p
 
 Tables~\ref{tab:app-prv}, \ref{tab:app-tst}, and~\ref{tab:app-ext} list the status and the run time of each proof of the three benchmark groups.
 The time is the median over the repetitions of the whole process, including the start-up of the interpreter.
-The column ``Result'' compares the status with the expected result; ``abstain'' denotes \texttt{Unknown} or \texttt{Timeout}, which score zero.
+The column ``Result'' compares the status with the expected result, and ``abstain'' denotes \texttt{Unknown} or \texttt{Timeout}, which score zero.
 
 {\small
 \input{generated/tab_app_prv}

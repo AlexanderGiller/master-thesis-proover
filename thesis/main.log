@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.3.7)  22 OCT 2026 15:42
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.3.7)  23 OCT 2026 13:33
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1439,7 +1439,7 @@ Package microtype Info: No adjustment of character kerning.
 (C:\Users\gille\AppData\Local\Programs\MiKTeX\tex/latex/microtype\mt-ptm.cfg
 File: mt-ptm.cfg 2006/04/20 v1.7 microtype config. file: Times (RS)
 )
-<sigillum.png, id=378, 2946.00626pt x 2991.175pt>
+<sigillum.png, id=374, 2946.00626pt x 2991.175pt>
 File: sigillum.png Graphic file (type png)
 <use sigillum.png>
 Package pdftex.def Info: sigillum.png  used on input line 24.
@@ -1517,113 +1517,112 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             See the microtype manual for details.
  [4] [5] [6] [7]
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <6> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 209.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 204.
 
 [8]
 LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 2
-73.
+68.
  (C:\Users\gille\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 )
-[9] [10] [11] [12] [13] [14] [15]) (pages/related_work.tex [16] [17] [18]
-[19] [20]) (pages/requirements.tex [21] [22]
+[9] [10] [11] [12] [13] [14]) (pages/related_work.tex [15] [16] [17] [18]
+[19] [20]) (pages/requirements.tex [21]
 \excnt=1
+[22]
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <5> not available
 (Font)              Font shape `OT1/ptm/b/n' tried instead on input line 63.
-[23]
-ignored: Infinite glue shrinkage found in box being split [24]
-ignored: Infinite glue shrinkag
-e found in box being split [25]) (pages/design.tex [26]
-<diagrams/class_diagram.png, id=1060, 2034.60126pt x 2137.9875pt>
+ [23] [24]
+ignored: Infinite glue shrinkage found in box being split [25]) (pages/design.
+tex
+<diagrams/class_diagram.png, id=1066, 2034.60126pt x 2137.9875pt>
 File: diagrams/class_diagram.png Graphic file (type png)
 <use diagrams/class_diagram.png>
-Package pdftex.def Info: diagrams/class_diagram.png  used on input line 40.
+Package pdftex.def Info: diagrams/class_diagram.png  used on input line 37.
 (pdftex.def)             Requested size: 469.74908pt x 493.61893pt.
- [27] [28 <./diagrams/class_diagram.png (PNG copy)>]
-<diagrams/dag_prv089.pdf, id=1074, 1731.46875pt x 1226.5825pt>
+ [26] [27 <./diagrams/class_diagram.png (PNG copy)>] [28]
+<diagrams/dag_prv089.pdf, id=1086, 1731.46875pt x 1226.5825pt>
 File: diagrams/dag_prv089.pdf Graphic file (type pdf)
 <use diagrams/dag_prv089.pdf>
-Package pdftex.def Info: diagrams/dag_prv089.pdf  used on input line 91.
+Package pdftex.def Info: diagrams/dag_prv089.pdf  used on input line 88.
 (pdftex.def)             Requested size: 459.07481pt x 325.21126pt.
- [29] [30 <./diagrams/dag_prv089.pdf>] [31] [32] [33]
-<diagrams/skolemization_check_flow.png, id=1132, 707.64375pt x 1490.56876pt>
+ [29 <./diagrams/dag_prv089.pdf>] [30] [31] [32]
+<diagrams/skolemization_check_flow.png, id=1137, 707.64375pt x 1490.56876pt>
 File: diagrams/skolemization_check_flow.png Graphic file (type png)
 <use diagrams/skolemization_check_flow.png>
 Package pdftex.def Info: diagrams/skolemization_check_flow.png  used on input l
-ine 277.
+ine 274.
 (pdftex.def)             Requested size: 222.32588pt x 468.30345pt.
- [34] [35 <./diagrams/skolemization_check_flow.png (PNG copy)>]
-<diagrams/verdict_aggregation_flow.png, id=1150, 503.8825pt x 887.315pt>
+ [33] [34 <./diagrams/skolemization_check_flow.png (PNG copy)>] [35]
+<diagrams/verdict_aggregation_flow.png, id=1162, 503.8825pt x 887.315pt>
 File: diagrams/verdict_aggregation_flow.png Graphic file (type png)
 <use diagrams/verdict_aggregation_flow.png>
 Package pdftex.def Info: diagrams/verdict_aggregation_flow.png  used on input l
-ine 328.
+ine 325.
 (pdftex.def)             Requested size: 221.61671pt x 390.25734pt.
- [36] [37 <./diagrams/verdict_aggregation_flow.png (PNG copy)>]) (pages/impleme
+ [36 <./diagrams/verdict_aggregation_flow.png (PNG copy)>] [37]) (pages/impleme
 ntation.tex
-(generated/eval_size_macros.tex) [38] [39] [40]
-<diagrams/sequence_diagram_check_proof.png, id=1211, 2557.555pt x 1595.9625pt>
+(generated/eval_size_macros.tex) [38] [39]
+<diagrams/sequence_diagram_check_proof.png, id=1221, 2557.555pt x 1595.9625pt>
 File: diagrams/sequence_diagram_check_proof.png Graphic file (type png)
 <use diagrams/sequence_diagram_check_proof.png>
 Package pdftex.def Info: diagrams/sequence_diagram_check_proof.png  used on inp
-ut line 92.
+ut line 91.
 (pdftex.def)             Requested size: 469.75502pt x 293.12978pt.
- [41] [42 <./diagrams/sequence_diagram_check_proof.png (PNG copy)>] [43] [44] [
-45] [46] [47] [48] [49] [50]
-[51] [52] [53]) (pages/evaluation.tex (generated/eval_macros.tex)
+ [40] [41 <./diagrams/sequence_diagram_check_proof.png (PNG copy)>] [42] [43] [
+44] [45] [46] [47] [48] [49] [50]
+[51]) (pages/evaluation.tex (generated/eval_macros.tex)
 (generated/eval_internal_macros.tex) (generated/eval_mutation_macros.tex)
 (generated/eval_inputs_macros.tex) (generated/eval_extra_macros.tex)
-(generated/eval_size_macros.tex) [54] [55] (generated/tab_matrix.tex) [56]
-(generated/tab_tst.tex) (generated/tab_extra.tex) [57]
+(generated/eval_size_macros.tex) [52] [53] [54] (generated/tab_matrix.tex)
+(generated/tab_tst.tex) [55] (generated/tab_extra.tex)
 (generated/tab_coverage.tex)
-<diagrams/rule_coverage.pdf, id=1384, 448.07399pt x 495.04951pt>
+<diagrams/rule_coverage.pdf, id=1389, 448.07399pt x 482.7636pt>
 File: diagrams/rule_coverage.pdf Graphic file (type pdf)
 <use diagrams/rule_coverage.pdf>
-Package pdftex.def Info: diagrams/rule_coverage.pdf  used on input line 156.
-(pdftex.def)             Requested size: 385.20619pt x 425.59074pt.
- [58] [59] [60 <./diagrams/rule_coverage.pdf>]
-(generated/tab_size.tex)
-<diagrams/runtime_scatter.pdf, id=1474, 448.07399pt x 245.718pt>
+Package pdftex.def Info: diagrams/rule_coverage.pdf  used on input line 149.
+(pdftex.def)             Requested size: 385.20619pt x 415.02863pt.
+ [56] [57] [58] [59 <./diagrams/rule_coverage.pdf>] (generated/tab_size.tex)
+<diagrams/runtime_scatter.pdf, id=1486, 448.07399pt x 245.718pt>
 File: diagrams/runtime_scatter.pdf Graphic file (type pdf)
 <use diagrams/runtime_scatter.pdf>
-Package pdftex.def Info: diagrams/runtime_scatter.pdf  used on input line 205.
+Package pdftex.def Info: diagrams/runtime_scatter.pdf  used on input line 198.
 (pdftex.def)             Requested size: 399.29463pt x 218.96953pt.
- [61] (generated/tab_slowest.tex) [62 <./diagrams/runtime_scatter.pdf>] (genera
+ [60] (generated/tab_slowest.tex) [61 <./diagrams/runtime_scatter.pdf>] (genera
 ted/tab_mutation.tex)
-<diagrams/mutation_outcomes.pdf, id=1526, 448.07399pt x 209.58301pt>
+<diagrams/mutation_outcomes.pdf, id=1541, 448.07399pt x 209.58301pt>
 File: diagrams/mutation_outcomes.pdf Graphic file (type pdf)
 <use diagrams/mutation_outcomes.pdf>
-Package pdftex.def Info: diagrams/mutation_outcomes.pdf  used on input line 258
+Package pdftex.def Info: diagrams/mutation_outcomes.pdf  used on input line 251
 .
 (pdftex.def)             Requested size: 422.77664pt x 197.75317pt.
- [63] (generated/tab_inputs.tex)
-(generated/tab_noatp.tex) [64 <./diagrams/mutation_outcomes.pdf>]
-(generated/tab_internal.tex) [65] [66] (generated/tab_errors.tex) [67])
-(pages/discussion.tex [68] [69] [70]
-Underfull \hbox (badness 2111) in paragraph at lines 116--119
+ (generated/tab_inputs.tex)
+[62] (generated/tab_noatp.tex) [63 <./diagrams/mutation_outcomes.pdf>]
+(generated/tab_internal.tex) [64] (generated/tab_errors.tex) [65] [66])
+(pages/discussion.tex [67] [68] [69]
+Underfull \hbox (badness 2111) in paragraph at lines 113--116
 []\OT1/ptm/b/n/12 (+20) Syntax. \OT1/ptm/m/n/12 (+20) Vam-pire records Skolem s
 ym-bols and def-i-ni-tions as sep-a-rate for-mu-las
  []
 
 
-Underfull \hbox (badness 1603) in paragraph at lines 116--119
+Underfull \hbox (badness 1603) in paragraph at lines 113--116
 \OT1/ptm/m/n/12 (+20) with the source \OT1/cmtt/c/sc/12 in-tro-duced(definition
 ,...) \OT1/ptm/m/n/12 (+20) and refers to in-put for-mu-las as
  []
 
-[71] [72] [73]) (pages/conclusion.tex [74] [75]) (pages/appendix.tex [76]
-[77] (generated/tab_app_prv.tex [78]
+[70] [71] [72] [73]) (pages/conclusion.tex [74] [75]) (pages/appendix.tex
+[76] [77] (generated/tab_app_prv.tex
 ignored: Infinite glue shrinkage found in box being 
-split [79]
-ignored: Infinite glue shrinkage found in box being split [80]) (generated/tab
-_app_tst.tex
-ignored: Infinite glue shrinkage found in box being split
-[81]
-ignored: Infinite glue shrinkage found in box being split [82]) (generated/tab_app_e
-xt.tex
-ignored: Infinite glue shrinkage found in box being split [83]
-ignored: Infinite glue shrink
-age found in box being split [84])) [85] (main.lof)
+split [78]
+ignored: Infinite glue shrinkage found in box being split [79]
+ignored: Infinite glue sh
+rinkage found in box being split [80]) (generated/tab_app_tst.tex
+ignored: Infinite glue 
+shrinkage found in box being split [81]) (generated/tab_app_ext.tex [82]
+ignored: Infinit
+e glue shrinkage found in box being split [83]
+ignored: Infinite glue shrinkage found in 
+box being split [84])) [85] (main.lof)
 \tf@lof=\write10
 \openout10 = `main.lof'.
 
@@ -1637,7 +1636,7 @@ No file main.gls.
 No file main.acr.
 [88
 
-] (main.bbl [89] [90] [91] [92]) [93] (main.aux)
+] (main.bbl [89] [90] [91]) [92] (main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
@@ -1647,16 +1646,16 @@ L3 programming layer <2026-01-19>
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: D0A4F469DBAA53903A335E4CFC3AFB14;15443.
+(rerunfilecheck)             Checksum: 6505D320C0A968B9595E8A5DEC759C4B;15245.
  ) 
 Here is how much of TeX's memory you used:
- 36299 strings out of 467867
- 709461 string characters out of 5418335
- 1228107 words of memory out of 5000000
- 63440 multiletter control sequences out of 15000+600000
- 710487 words of font info for 538 fonts, out of 8000000 for 9000
+ 36182 strings out of 467867
+ 707862 string characters out of 5418335
+ 1236423 words of memory out of 5000000
+ 63371 multiletter control sequences out of 15000+600000
+ 709232 words of font info for 520 fonts, out of 8000000 for 9000
  1143 hyphenation exceptions out of 8191
- 102i,12n,107p,2506b,810s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 102i,12n,107p,2506b,803s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <C:\Users\gille\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\tctt
 1095.pk> <C:\Users\gille\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi60
 0\tctt1200.pk><C:/Users/gille/AppData/Local/Programs/MiKTeX/fonts/type1/public/
@@ -1673,9 +1672,9 @@ b><C:/Users/gille/AppData/Local/Programs/MiKTeX/fonts/type1/urw/symbol/usyr.pfb
 ><C:/Users/gille/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmr8a.pfb
 ><C:/Users/gille/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmri8a.pf
 b>
-Output written on main.pdf (101 pages, 1699425 bytes).
+Output written on main.pdf (100 pages, 1695992 bytes).
 PDF statistics:
- 2089 PDF objects out of 2487 (max. 8388607)
- 422 named destinations out of 1000 (max. 500000)
- 95522 words of extra memory for PDF output out of 106986 (max. 10000000)
+ 2081 PDF objects out of 2487 (max. 8388607)
+ 397 named destinations out of 1000 (max. 500000)
+ 95514 words of extra memory for PDF output out of 106986 (max. 10000000)
 

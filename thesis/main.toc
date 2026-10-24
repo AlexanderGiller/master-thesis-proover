@@ -9,175 +9,175 @@
 \contentsline {paragraph}{The de Bruijn criterion and the LCF (Logic for Computable Functions) approach.}{3}{section*.3}%
 \contentsline {subsection}{\numberline {2.2}What Is a Proof Verifier?}{4}{subsection.2.2}%
 \contentsline {paragraph}{Definition.}{4}{section*.4}%
-\contentsline {paragraph}{Soundness and completeness.}{5}{section*.5}%
+\contentsline {paragraph}{Soundness and completeness.}{4}{section*.5}%
 \contentsline {paragraph}{How steps are validated.}{5}{section*.6}%
 \contentsline {paragraph}{Why verification is not decidable in general.}{5}{section*.7}%
-\contentsline {subsection}{\numberline {2.3}First-Order Logic}{6}{subsection.2.3}%
-\contentsline {paragraph}{Syntax.}{6}{section*.8}%
-\contentsline {paragraph}{Semantics.}{6}{section*.9}%
+\contentsline {subsection}{\numberline {2.3}First-Order Logic}{5}{subsection.2.3}%
+\contentsline {paragraph}{Syntax.}{5}{section*.8}%
+\contentsline {paragraph}{Semantics.}{5}{section*.9}%
 \contentsline {paragraph}{Polarity.}{6}{section*.10}%
 \contentsline {subsection}{\numberline {2.4}Normal Forms, Skolemization, and Equisatisfiability}{6}{subsection.2.4}%
 \contentsline {paragraph}{Example.}{7}{section*.11}%
 \contentsline {subsection}{\numberline {2.5}The TPTP World}{7}{subsection.2.5}%
-\contentsline {subsubsection}{\numberline {2.5.1}The FOF Language}{8}{subsubsection.2.5.1}%
+\contentsline {subsubsection}{\numberline {2.5.1}The FOF Language}{7}{subsubsection.2.5.1}%
 \contentsline {paragraph}{Formula roles.}{8}{section*.12}%
 \contentsline {paragraph}{Concrete syntax.}{8}{section*.13}%
-\contentsline {paragraph}{Example problem.}{9}{section*.14}%
+\contentsline {paragraph}{Example problem.}{8}{section*.14}%
 \contentsline {subsubsection}{\numberline {2.5.2}TSTP Derivations}{9}{subsubsection.2.5.2}%
-\contentsline {paragraph}{Status values.}{10}{section*.15}%
-\contentsline {paragraph}{Structure of a derivation.}{10}{section*.16}%
+\contentsline {paragraph}{Status values.}{9}{section*.15}%
+\contentsline {paragraph}{Structure of a derivation.}{9}{section*.16}%
 \contentsline {paragraph}{A complete example.}{10}{section*.17}%
 \contentsline {subsubsection}{\numberline {2.5.3}The SZS Ontologies}{11}{subsubsection.2.5.3}%
-\contentsline {subsection}{\numberline {2.6}Soundness of Refutations}{12}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.6}Soundness of Refutations}{11}{subsection.2.6}%
 \contentsline {paragraph}{Step status.}{12}{section*.18}%
 \contentsline {paragraph}{Step-wise soundness.}{12}{section*.19}%
-\contentsline {subsection}{\numberline {2.7}GDV: Semantic Derivation Verification}{13}{subsection.2.7}%
-\contentsline {paragraph}{Motivation.}{13}{section*.20}%
-\contentsline {paragraph}{Structural verification.}{13}{section*.21}%
+\contentsline {subsection}{\numberline {2.7}GDV: Semantic Derivation Verification}{12}{subsection.2.7}%
+\contentsline {paragraph}{Motivation.}{12}{section*.20}%
+\contentsline {paragraph}{Structural verification.}{12}{section*.21}%
 \contentsline {paragraph}{Semantic verification.}{13}{section*.22}%
-\contentsline {paragraph}{Trust.}{14}{section*.23}%
-\contentsline {paragraph}{Limitations observed in the literature.}{14}{section*.24}%
+\contentsline {paragraph}{Trust.}{13}{section*.23}%
+\contentsline {paragraph}{Limitations observed in the literature.}{13}{section*.24}%
 \contentsline {paragraph}{Check taxonomy.}{14}{section*.25}%
-\contentsline {subsection}{\numberline {2.8}Competition Setting: ProoVer 2026}{15}{subsection.2.8}%
+\contentsline {subsection}{\numberline {2.8}Competition Setting: ProoVer 2026}{14}{subsection.2.8}%
 \contentsline {section}{\numberline {3}Related Work}{16}{section.3}%
 \contentsline {subsection}{\numberline {3.1}Approaches to Proof Checking}{16}{subsection.3.1}%
 \contentsline {paragraph}{Semantic checking with external provers.}{16}{section*.26}%
-\contentsline {paragraph}{Internal replay.}{17}{section*.27}%
-\contentsline {paragraph}{Translation to a logical framework or proof assistant.}{17}{section*.28}%
-\contentsline {paragraph}{Hybrids.}{17}{section*.29}%
-\contentsline {subsection}{\numberline {3.2}Systems of ProoVer 2026}{17}{subsection.3.2}%
+\contentsline {paragraph}{Internal replay.}{16}{section*.27}%
+\contentsline {paragraph}{Certification.}{16}{section*.28}%
+\contentsline {paragraph}{Hybrids.}{16}{section*.29}%
+\contentsline {subsection}{\numberline {3.2}Systems of ProoVer 2026}{16}{subsection.3.2}%
 \contentsline {subsection}{\numberline {3.3}GDV and N\"orgler}{17}{subsection.3.3}%
 \contentsline {paragraph}{GDV.}{17}{section*.30}%
 \contentsline {paragraph}{N\"orgler.}{18}{section*.31}%
-\contentsline {subsection}{\numberline {3.4}GDV as the Reference Point of This Thesis}{19}{subsection.3.4}%
-\contentsline {paragraph}{What is shared.}{19}{section*.32}%
-\contentsline {paragraph}{Where the verifier differs.}{19}{section*.33}%
-\contentsline {paragraph}{Check-by-check comparison.}{20}{section*.34}%
+\contentsline {subsection}{\numberline {3.4}GDV as the Reference Point of This Thesis}{18}{subsection.3.4}%
+\contentsline {paragraph}{What is shared.}{18}{section*.32}%
+\contentsline {paragraph}{Where the verifier differs.}{18}{section*.33}%
+\contentsline {paragraph}{Check-by-check comparison.}{19}{section*.34}%
 \contentsline {subsection}{\numberline {3.5}Vampire as a Step Validator}{20}{subsection.3.5}%
-\contentsline {subsection}{\numberline {3.6}Proof Checking Beyond TPTP}{21}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.6}Proof Checking Beyond TPTP}{20}{subsection.3.6}%
 \contentsline {subsection}{\numberline {3.7}Positioning of This Thesis}{21}{subsection.3.7}%
 \contentsline {section}{\numberline {4}Requirements}{22}{section.4}%
 \contentsline {subsection}{\numberline {4.1}Task and Assumptions}{22}{subsection.4.1}%
-\contentsline {subsection}{\numberline {4.2}Scoring and Its Consequences}{23}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.2}Scoring and Its Consequences}{22}{subsection.4.2}%
 \contentsline {subsection}{\numberline {4.3}Functional Requirements}{23}{subsection.4.3}%
-\contentsline {subsection}{\numberline {4.4}Non-Functional Requirements}{25}{subsection.4.4}%
-\contentsline {subsection}{\numberline {4.5}Traceability}{25}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.4}Non-Functional Requirements}{24}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Traceability}{24}{subsection.4.5}%
 \contentsline {section}{\numberline {5}Design}{26}{section.5}%
 \contentsline {subsection}{\numberline {5.1}Design Principles}{26}{subsection.5.1}%
-\contentsline {paragraph}{Relation to the de Bruijn criterion.}{27}{section*.35}%
-\contentsline {subsection}{\numberline {5.2}Architecture Overview}{27}{subsection.5.2}%
-\contentsline {subsection}{\numberline {5.3}Data Model}{27}{subsection.5.3}%
-\contentsline {subsection}{\numberline {5.4}Global Checks}{27}{subsection.5.4}%
-\contentsline {paragraph}{Provenance (FR2).}{27}{section*.36}%
-\contentsline {paragraph}{Dependency graph (FR4, FR5).}{29}{section*.37}%
-\contentsline {paragraph}{Termination (FR9).}{29}{section*.38}%
-\contentsline {subsection}{\numberline {5.5}Step Dispatch and the Checker Interface}{29}{subsection.5.5}%
+\contentsline {paragraph}{Relation to the de Bruijn criterion.}{26}{section*.35}%
+\contentsline {subsection}{\numberline {5.2}Architecture Overview}{26}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Data Model}{28}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Global Checks}{28}{subsection.5.4}%
+\contentsline {paragraph}{Provenance (FR2).}{28}{section*.36}%
+\contentsline {paragraph}{Dependency graph (FR4, FR5).}{28}{section*.37}%
+\contentsline {paragraph}{Termination (FR9).}{28}{section*.38}%
+\contentsline {subsection}{\numberline {5.5}Step Dispatch and the Checker Interface}{28}{subsection.5.5}%
 \contentsline {paragraph}{A proof as a graph.}{29}{section*.39}%
 \contentsline {subsection}{\numberline {5.6}Rule Checkers}{30}{subsection.5.6}%
 \contentsline {subsection}{\numberline {5.7}Rule Checks by Example}{30}{subsection.5.7}%
 \contentsline {paragraph}{Structural rules.}{31}{section*.40}%
 \contentsline {paragraph}{Propositional rules.}{31}{section*.41}%
 \contentsline {paragraph}{Quantifier rules.}{32}{section*.42}%
-\contentsline {paragraph}{Junction rules.}{33}{section*.43}%
-\contentsline {paragraph}{Clausal and equational rules.}{33}{section*.44}%
+\contentsline {paragraph}{Junction rules.}{32}{section*.43}%
+\contentsline {paragraph}{Clausal and equational rules.}{32}{section*.44}%
 \contentsline {paragraph}{Skolemization.}{33}{section*.45}%
-\contentsline {paragraph}{Steps decided by the prover.}{34}{section*.46}%
-\contentsline {paragraph}{Summary.}{34}{section*.47}%
+\contentsline {paragraph}{Steps decided by the prover.}{33}{section*.46}%
+\contentsline {paragraph}{Summary.}{33}{section*.47}%
 \contentsline {subsection}{\numberline {5.8}Checking Skolemization}{34}{subsection.5.8}%
-\contentsline {paragraph}{Polarity.}{36}{section*.48}%
-\contentsline {paragraph}{Herbrand symbols.}{36}{section*.49}%
-\contentsline {subsection}{\numberline {5.9}Delegation to an External ATP}{36}{subsection.5.9}%
+\contentsline {paragraph}{Polarity.}{35}{section*.48}%
+\contentsline {paragraph}{Herbrand symbols.}{35}{section*.49}%
+\contentsline {subsection}{\numberline {5.9}Delegation to an External ATP}{35}{subsection.5.9}%
 \contentsline {subsection}{\numberline {5.10}Verdicts and Soundness Argument}{36}{subsection.5.10}%
 \contentsline {paragraph}{Soundness argument.}{37}{section*.50}%
-\contentsline {subsection}{\numberline {5.11}Resource Control}{38}{subsection.5.11}%
-\contentsline {subsection}{\numberline {5.12}Diagnostics}{38}{subsection.5.12}%
-\contentsline {subsection}{\numberline {5.13}Design Decisions and Alternatives}{38}{subsection.5.13}%
+\contentsline {subsection}{\numberline {5.11}Resource Control}{37}{subsection.5.11}%
+\contentsline {subsection}{\numberline {5.12}Diagnostics}{37}{subsection.5.12}%
+\contentsline {subsection}{\numberline {5.13}Design Decisions and Alternatives}{37}{subsection.5.13}%
 \contentsline {subsection}{\numberline {5.14}Summary}{38}{subsection.5.14}%
-\contentsline {section}{\numberline {6}Implementation}{39}{section.6}%
+\contentsline {section}{\numberline {6}Implementation}{38}{section.6}%
 \contentsline {subsection}{\numberline {6.1}Overview}{39}{subsection.6.1}%
 \contentsline {subsection}{\numberline {6.2}Internal Representation}{40}{subsection.6.2}%
-\contentsline {subsection}{\numberline {6.3}Parser}{41}{subsection.6.3}%
-\contentsline {subsection}{\numberline {6.4}Driver and Dispatch}{41}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.3}Parser}{40}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Driver and Dispatch}{40}{subsection.6.4}%
 \contentsline {paragraph}{Verdict.}{41}{section*.51}%
 \contentsline {subsection}{\numberline {6.5}Global Checks}{42}{subsection.6.5}%
 \contentsline {subsection}{\numberline {6.6}Structural, Propositional, and Quantifier Rules}{43}{subsection.6.6}%
-\contentsline {subsection}{\numberline {6.7}Skolemization}{44}{subsection.6.7}%
-\contentsline {subsection}{\numberline {6.8}Equality and Clausal Reasoning}{44}{subsection.6.8}%
+\contentsline {subsection}{\numberline {6.7}Skolemization}{43}{subsection.6.7}%
+\contentsline {subsection}{\numberline {6.8}Equality and Clausal Reasoning}{43}{subsection.6.8}%
 \contentsline {paragraph}{Overview of the rule checkers.}{44}{section*.52}%
-\contentsline {subsection}{\numberline {6.9}Delegation to the External ATP}{45}{subsection.6.9}%
-\contentsline {subsection}{\numberline {6.10}Resource Control}{46}{subsection.6.10}%
-\contentsline {subsection}{\numberline {6.11}Test Suite}{47}{subsection.6.11}%
+\contentsline {subsection}{\numberline {6.9}Delegation to the External ATP}{44}{subsection.6.9}%
+\contentsline {subsection}{\numberline {6.10}Resource Control}{45}{subsection.6.10}%
+\contentsline {subsection}{\numberline {6.11}Test Suite}{46}{subsection.6.11}%
 \contentsline {subsection}{\numberline {6.12}Tooling for Reporting and Evaluation}{47}{subsection.6.12}%
-\contentsline {subsection}{\numberline {6.13}Selected Algorithms}{48}{subsection.6.13}%
-\contentsline {paragraph}{Template matching.}{48}{section*.53}%
-\contentsline {paragraph}{Unification.}{48}{section*.54}%
+\contentsline {subsection}{\numberline {6.13}Selected Algorithms}{47}{subsection.6.13}%
+\contentsline {paragraph}{Template matching.}{47}{section*.53}%
+\contentsline {paragraph}{Unification.}{47}{section*.54}%
 \contentsline {paragraph}{Resolution.}{48}{section*.55}%
 \contentsline {paragraph}{Negation of the conjecture.}{49}{section*.56}%
 \contentsline {subsection}{\numberline {6.14}Worked Examples}{49}{subsection.6.14}%
 \contentsline {paragraph}{The valid proof.}{50}{section*.57}%
-\contentsline {paragraph}{The invalid proof.}{51}{section*.58}%
-\contentsline {paragraph}{The report.}{52}{section*.59}%
-\contentsline {subsection}{\numberline {6.15}Defects Found During Testing}{52}{subsection.6.15}%
-\contentsline {paragraph}{Doubly negated conjecture.}{52}{section*.60}%
-\contentsline {paragraph}{Variable capture in \texttt {instantiate}.}{52}{section*.61}%
+\contentsline {paragraph}{The invalid proof.}{50}{section*.58}%
+\contentsline {paragraph}{The report.}{51}{section*.59}%
+\contentsline {subsection}{\numberline {6.15}Defects Found During Testing}{51}{subsection.6.15}%
+\contentsline {paragraph}{Doubly negated conjecture.}{51}{section*.60}%
+\contentsline {paragraph}{Variable capture in \texttt {instantiate}.}{51}{section*.61}%
 \contentsline {paragraph}{Resolution without standardizing apart and without occurs check.}{52}{section*.62}%
 \contentsline {paragraph}{Polarity below implications.}{52}{section*.63}%
-\contentsline {paragraph}{Defects found in the final code review.}{53}{section*.64}%
+\contentsline {paragraph}{Defects found in the final code review.}{52}{section*.64}%
 \contentsline {paragraph}{Lessons.}{53}{section*.65}%
-\contentsline {subsection}{\numberline {6.16}Deviations from the Design}{53}{subsection.6.16}%
-\contentsline {section}{\numberline {7}Evaluation}{54}{section.7}%
-\contentsline {subsection}{\numberline {7.1}Setup}{54}{subsection.7.1}%
-\contentsline {paragraph}{Benchmarks.}{54}{section*.66}%
-\contentsline {paragraph}{Metrics.}{55}{section*.67}%
-\contentsline {paragraph}{External prover.}{55}{section*.68}%
-\contentsline {paragraph}{Environment.}{56}{section*.69}%
-\contentsline {subsection}{\numberline {7.2}Correctness and Score}{56}{subsection.7.2}%
-\contentsline {subsection}{\numberline {7.3}Rule-Level Test Suite}{57}{subsection.7.3}%
-\contentsline {subsection}{\numberline {7.4}Rule Coverage (RQ1)}{57}{subsection.7.4}%
-\contentsline {subsection}{\numberline {7.5}Architecture Metrics (RQ2)}{61}{subsection.7.5}%
-\contentsline {subsection}{\numberline {7.6}Run Time and Memory (RQ3)}{61}{subsection.7.6}%
-\contentsline {subsection}{\numberline {7.7}Robustness (RQ3)}{63}{subsection.7.7}%
-\contentsline {paragraph}{Mutation test.}{63}{section*.70}%
-\contentsline {paragraph}{Malformed input.}{63}{section*.71}%
-\contentsline {paragraph}{Missing prover.}{64}{section*.72}%
-\contentsline {subsection}{\numberline {7.8}Ablations}{65}{subsection.7.8}%
-\contentsline {paragraph}{Internal checkers against the prover.}{65}{section*.73}%
-\contentsline {paragraph}{Three-valued verdict.}{65}{section*.74}%
-\contentsline {subsection}{\numberline {7.9}Error Analysis}{66}{subsection.7.9}%
-\contentsline {subsection}{\numberline {7.10}Threats to Validity}{67}{subsection.7.10}%
-\contentsline {paragraph}{Internal validity.}{67}{section*.75}%
-\contentsline {paragraph}{External validity.}{67}{section*.76}%
-\contentsline {paragraph}{Construct validity.}{67}{section*.77}%
-\contentsline {subsection}{\numberline {7.11}Summary}{68}{subsection.7.11}%
-\contentsline {section}{\numberline {8}Discussion}{68}{section.8}%
-\contentsline {subsection}{\numberline {8.1}Interpretation of the Results}{68}{subsection.8.1}%
-\contentsline {subsection}{\numberline {8.2}Scoring Policy and Its Limits}{69}{subsection.8.2}%
-\contentsline {subsection}{\numberline {8.3}Trusted Computing Base and Soundness}{69}{subsection.8.3}%
-\contentsline {subsection}{\numberline {8.4}Design Trade-offs}{70}{subsection.8.4}%
-\contentsline {paragraph}{Internal checks and ATP fallback.}{70}{section*.78}%
-\contentsline {paragraph}{Modularity.}{70}{section*.79}%
-\contentsline {paragraph}{Python.}{70}{section*.80}%
-\contentsline {paragraph}{Process isolation.}{70}{section*.81}%
-\contentsline {subsection}{\numberline {8.5}Transfer to Other Provers: A Case Study with Vampire}{71}{subsection.8.5}%
-\contentsline {paragraph}{Setup.}{71}{section*.82}%
-\contentsline {paragraph}{Experiment A: Can the verifier read Vampire's proofs?}{71}{section*.83}%
-\contentsline {paragraph}{Experiment B: Skolemization and an entailment oracle.}{72}{section*.84}%
-\contentsline {paragraph}{Why a good competition verifier transfers poorly.}{73}{section*.85}%
-\contentsline {paragraph}{Consequences.}{73}{section*.86}%
-\contentsline {paragraph}{Threats to validity.}{74}{section*.87}%
-\contentsline {subsection}{\numberline {8.6}Limitations}{74}{subsection.8.6}%
-\contentsline {section}{\numberline {9}Conclusion and Future Work}{75}{section.9}%
-\contentsline {subsection}{\numberline {9.1}Summary}{75}{subsection.9.1}%
-\contentsline {subsection}{\numberline {9.2}Answers to the Research Questions}{75}{subsection.9.2}%
-\contentsline {paragraph}{RQ1: Which rules and fragments must be supported?}{75}{section*.88}%
-\contentsline {paragraph}{RQ2: How does modularity keep the trusted part small and extensible?}{75}{section*.89}%
-\contentsline {paragraph}{RQ3: How do correctness, run time, and memory behave?}{75}{section*.90}%
-\contentsline {subsection}{\numberline {9.3}Contributions Revisited}{76}{subsection.9.3}%
-\contentsline {subsection}{\numberline {9.4}Future Work}{76}{subsection.9.4}%
+\contentsline {section}{\numberline {7}Evaluation}{53}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Setup}{53}{subsection.7.1}%
+\contentsline {paragraph}{Benchmarks.}{53}{section*.66}%
+\contentsline {paragraph}{Metrics.}{53}{section*.67}%
+\contentsline {paragraph}{External prover.}{54}{section*.68}%
+\contentsline {paragraph}{Environment.}{54}{section*.69}%
+\contentsline {subsection}{\numberline {7.2}Correctness and Score}{55}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Rule-Level Test Suite}{55}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}Rule Coverage (RQ1)}{56}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.5}Architecture Metrics (RQ2)}{59}{subsection.7.5}%
+\contentsline {subsection}{\numberline {7.6}Run Time and Memory (RQ3)}{60}{subsection.7.6}%
+\contentsline {subsection}{\numberline {7.7}Robustness (RQ3)}{61}{subsection.7.7}%
+\contentsline {paragraph}{Mutation test.}{61}{section*.70}%
+\contentsline {paragraph}{Malformed input.}{62}{section*.71}%
+\contentsline {paragraph}{Missing prover.}{62}{section*.72}%
+\contentsline {subsection}{\numberline {7.8}Ablations}{64}{subsection.7.8}%
+\contentsline {paragraph}{Internal checkers against the prover.}{64}{section*.73}%
+\contentsline {paragraph}{Three-valued verdict.}{64}{section*.74}%
+\contentsline {subsection}{\numberline {7.9}Error Analysis}{64}{subsection.7.9}%
+\contentsline {subsection}{\numberline {7.10}Threats to Validity}{66}{subsection.7.10}%
+\contentsline {paragraph}{Internal validity.}{66}{section*.75}%
+\contentsline {paragraph}{External validity.}{66}{section*.76}%
+\contentsline {paragraph}{Construct validity.}{66}{section*.77}%
+\contentsline {paragraph}{Hardware of the competition.}{67}{section*.78}%
+\contentsline {subsection}{\numberline {7.11}Summary}{67}{subsection.7.11}%
+\contentsline {section}{\numberline {8}Discussion}{67}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Interpretation of the Results}{67}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Scoring Policy and Its Limits}{68}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}Trusted Computing Base and Soundness}{68}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}Design Trade-offs}{69}{subsection.8.4}%
+\contentsline {paragraph}{Internal checks and ATP fallback.}{69}{section*.79}%
+\contentsline {paragraph}{Modularity.}{69}{section*.80}%
+\contentsline {paragraph}{Python.}{69}{section*.81}%
+\contentsline {paragraph}{Process isolation.}{70}{section*.82}%
+\contentsline {subsection}{\numberline {8.5}Transfer to Other Provers: A Case Study with Vampire}{70}{subsection.8.5}%
+\contentsline {paragraph}{Setup.}{70}{section*.83}%
+\contentsline {paragraph}{Experiment A: Can the verifier read Vampire's proofs?}{70}{section*.84}%
+\contentsline {paragraph}{Experiment B: Skolemization and an entailment oracle.}{71}{section*.85}%
+\contentsline {paragraph}{Why a good competition verifier transfers poorly.}{72}{section*.86}%
+\contentsline {paragraph}{Consequences.}{73}{section*.87}%
+\contentsline {paragraph}{Threats to validity.}{73}{section*.88}%
+\contentsline {subsection}{\numberline {8.6}Limitations}{73}{subsection.8.6}%
+\contentsline {section}{\numberline {9}Conclusion and Future Work}{74}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Summary}{74}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Answers to the Research Questions}{74}{subsection.9.2}%
+\contentsline {paragraph}{RQ1: Which rules and fragments must be supported?}{74}{section*.89}%
+\contentsline {paragraph}{RQ2: How does modularity keep the trusted part small and extensible?}{74}{section*.90}%
+\contentsline {paragraph}{RQ3: How do correctness, run time, and memory behave?}{75}{section*.91}%
+\contentsline {subsection}{\numberline {9.3}Contributions Revisited}{75}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}Future Work}{75}{subsection.9.4}%
 \contentsline {section}{\numberline {A}Reproduction}{76}{appendix.A}%
-\contentsline {subsection}{\numberline {A.1}Requirements}{77}{subsection.A.1}%
-\contentsline {subsection}{\numberline {A.2}Checking Proofs}{77}{subsection.A.2}%
-\contentsline {subsection}{\numberline {A.3}Tests and Evaluation}{78}{subsection.A.3}%
+\contentsline {subsection}{\numberline {A.1}Requirements}{76}{subsection.A.1}%
+\contentsline {subsection}{\numberline {A.2}Checking Proofs}{76}{subsection.A.2}%
+\contentsline {subsection}{\numberline {A.3}Tests and Evaluation}{77}{subsection.A.3}%
 \contentsline {section}{\numberline {B}Example Reports}{78}{appendix.B}%
 \contentsline {section}{\numberline {C}Results per Proof}{78}{appendix.C}%
-\contentsline {section}{Bibliography}{89}{section*.92}%
+\contentsline {section}{Bibliography}{89}{section*.93}%

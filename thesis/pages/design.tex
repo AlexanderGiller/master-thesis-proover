@@ -1,4 +1,3 @@
-% Beschreibt die Architektur, Abweichungen der Implementierung (Registry, Restbudget je ATP-Aufruf, Skolem-Polaritaet im Antezedens) sind im Text und in impl-limitations genannt.
 
 \section{Design}
 \label{sec:design}
@@ -19,12 +18,10 @@ Four principles guide the design, each derived from the requirements of Chapter~
 \end{description}
 
 \paragraph{Relation to the de Bruijn criterion.}
-The principles are a compromise with the ideal of a small trusted checker (Section~\ref{subsec:atp-certification}).
-An LCF-style kernel would reduce every step to a few primitive rules, but the ProoVer proofs, use more than thirty rule names with no reduction to primitive rules given, and the competition prescribes that some of them are checked internally.
-The design therefore implements each rule as its own small checker, but lets all checkers rely on the same few operations: alpha-equivalence, substitution, template matching, and unification.
-These shared operations play the role of a kernel in a weak sense, because a defect in them affects every rule, while a defect in a single rule checker stays local to that rule.
-These rule checker modules are kept in separately and tested most intensively.
-The external prover is the part that departs furthest from the criterion, since it is a full proof search, but the cheap-checks-first principle keeps the number of steps that depend on it small.
+The ProoVer proofs use more than thirty rule names without a reduction to primitive rules, so an LCF-style kernel (Section~\ref{subsec:atp-certification}) is not an option.
+Instead, each rule has its own small checker, and all checkers rely on the same few operations, namely alpha-equivalence, substitution, template matching, and unification.
+These shared operations act as a kernel in a weak sense, because a defect in them affects every rule, whereas a defect in one rule checker stays local to that rule.
+Section~\ref{subsec:disc-tcb} discusses how far the verifier meets the criterion.
 
 \subsection{Architecture Overview}
 \label{subsec:design-overview}
@@ -32,8 +29,8 @@ The external prover is the part that departs furthest from the criterion, since 
 Figure~\ref{fig:architecture} shows the module and dependency view of the checking pipeline.
 A proof is processed in a separate worker process with a wall-clock limit.
 The parser produces a proof model, while the global checks validate provenance and the dependency graph.
-Later on, a dispatcher routes each step to the checker of its rule, with the ATP as fallback, if no internal rule checker module for the specific step can be found and the structure of the step allows \textbf{it}.
-Finally, the verdict aggregation combines all issues into one of three verdicts (theoretically four verdicts, but Timeout is returned if the dispatching did not finish, so it is not taken into account here).
+A dispatcher then passes each step to the checker of its rule. If there is no internal checker for the rule and the step allows it, the ATP is used as a fallback.
+Finally, the verdict aggregation combines all issues into one of three verdicts. The fourth answer, Timeout, is only returned when the check does not finish in time and is therefore not part of the aggregation.
 
 \begin{figure}[tbp]
 \centering
@@ -47,10 +44,10 @@ Finally, the verdict aggregation combines all issues into one of three verdicts 
 
 The parser turns each file into a list of annotated formulas.
 An \emph{annotated formula} has a name, a role, a formula, and a justification, which is either a source (a \texttt{file} reference to the problem) or an \emph{inference record}.
-An inference record consists of the rule name, a list of parent names, and a list of additional information items: the status, the \texttt{new\_symbols} declaration, and, for Skolemization, the eliminated variable with its Skolem term.
+An inference record consists of the rule name, a list of parent names, and a list of additional information items. These are the status, the \texttt{new\_symbols} declaration, and, for Skolemization, the eliminated variable with its Skolem term.
 Formulas are represented as immutable abstract syntax trees with nodes for variables, constants, function terms, atoms, equalities, negations, binary connectives, n-ary conjunctions and disjunctions, and quantified formulas.
 The use of n-ary conjunctions and disjunctions makes flattening of nested connectives explicit and simplifies the junction and clausal checks.
-Roles, statuses, and rule names are enumerations, so that unknown values are detected at parse time or at dispatch time instead of silently ignored.
+Roles, statuses, and rule names are enumerations, so that unknown values are detected at parse time or at dispatch time instead of being silently ignored.
 
 \subsection{Global Checks}
 \label{subsec:design-global}
@@ -59,13 +56,13 @@ Three checks involve the whole proof and run before the step checks.
 
 \paragraph{Provenance (FR2).}
 Each formula imported from the problem, that is, each \texttt{axiom}, \texttt{conjecture}, or other input formula with a \texttt{file(\dots)} source, cites a problem file and a formula name.
-The checker looks up the formula in the problem file and compares it with the step's formula up to alpha-equivalence, i.e.\ up to consistent renaming of bound variables, and compares the roles.
+The checker looks up the formula in the problem file and compares it with the step's formula up to alpha-equivalence, that is, up to a consistent renaming of bound variables, and compares the roles.
 Alpha-equivalence is implemented as a simultaneous traversal of both trees with two mappings between the bound variables of the two formulas, so that no renaming of the trees is necessary.
 Before the traversal, consecutive quantifiers of the same kind are merged into one prefix and nested conjunctions and disjunctions are flattened.
 
 \paragraph{Dependency graph (FR4, FR5).}
 The graph with an edge from each step to its parents must be acyclic.
-Cycles are detected with a depth-first search with three colors, where pendent references are reported by the step checks.
+Cycles are detected by a depth-first search with three colors. References to missing steps are reported by the step checks.
 In a second pass, no step except the negation step may cite a \texttt{conjecture}, because otherwise the proof would assume the statement it has to refute.
 
 \paragraph{Termination (FR9).}
@@ -76,15 +73,15 @@ It does not require that the step depends on the negated conjecture, so that a p
 \subsection{Step Dispatch and the Checker Interface}
 \label{subsec:design-dispatch}
 
-All step checkers have the same shape: they take the step and its parents and return a list of issues.
-Any issue occurring during the proof checking process contains the step name and a reason.
-A checker never throws an exception for invalid proofs, however exceptions indicate a defect of the verifier or an input it cannot process and lead to the verdict \emph{failed} (Section~\ref{subsec:design-verdict}).
-The dispatcher selects the checker by the rule name of the step and performs the checks common to all rules before calling it: the number of parents must match the rule's arity, every parent must exist, and the status must be the one the rule requires.
-Rule checkers therefore need to concentrate on the logical content.
+All step checkers have the same shape. They take the step and its parents and return a list of issues.
+Every issue contains the step name and a reason.
+A checker never throws an exception because a proof is invalid. An exception indicates a defect of the verifier or an input it cannot process, and leads to the verdict \emph{failed} (Section~\ref{subsec:design-verdict}).
+The dispatcher selects the checker by the rule name of the step and performs the checks common to all rules before calling it. The number of parents must match the arity of the rule, every parent must exist, and the status must be the one the rule requires.
+The rule checkers can therefore concentrate on the logical content.
 
 Dispatch is designed as a registry that maps rule names to checkers together with their arity and required status.
 Adding a rule means registering one entry and writing one function (NFR6).
-In the implementation, the registry is realized as an \texttt{if}/\texttt{elif} chain with the same effect (Section~\ref{subsec:impl-limitations}).
+The implementation uses an \texttt{if}/\texttt{elif} chain with the same effect instead, so a new rule also needs a new branch in the driver (Section~\ref{subsec:disc-limitations}).
 
 \begin{figure}[tbp]
 \centering
@@ -98,15 +95,15 @@ Figure~\ref{fig:design-dag} shows how a complete proof is processed, using the v
 The proof refutes the conjecture $\exists Z\,(p(Z) \land q(Z))$ from the axioms $\exists Y\,p(Y)$ and $\forall X\,q(X)$.
 Each node is an annotated formula, and each edge leads from a parent to the step derived from it.
 The graph is acyclic, as the dependency check requires, the conjecture \texttt{c} is used only by the negation step \texttt{negc}, and the single sink is the step \texttt{bot} with the formula \texttt{\$false}, as the termination check requires.
-The colors show the result of the dispatch: the three formulas taken from the problem are checked for provenance, \texttt{negc} by the negated-conjecture check, \texttt{skA} by the Skolemization check, and the three intermediate steps \texttt{instB}, \texttt{s}, and \texttt{s2} by internal rule checkers.
+The colors show the result of the dispatch. The three formulas taken from the problem are checked for provenance, \texttt{negc} by the negated-conjecture check, \texttt{skA} by the Skolemization check, and the three intermediate steps \texttt{instB}, \texttt{s}, and \texttt{s2} by internal rule checkers.
 
 The proof also shows how the steps depend on each other beyond their own rule.
-\texttt{skA} replaces the existential variable of \texttt{a1} by the Skolem constant $\mathit{sK0}$, which must be fresh.
+\texttt{skA} replaces the existential variable of \texttt{a1} with the Skolem constant $\mathit{sK0}$, which must be fresh.
 \texttt{instB} then instantiates the universal axiom \texttt{a2} with exactly this constant, \texttt{s} combines the two facts, and \texttt{s2} generalizes $\mathit{sK0}$ back to an existential variable, which yields the conjecture itself.
 The two branches of the graph meet only in \texttt{bot}, whose parents are the conjecture and its negation.
 Since they are complementary, the final step is decided by the sound shortcut for \texttt{consequence} steps (Section~\ref{subsec:impl-atp}), and the whole proof is verified without a single call to the external prover.
 About half of the valid proofs of the benchmark are verified in this way (Section~\ref{subsec:eval-robustness}).
-The order of the steps in the file plays no role for the checks: each step is judged only by its own parents, so that the graph, not the file order, determines what has to hold.
+The order of the steps in the file plays no role for the checks. Each step is judged only by its own parents, so what has to hold is determined by the graph and not by the order in the file.
 
 \subsection{Rule Checkers}
 \label{subsec:design-rules}
@@ -125,7 +122,7 @@ Family & Rules & Principle \\
 \midrule
 Structural & \texttt{copy}, \texttt{duplicate}, \texttt{rename\_variable}, \texttt{double\_negation}, \texttt{remove\_double\_negation} & Conclusion is alpha-equivalent to the (possibly negation-wrapped or unwrapped) parent. \\
 Propositional & \texttt{modus\_ponens}, \texttt{conjunction}, \texttt{split\_conjunct} & Conclusion matches a conjunct of the parents or the consequent of an implication, also after universal instantiation. \\
-Quantifier & \texttt{instantiate}, \texttt{existential\_gen} & Template matching with abstract variables: conclusion is a substitution instance (resp.\ generalization) of the parent. \\
+Quantifier & \texttt{instantiate}, \texttt{existential\_gen} & Template matching with abstract variables. The conclusion is a substitution instance (or a generalization) of the parent. \\
 Junction & \texttt{weaken}, \texttt{commute}, \texttt{excluded\_middle} & Shape check after flattening of conjunctions and disjunctions, sometimes ATP fallback for unusual variants. \\
 Clausal / equational & \texttt{resolution}, \texttt{paramodulation}, \texttt{reflexivity}, \texttt{transitivity}, \texttt{rewrite} & Unification of literals or terms, construction of the expected resolvent or rewritten clause, comparison up to alpha-equivalence and quantifier permutation. \\
 Negated conjecture & \texttt{negated\_conjecture} & Conclusion is the negation of the parent conjecture, up to renaming of bound variables. \\
@@ -156,7 +153,7 @@ Rule & Intended reading \\
 \texttt{weaken} & adds disjuncts, $\varphi \vdash \varphi \vee \psi$ \\
 \texttt{add\_hypothesis} & derives $H \Rightarrow \varphi$ from $\varphi$, while other shapes go to the ATP \\
 \texttt{skolemize} & replaces an existential variable by a fresh Skolem term \\
-\texttt{consequence} & the conclusion follows from the listed parents. $\bot$ from complementary parents is checked directly, everything else by the ATP \\
+\texttt{consequence} & the conclusion follows from the listed parents. $\bot$ from complementary parents is checked directly, everything else is handled the ATP \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -175,7 +172,7 @@ In \texttt{PRV010}, the step \texttt{s6} wraps its parent in a double negation, 
 \qquad
 \frac{\exists X_9\,(q(X_9) \lor \neg q(X_9))}{\exists X_{15}\,(q(X_{15}) \lor \neg q(X_{15}))}\quad\text{\small\texttt{rename\_variable}}
 \]
-For both rules the checker removes or compares the outer structure and decides the rest by alpha-equivalence without the involvement of unification or any prover.
+For both rules the checker removes or compares the outer structure and decides the rest by alpha-equivalence, without unification and without a prover.
 A conclusion that differs from its parent in anything but the names of bound variables, for example in a constant or in the order of two quantifiers, is rejected.
 
 \paragraph{Propositional rules.}
@@ -188,7 +185,7 @@ A conclusion that differs from its parent in anything but the names of bound var
 \]
 The checker identifies the implication among the parents, treats its universally quantified variables as abstract variables, and matches the antecedent against the other parent and the consequent against the conclusion with one common substitution, here $X \mapsto \mathit{socrates}$.
 Either order of the parents is accepted.
-In the invalid proof \texttt{PRV023}, the step \texttt{s} cites itself as a parent: the dependency check reports the cycle, and the modus ponens check finds no implication whose antecedent matches the other parent, so the step is rejected for two independent reasons.
+In the invalid proof \texttt{PRV023}, the step \texttt{s} cites itself as a parent. The dependency check reports the cycle, and the modus ponens check finds no implication whose antecedent matches the other parent, so the step is rejected for two independent reasons.
 
 \paragraph{Quantifier rules.}
 \texttt{PRV010} instantiates a universal quantifier in \texttt{s7} and introduces an existential one in \texttt{s10}:
@@ -197,9 +194,9 @@ In the invalid proof \texttt{PRV023}, the step \texttt{s} cites itself as a pare
 \qquad
 \frac{q(b) \lor \neg q(b)}{\exists X_9\,(q(X_9) \lor \neg q(X_9))}\quad\text{\small\texttt{existential\_gen}}
 \]
-For \texttt{instantiate} the parent is the template: its universally bound variables may be replaced by terms, and the checker searches for a substitution that turns the parent into the conclusion.
+For \texttt{instantiate} the parent is the template. Its universally bound variables may be replaced by terms, and the checker searches for a substitution that turns the parent into the conclusion.
 Here $X_4$ does not occur in the body, so the step only drops the quantifier.
-For \texttt{existential\_gen} the roles are reversed: the conclusion is the template, and the checker searches for the term of the parent, here $b$, that the new existential variable abstracts.
+For \texttt{existential\_gen} it is the other way round. The conclusion is the template, and the checker searches for the term of the parent, here $b$, that the new existential variable abstracts.
 The invalid proof \texttt{PRV056} contains a typical seeded error:
 \[
 \frac{\forall X\,\forall Z\;\mathit{rel16}(X,Z,\mathit{sK0}(X,Z))}{\mathit{rel16}(m_0,n_0,\mathit{sK0}(n_0,m_0))}\quad\text{\small\texttt{instantiate}}
@@ -207,7 +204,7 @@ The invalid proof \texttt{PRV056} contains a typical seeded error:
 Matching binds $X \mapsto m_0$ and $Z \mapsto n_0$ at the first two arguments, so the third argument would have to be $\mathit{sK0}(m_0,n_0)$.
 The stated $\mathit{sK0}(n_0,m_0)$ swaps the arguments, no consistent substitution exists, and the step is rejected.
 The final \texttt{consequence} step of this proof would pass the prover, since the wrong instance still contradicts the negated conjecture.
-In this case only the rule check of the intermediate step reveals the error.
+In this case, only the rule check of the intermediate step reveals the error.
 
 \paragraph{Junction rules.}
 \texttt{PRV010} also contains the three junction rules:
@@ -219,7 +216,7 @@ In this case only the rule check of the intermediate step reveals the error.
 For \texttt{commute} (\texttt{s38}) the checker verifies that the two operands are swapped, and for \texttt{weaken} (\texttt{s34}) that the disjuncts of the parent form a prefix of the disjuncts of the conclusion.
 The step \texttt{s5} introduces $q(b) \lor \neg q(b)$ with the rule \texttt{excluded\_middle} and cites the axiom \texttt{s2} only to link the step into the proof.
 The checker then verifies the shape $\varphi \lor \neg\varphi$ and ignores the content of the parent, because the formula is a tautology.
-These three rules are the only ones for which a failed shape check is not final: the step is then passed to the prover (Section~\ref{subsec:design-atp}), because the rule names are also used for unusual but valid variants.
+These three rules are the only ones for which a failed shape check is not final. The step is then passed to the prover (Section~\ref{subsec:design-atp}), because the rule names are also used for unusual but valid variants.
 
 \paragraph{Clausal and equational rules.}
 \texttt{PRV020} contains a resolution step with quantified clauses:
@@ -228,7 +225,7 @@ These three rules are the only ones for which a failed shape check is not final:
 \]
 The checker renames the variable of the second clause apart, unifies $p(X)$ with the complementary literal $p(X')$, applies the unifier $X' \mapsto X$ to the remaining literals, rebuilds the universally quantified clause $\forall X\,(q(X) \lor s(X))$, and compares it with the conclusion.
 The invalid proof \texttt{PRV067} states the resolvent $r(a) \lor t(b)$ of the analogous clauses $\forall X\,(p(X) \lor r(X))$ and $\forall X\,(\neg p(X) \lor t(X))$.
-The actual resolvent is $\forall X\,(r(X) \lor t(X))$, which instances have the same argument in both literals, and $r(a) \lor t(b)$ is neither among them nor a consequence of the parents.
+The actual resolvent is $\forall X\,(r(X) \lor t(X))$, whose instances have the same argument in both literals, and $r(a) \lor t(b)$ is neither among them nor a consequence of the parents.
 The equational rules work on terms.
 \texttt{PRV018} chains two equations and then rewrites with the result:
 \[
@@ -258,7 +255,7 @@ The only derived step of \texttt{PRV000} (Figure~\ref{fig:example-derivation}) i
 \]
 The premises are not complementary literals but quantified formulas whose contradiction requires instantiating both with the right witnesses, which no internal checker attempts.
 The step therefore goes to Vampire, which answers \texttt{ContradictoryAxioms}.
-The invalid proof \texttt{PRV002} shows the other outcome: its negated conjecture is not the negation of the conjecture, which the negated-conjecture check reports, and the final \texttt{consequence} step is answered with \texttt{CounterSatisfiable}, so the prover rejects it as well.
+The invalid proof \texttt{PRV002} shows the other outcome. Its negated conjecture is not the negation of the conjecture, which the negated-conjecture check reports, and the final \texttt{consequence} step is answered with \texttt{CounterSatisfiable}, so the prover rejects it as well.
 
 \paragraph{Summary.}
 The examples show the division of labor.
@@ -284,7 +281,7 @@ The checker instead validates the following conditions, which together imply tha
   \item The step declares exactly one new symbol of kind \texttt{skolem}.
   \item The Skolem term is a constant or a function applied to variables only, and these variables are exactly the universally quantified variables in whose scope the eliminated existential quantifier occurs.
   \item Replacing the existential quantifier and its variable by the Skolem term in the parent formula yields the conclusion, up to alpha-equivalence.
-  \item The Skolem symbol is fresh: it neither occurs in the problem file nor was introduced by an earlier Skolemization step.
+  \item The Skolem symbol is fresh, so it neither occurs in the problem file nor was introduced by an earlier Skolemization step.
 \end{enumerate}
 Conditions~3 and~5 are the side conditions that make the transformation equisatisfiability-preserving.
 Without the freshness condition, two steps could use the same symbol for different witnesses, which is unsound.
@@ -293,7 +290,7 @@ Without the freshness condition, two steps could use the same symbol for differe
 Whether an existential quantifier may be eliminated, and which universal variables are in its scope, depends on its polarity.
 An existential quantifier in the antecedent of an implication or under a negation is effectively universal, so replacing it by a Skolem term would be unsound.
 The checker therefore tracks the polarity while it traverses the parent formula and rejects Skolemizations of quantifiers in negative position.
-Below an equivalence or an exclusive disjunction a quantifier occurs in both polarities, with such a Skolemization being rejected as well.
+Below an equivalence or an exclusive disjunction a quantifier occurs in both polarities, and such a Skolemization is rejected as well.
 
 \paragraph{Herbrand symbols.}
 Some \texttt{instantiate} steps carry a \texttt{new\_symbols} annotation of kind \texttt{herbrand}.
@@ -310,18 +307,18 @@ The delegation obeys the following policy:
 \begin{itemize}
   \item \textbf{Eligibility.} Only steps with status \texttt{thm} or \texttt{cth} are delegated. Other statuses, in particular \texttt{esa}, are never delegated.
   \item \textbf{Isolation.} The ATP receives exactly the premises of the step as axioms and the step's formula as conjecture. It never sees the original conjecture or the rest of the proof.
-  \item \textbf{Interpretation.} The answer is read from the SZS status line of the output. The statuses \texttt{Theorem}, \texttt{Unsatisfiable}, and \texttt{ContradictoryAxioms} confirm the step. The statuses \texttt{CounterSatisfiable} and \texttt{Satisfiable} reject it; any other status leaves it unresolved.
+  \item \textbf{Interpretation.} The answer is read from the SZS status line of the output. The statuses \texttt{Theorem}, \texttt{Unsatisfiable}, and \texttt{ContradictoryAxioms} confirm the step. The statuses \texttt{CounterSatisfiable} and \texttt{Satisfiable} reject it, and any other status leaves it unresolved.
   \item \textbf{Failure.} If the ATP is not found, times out, fails, or returns no SZS status, the step is \emph{unresolved}. An unresolved step makes the verdict \emph{uncertain}, never \emph{verified}.
-  \item \textbf{Failed syntactic check.} For rules with an ATP fallback (\texttt{weaken}, \texttt{commute}, and \texttt{excluded\_middle}), a failing syntactic check does not make the step invalid at once, since the check covers only the standard shapes of the rule, the ATP decides. If it does not confirm the step, the original issue is reported, which is the conservative choice. For all other rules, a failing check makes the step invalid.
-  \item \textbf{Budget.} Each ATP call is limited by the per-proof time limit, with the worker process additionally enforcing the limit for the proof as a whole.
+  \item \textbf{Failed syntactic check.} For rules with an ATP fallback (\texttt{weaken}, \texttt{commute}, and \texttt{excluded\_middle}), a failing syntactic check does not make the step invalid at once. The check only covers the standard shapes of the rule, so the ATP decides. If it does not confirm the step, the original issue is reported, which is the conservative choice. For all other rules, a failing check makes the step invalid.
+  \item \textbf{Budget.} Each ATP call is limited by the per-proof time limit, and the worker process also enforces the limit for the proof as a whole.
 \end{itemize}
 
 
 \subsection{Verdicts and Soundness Argument}
 \label{subsec:design-verdict}
 
-Each step ends in one of three states: \emph{valid} (positively validated), \emph{invalid} (a concrete defect was found), or \emph{unresolved} (a required check could not be completed).
-The verdict of the proof is determined by the following rule, in this order:
+Each step ends in one of three states, \emph{valid} (validated), \emph{invalid} (a concrete defect was found), or \emph{unresolved} (a required check could not be completed).
+The verdict of the proof is determined by the following rules, applied in this order.
 
 \begin{figure}[tbp]
 \centering
@@ -357,17 +354,12 @@ uncertain & \texttt{Unknown} or \texttt{Timeout} & $0$ & $0$ \\
 \end{table}
 
 \paragraph{Soundness argument.}
-Suppose the verdict is \emph{verified}.
-Then (i) every axiom and conjecture is faithful to the problem, (ii) the negated conjecture is the negation of the conjecture, (iii) the dependency graph is acyclic, (iv) the derivation ends in \texttt{\$false}, and (v) every other step is validated either by a rule check that shows entailment from the parents, by the Skolemization conditions, or by an ATP confirmation of entailment.
-Let $\Gamma$ consist of the axioms and the negated conjecture, and let $\Gamma_i$ be $\Gamma$ together with the formulas of the first $i$ steps in a topological order of the dependency graph.
-We show by induction that $\Gamma_i$ is satisfiable whenever $\Gamma$ is.
-The case $i=0$ is trivial.
-If step $i$ has status \texttt{thm}, its conclusion is entailed by its premises, which belong to $\Gamma_{i-1}$, so every model of $\Gamma_{i-1}$ is a model of $\Gamma_i$.
-If step $i$ is a Skolemization, its Skolem symbol is fresh, and its conclusion arises from the parent by replacing the existential variable by a Skolem term over the universal variables in scope; hence every model of $\Gamma_{i-1}$ can be extended by a suitable interpretation of the Skolem symbol (a choice function) to a model of $\Gamma_i$.
-The last step derives \texttt{\$false}, so $\Gamma_n$ is unsatisfiable, and hence so is $\Gamma$.
-Since $\Gamma$ consists of the axioms and the negation of the conjecture, Equation~\ref{eq:refutation} shows that the conjecture follows from the axioms.
-The argument holds under the assumptions that the rule checkers are correct and that the ATP is sound.
-In this thesis, the first assumption is supported by extensive testing (Chapter~\ref{sec:evaluation}) and the second is made explicit.
+If the verdict is \emph{verified}, the conditions of the step-wise soundness argument of Section~\ref{subsec:proof-objects-soundness} hold.
+Every imported formula is faithful to the problem, the negated conjecture is the negation of the conjecture, the dependency graph is acyclic, and the derivation ends in \texttt{\$false}.
+Every other step is validated either by a rule check that shows entailment from its parents, by an ATP confirmation of entailment, or, for Skolemization, by the conditions of Section~\ref{subsec:design-skolem}, which make the step satisfiability-preserving.
+The induction of Section~\ref{subsec:proof-objects-soundness} then shows that the axioms together with the negated conjecture are unsatisfiable, so that the conjecture follows from the axioms.
+The argument assumes that the rule checkers are correct and that the ATP is sound.
+The first assumption is supported by testing (Chapter~\ref{sec:evaluation}). The second one is stated openly, because the competition rules require an ATP.
 
 \subsection{Resource Control}
 \label{subsec:design-resources}
@@ -389,6 +381,14 @@ Because issues are data, the same information drives the console report, the sum
 \subsection{Design Decisions and Alternatives}
 \label{subsec:design-alternatives}
 
+Table~\ref{tab:design-decisions} summarizes the main decisions of this chapter together with the alternative that was considered for each.
+None of the alternatives is wrong in general, but each fits the ProoVer setting less well.
+The first two decisions are the most consequential.
+Checking syntactically first and calling the prover only as a fallback makes most verdicts independent of the prover, at the price of a larger trusted checker, which Section~\ref{subsec:disc-tcb} weighs against the de Bruijn criterion.
+Rule-local checkers instead of one generic entailment test are the only way to check \texttt{esa} steps at all, and they reject steps that follow from their parents but not by the cited rule, which an entailment test would accept.
+The three-valued verdict and the process isolation follow directly from the requirements, the first from the scoring analysis and the second from the time limit and the robustness requirement.
+How much each decision gains is measured in Chapter~\ref{sec:evaluation}, in particular by the comparison of internal checks and prover on single steps and by the ablation of the verdict rule (Section~\ref{subsec:eval-ablation}).
+
 \begin{table}[tbp]
 \centering
 \small
@@ -398,8 +398,8 @@ Because issues are data, the same information drives the console report, the sum
 \toprule
 Decision & Alternative & Rationale \\
 \midrule
-Syntactic checks first, ATP as fallback & ATP for every step & Faster and independent of an external tool for the vast majority of steps; the ATP is only needed for rare or unspecified rules. \\
-Rule-local checker functions & One generic entailment check & Precise diagnostics and testable units; a generic check can neither explain failures nor handle \texttt{esa} steps. \\
+Syntactic checks first, ATP as fallback & ATP for every step & Faster and independent of an external tool for most steps. The ATP is only needed for rare or unspecified rules. \\
+Rule-local checker functions & One generic entailment check & Precise diagnostics and testable units. A generic check can neither explain failures nor handle \texttt{esa} steps. \\
 Own AST with grammar-based parser & Reuse of an existing TPTP parser & Full control over annotations such as \texttt{new\_symbols} and \texttt{skolemize} and over the AST with n-ary junctions; an LALR grammar with cached tables keeps parsing fast. A general-purpose parser would have to be extended or wrapped to keep these annotations and the n-ary junctions, which is about as much work as a grammar for the required TPTP subset. \\
 Three-valued verdict & Binary verdict & Matches the scoring asymmetry (Section~\ref{subsec:req-scoring}). \\
 Process isolation per proof & In-process timeout & Reliable termination of non-cooperative code and containment of crashes. \\

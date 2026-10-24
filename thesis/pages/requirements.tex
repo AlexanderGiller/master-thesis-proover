@@ -13,28 +13,28 @@ Section~\ref{subsec:req-traceability} relates them to the modules and tests of t
 \subsection{Task and Assumptions}
 \label{subsec:req-context}
 
-The verifier receives a FOF problem file and a TSTP proof file and must decide whether the proof is a valid refutation of the negated conjecture, i.e.\ a derivation of \texttt{\$false} from the axioms and the negated conjecture \citep{proover-competition}.
+The verifier receives a FOF problem file and a TSTP proof file and must decide whether the proof is a valid refutation of the negated conjecture, that is, a derivation of \texttt{\$false} from the axioms and the negated conjecture \citep{proover-competition}.
 The proofs use the roles \texttt{axiom}, \texttt{conjecture}, \texttt{negated\_conjecture}, and \texttt{plain} and the statuses \texttt{thm}, \texttt{esa}, and \texttt{cth}.
-A part of the benchmark proofs contains deliberate, subtle errors.
-Only a small number of rules is specified by the organizers: Skolemization, the negated conjecture, and the import of axioms and conjectures.
+Some of the benchmark proofs contain deliberate errors, which are often small and easy to miss.
+Only a small number of rules are specified by the organizers: Skolemization, the negated conjecture, and the import of axioms and conjectures \citep{proover-competition}.
 All other steps may be checked by an external ATP, but only if they have status \texttt{thm} or \texttt{cth} and only with the step's premises.
-The organizers state that handling edge cases is part of the task.
+The organizers state that handling edge cases is part of the task \citep{proover-competition}.
 
 Let $P$ be a problem with axioms $A$ and conjecture $C$, and let a proof $\pi$ be a finite list of annotated formulas.
 The verifier must decide whether $\pi$ is a \emph{valid refutation} of $P$:
-(i) every \texttt{axiom} and \texttt{conjecture} step of $\pi$ is faithful to $P$;
-(ii) the dependency graph of $\pi$ is acyclic and $C$ is used only by the step that negates it;
-(iii) every other step is sound in the sense of Section~\ref{subsec:proof-objects-soundness}; and
+(i) every \texttt{axiom} and \texttt{conjecture} step of $\pi$ is faithful to $P$,
+(ii) the dependency graph of $\pi$ is acyclic and $C$ is used only by the step that negates it,
+(iii) every other step is sound in the sense of Section~\ref{subsec:proof-objects-soundness}, and
 (iv) $\pi$ derives \texttt{\$false}.
-It answers \emph{verified}, \emph{failed}, or \emph{uncertain}, whose SZS statuses in the competition are \texttt{VerifiedGood}, \texttt{VerifiedBad}, and \texttt{Unknown} if the Checker can not decide, or \texttt{Timeout} if the time limit is exceeded \citep{ProoVer2026Proceedings}.
-The competition input is only restricted to FOF. CNF and typed or higher-order input are out of scope.
+It answers \emph{verified}, \emph{failed}, or \emph{uncertain}, whose SZS statuses in the competition are \texttt{VerifiedGood}, \texttt{VerifiedBad}, and \texttt{Unknown} if the checker cannot decide, and \texttt{Timeout} if the time limit is exceeded \citep{ProoVer2026Proceedings}.
+The competition only uses FOF input, so CNF and typed or higher-order input are out of scope.
 We make the following assumptions:
 
 \begin{itemize}
   \item The input files are syntactically close to the TPTP BNF, but may be large (thousands of steps) and deeply nested.
   \item The problem file is trusted, the proof file is not.
-  \item An external ATP may or may not be available at run time and therefore the verifier must behave safely in both cases.
-  \item The organizers specify only a few rules and leave edge cases open. As a consequence, the verifier follows the conservative reading, which never accepts without evidence, when the specification is silent.
+  \item An external ATP may or may not be available at run time, and the verifier must behave safely in both cases.
+  \item The organizers specify only a few rules and leave edge cases open. Where the specification says nothing, the verifier follows the conservative reading and never accepts without evidence.
 \end{itemize}
 
 \subsection{Scoring and Its Consequences}
@@ -49,13 +49,13 @@ The expected scores of the three possible answers are
   E[\text{reject}] &= p\cdot(-1) + (1-p)\cdot 2 = 2 - 3p,\\
   E[\text{abstain}] &= 0.
 \end{align*}
-Accepting is thus better than abstaining only if $p > 10/11 \approx 0.91$, and rejecting is better than abstaining only if $p < 2/3$.
+Accepting is therefore better than abstaining only if $p > 10/11 \approx 0.91$, and rejecting is better than abstaining only if $p < 2/3$.
 For $2/3 < p < 10/11$, giving up is optimal.
-The verifier therefore must not guess.
-It accepts only if every step has been positively verified, it rejects only if it has found a concrete defect, and it abstains in all other cases, for example if a required tool is missing, the prover gives no answer, or no checker exists for a rule.
+So the verifier should not guess.
+It accepts only if every step has been verified, rejects only if it has found a concrete defect, and it abstains in all other cases, for example if a required tool is missing, the prover gives no answer, or no checker exists for a rule.
 A failed syntactic check on a rule with an ATP fallback is handled conservatively and reported as a defect unless the prover confirms the step (Section~\ref{subsec:design-atp}).
 Figure~\ref{fig:expected-score} visualizes the three expected scores.
-The probability $p$ is of course not observable; the analysis does not compute it but motivates the asymmetric thresholds and the fail-closed policy that gives rise to the soundness requirement below.
+The probability $p$ cannot be observed, and the analysis does not try to compute it. Its purpose is to explain the asymmetric thresholds and the fail-closed policy, which leads to the soundness requirement below.
 
 \begin{figure}[tbp]
 \centering
@@ -73,7 +73,7 @@ The probability $p$ is of course not observable; the analysis does not compute i
   \draw[dashed] (0.667,0) -- (0.667,-0.3);
   \draw[dashed] (0.909,0) -- (0.909,0.3);
 \end{tikzpicture}
-\caption{Expected score of accepting, rejecting, and abstaining as a function of the probability $p$ that the proof is valid, under the ProoVer 2026 scoring scheme. Accepting beats abstaining only for $p>10/11$, rejecting only for $p<2/3$.}
+\caption{Expected score of accepting, rejecting, and abstaining as a function of the probability $p$ that the proof is valid, under the ProoVer 2026 scoring scheme. Accepting beats abstaining only for $p>10/11$, and rejecting only for $p<2/3$.}
 \label{fig:expected-score}
 \end{figure}
 
@@ -116,8 +116,8 @@ FR12 & Check a whole directory of proofs, compare the verdicts with the expected
 \label{subsec:req-nonfunctional}
 
 Table~\ref{tab:nfr} lists the non-functional requirements.
-They do not describe what the verifier checks but how it has to behave while checking: safely when it is unsure, within the time limit, without crashing on unusual input, and in a way that can be tested and extended.
-The most important one is NFR1, the fail-closed property, which follows directly from the scoring analysis of Section~\ref{subsec:req-scoring}; NFR2 and NFR3 follow from the competition setting with its time limit and its deliberately malformed proofs.
+They do not describe what the verifier checks, but how it has to behave while checking. It has to stay safe when it is unsure, keep to the time limit, not crash on unusual input, and remain testable and extensible.
+The most important one is NFR1, the fail-closed property, which follows directly from the scoring analysis of Section~\ref{subsec:req-scoring}. NFR2 and NFR3 follow from the competition setting with its time limit and its deliberately malformed proofs.
 NFR6 and NFR7 concern the architecture and are evaluated in Section~\ref{subsec:eval-modularity}.
 \begin{table}[tbp]
 \centering
@@ -128,14 +128,14 @@ NFR6 and NFR7 concern the architecture and are evaluated in Section~\ref{subsec:
 \toprule
 ID & Requirement \\
 \midrule
-NFR1 & \textbf{Soundness (fail-closed).} A proof is verified only if every step has been positively validated. Missing tools, tool errors, unparsable output, and unknown rules never lead to acceptance. \\
+NFR1 & \textbf{Soundness (fail-closed).} A proof is verified only if every step has been validated. Missing tools, tool errors, unparsable output, and unknown rules never lead to acceptance. \\
 NFR2 & \textbf{Time.} A proof must be processed within the 30-second wall-clock limit, including proofs with several thousand steps. The checker enforces its own limit and then reports \texttt{Timeout}. \\
 NFR3 & \textbf{Robustness.} Malformed input, deeply nested formulas, and unexpected annotations must not crash the verifier or lead to an unjustified verdict. \\
-NFR4 & \textbf{Determinism.} The verdict does not depend on process scheduling or on the order of independent checks and the only source of variation is the run time of the external prover. \\
+NFR4 & \textbf{Determinism.} The verdict does not depend on process scheduling or on the order of independent checks. The only thing that varies between runs is the run time of the external prover. \\
 NFR5 & \textbf{Diagnostics.} Every failure is traceable to a step and a reason (FR11). \\
 NFR6 & \textbf{Extensibility.} A new rule can be added without modifying the other checkers. \\
-NFR7 & \textbf{Testability.} Each checker is a pure function of the proof model and can be tested in isolation, with the target for the line coverage of the full checker modules is 85\,\%. \\
-NFR8 & \textbf{Portability.} Python~3.11 or newer and the parser library \texttt{lark} suffice for the core. Additionally the ATP is configured through environment variables and is optional. \\
+NFR7 & \textbf{Testability.} Each checker is a pure function of the proof model and can be tested in isolation. The target for the line coverage of the checker modules is 85\,\%. \\
+NFR8 & \textbf{Portability.} Python~3.11 or newer and the parser library \texttt{lark} are enough for the core. The ATP is optional and is configured through environment variables. \\
 \bottomrule
 \end{tabular}
 \end{table}

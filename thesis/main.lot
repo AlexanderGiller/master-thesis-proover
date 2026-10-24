@@ -1,36 +1,36 @@
 \babel@toc {english}{}\relax 
 \babel@toc {english}{}\relax 
-\contentsline {table}{\numberline {1}{\ignorespaces Logical symbols of the FOF language and their TPTP syntax \citep {TPTPSyntaxBNF}.}}{9}{table.1}%
+\contentsline {table}{\numberline {1}{\ignorespaces Logical symbols of the FOF language and their TPTP syntax \citep {TPTPSyntaxBNF}.}}{8}{table.1}%
 \contentsline {table}{\numberline {2}{\ignorespaces Taxonomy of checks for TSTP refutations, after \citet {taprogge2026lightweight}. The abbreviations are those of the paper.}}{14}{table.2}%
-\contentsline {table}{\numberline {3}{\ignorespaces Systems entered in ProoVer 2026, as described in their system descriptions. ``Ext.'' lists external tools the system relies on at run time.}}{18}{table.3}%
-\contentsline {table}{\numberline {4}{\ignorespaces Checks of GDV, N\"orgler, and this verifier. ``n.s.'': not stated in the sources. ``added later'': missing in the studied version of GDV, added afterwards.}}{20}{table.4}%
-\contentsline {table}{\numberline {5}{\ignorespaces Comparison of the closest related systems with this thesis, according to their system descriptions \citep {ProoVer2026Proceedings}(n/a: not stated in the description.)}}{22}{table.5}%
+\contentsline {table}{\numberline {3}{\ignorespaces Systems entered in ProoVer 2026, as described in their system descriptions. ``Ext.'' lists external tools the system relies on at run time.}}{17}{table.3}%
+\contentsline {table}{\numberline {4}{\ignorespaces Checks of GDV, N\"orgler, and this verifier. ``n.s.'': not stated in the sources. ``added later'': missing in the studied version of GDV, added afterwards.}}{19}{table.4}%
+\contentsline {table}{\numberline {5}{\ignorespaces Comparison of the closest related systems with this thesis, according to their system descriptions \citep {ProoVer2026Proceedings} (n/a: not stated in the description).}}{21}{table.5}%
 \contentsline {table}{\numberline {6}{Functional requirements.}}{24}{table.6}%
 \contentsline {table}{\numberline {7}{\ignorespaces Non-functional requirements.}}{25}{table.7}%
 \contentsline {table}{\numberline {8}{Traceability from requirements to modules and tests.}}{25}{table.8}%
-\contentsline {table}{\numberline {9}{\ignorespaces Rule families and the principle of their checks.}}{31}{table.9}%
-\contentsline {table}{\numberline {10}{\ignorespaces Inference rules occurring in \texttt {PRV010+1.s} and their intended reading. The readings are derived from the benchmark proofs, since the competition does not specify the rules in full.}}{32}{table.10}%
-\contentsline {table}{\numberline {11}{\ignorespaces Verdicts, printed SZS status, and score under the ProoVer 2026 scheme.}}{38}{table.11}%
-\contentsline {table}{\numberline {12}{\ignorespaces Main design decisions and the alternatives considered.}}{39}{table.12}%
-\contentsline {table}{\numberline {13}{\ignorespaces Module structure of the implementation (approximate line counts).}}{40}{table.13}%
-\contentsline {table}{\numberline {14}{\ignorespaces Rule families, their internal checks, and the behavior on a failed check.}}{45}{table.14}%
-\contentsline {table}{\numberline {15}{\ignorespaces Groups of the TST set.}}{55}{table.15}%
-\contentsline {table}{\numberline {16}{\ignorespaces Verdicts on the ProoVer set (number of proofs) and resulting score.}}{56}{table.16}%
-\contentsline {table}{\numberline {17}{\ignorespaces Results on the TST set by group (agreeing / total without edge cases).}}{57}{table.17}%
-\contentsline {table}{\numberline {18}{\ignorespaces Results on the Extra set by rule. ``By the rule check'' counts the invalid proofs for which the checker of the rule itself, and not only the final step, reports the error.}}{58}{table.18}%
-\contentsline {table}{\numberline {19}{\ignorespaces Rules in the ProoVer set and how their steps were decided.}}{59}{table.19}%
-\contentsline {table}{\numberline {20}{\ignorespaces Size and statement coverage of the modules (measured with \texttt {pytest-cov}).}}{61}{table.20}%
-\contentsline {table}{\numberline {21}{\ignorespaces The six slowest proofs of the ProoVer set (median of the runs). Times in the columns are wall-clock times of the phases, ``MB'' is the peak resident memory.}}{62}{table.21}%
-\contentsline {table}{\numberline {22}{\ignorespaces Mutation operators and kill rates. ``Survivors still valid'' are mutants that the verifier accepts and that Vampire confirms to follow from the premises.}}{63}{table.22}%
-\contentsline {table}{\numberline {23}{\ignorespaces Outcome for malformed inputs. \texttt {error} means that the parser raised an error and the proof was not verified.}}{64}{table.23}%
-\contentsline {table}{\numberline {24}{\ignorespaces ProoVer set with and without the external prover. The three-valued score counts steps for which no verdict could be reached as uncertain (zero points).}}{65}{table.24}%
-\contentsline {table}{\numberline {25}{\ignorespaces Single steps, internal verdict against Vampire. ``Prover \emph {no}'' includes steps for which Vampire did not finish within 10\,s (status \texttt {Timeout}).}}{66}{table.25}%
-\contentsline {table}{\numberline {26}{\ignorespaces Causes of suboptimal verdicts on the ProoVer set.}}{67}{table.26}%
-\contentsline {table}{\numberline {27}{\ignorespaces Verifier on unmodified Vampire proofs (142 proofs).}}{71}{table.27}%
+\contentsline {table}{\numberline {9}{\ignorespaces Rule families and the principle of their checks.}}{30}{table.9}%
+\contentsline {table}{\numberline {10}{\ignorespaces Inference rules occurring in \texttt {PRV010+1.s} and their intended reading. The readings are derived from the benchmark proofs, since the competition does not specify the rules in full.}}{31}{table.10}%
+\contentsline {table}{\numberline {11}{\ignorespaces Verdicts, printed SZS status, and score under the ProoVer 2026 scheme.}}{37}{table.11}%
+\contentsline {table}{\numberline {12}{\ignorespaces Main design decisions and the alternatives considered.}}{38}{table.12}%
+\contentsline {table}{\numberline {13}{\ignorespaces Module structure of the implementation (approximate line counts).}}{39}{table.13}%
+\contentsline {table}{\numberline {14}{\ignorespaces Rule families, their internal checks, and the behavior on a failed check.}}{44}{table.14}%
+\contentsline {table}{\numberline {15}{\ignorespaces Groups of the TST set.}}{54}{table.15}%
+\contentsline {table}{\numberline {16}{\ignorespaces Verdicts on the 91{} official ProoVer pairs (number of proofs) and resulting score. The last row also includes the 9{} deprecated proofs.}}{55}{table.16}%
+\contentsline {table}{\numberline {17}{\ignorespaces Results on the TST set by group (agreeing / total without edge cases).}}{56}{table.17}%
+\contentsline {table}{\numberline {18}{\ignorespaces Results on the Extra set by rule. ``By the rule check'' counts the invalid proofs for which the checker of the rule itself, and not only the final step, reports the error.}}{57}{table.18}%
+\contentsline {table}{\numberline {19}{\ignorespaces Rules in the ProoVer set and how their steps were decided.}}{58}{table.19}%
+\contentsline {table}{\numberline {20}{\ignorespaces Size and statement coverage of the modules (measured with \texttt {pytest-cov}).}}{60}{table.20}%
+\contentsline {table}{\numberline {21}{\ignorespaces The six slowest proofs of the ProoVer set (median of the runs). Times in the columns are wall-clock times of the phases, ``MB'' is the peak resident memory.}}{61}{table.21}%
+\contentsline {table}{\numberline {22}{\ignorespaces Mutation operators and kill rates. ``Survivors still valid'' are mutants that the verifier accepts and that Vampire confirms to follow from the premises.}}{62}{table.22}%
+\contentsline {table}{\numberline {23}{\ignorespaces Outcome for malformed inputs. \texttt {error} means that the parser raised an error and the proof was not verified.}}{63}{table.23}%
+\contentsline {table}{\numberline {24}{\ignorespaces The 91{} official ProoVer pairs with and without the external prover. The three-valued score counts steps for which no verdict could be reached as uncertain (zero points).}}{63}{table.24}%
+\contentsline {table}{\numberline {25}{\ignorespaces Single steps, internal verdict against Vampire. ``Unknown'' counts steps for which Vampire did not finish within 10\,s (status \texttt {Timeout}).}}{65}{table.25}%
+\contentsline {table}{\numberline {26}{\ignorespaces Causes of suboptimal verdicts on the ProoVer set.}}{66}{table.26}%
+\contentsline {table}{\numberline {27}{\ignorespaces Verifier on unmodified Vampire proofs (142 proofs).}}{70}{table.27}%
 \contentsline {table}{\numberline {28}{\ignorespaces Internal Skolem check against an entailment oracle ($C \models P$ with Vampire). Numbers are mutants rejected / accepted.}}{72}{table.28}%
 \contentsline {table}{\numberline {29}{\ignorespaces Command-line options of the verifier.}}{77}{table.29}%
 \contentsline {table}{\numberline {30}{\ignorespaces Statuses printed by the verifier.}}{77}{table.30}%
 \contentsline {table}{\numberline {31}{\ignorespaces Parts of the evaluation driver \texttt {scripts/eval\_all.py}.}}{78}{table.31}%
-\contentsline {table}{\numberline {32}{Results for each proof of the ProoVer set (official proofs and samples).}}{79}{table.32}%
+\contentsline {table}{\numberline {32}{Results for each proof of the ProoVer set (official proofs and samples).}}{78}{table.32}%
 \contentsline {table}{\numberline {33}{Results for each proof of the TST set (own test proofs).}}{81}{table.33}%
 \contentsline {table}{\numberline {34}{Results for each proof of the Extra set (generated rule-level test proofs).}}{83}{table.34}%
