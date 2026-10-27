@@ -22,7 +22,6 @@ from typing import Callable, TypeVar
 
 T = TypeVar("T")
 
-# 64 MB is generous for formulas nested many thousands of levels deep.
 DEEP_RECURSION_STACK_SIZE = 64 * 1024 * 1024
 DEEP_RECURSION_LIMIT = 100_000
 
@@ -34,8 +33,6 @@ def run_with_larger_stack(func: Callable[[], T]) -> T:
         previous_stack_size = threading.stack_size()
         threading.stack_size(DEEP_RECURSION_STACK_SIZE)
     except (ValueError, RuntimeError):
-        # Platform doesn't support changing the thread stack size; fall back
-        # to running with the default stack.
         previous_stack_size = None
 
     outcome: dict = {}
@@ -45,7 +42,7 @@ def run_with_larger_stack(func: Callable[[], T]) -> T:
         sys.setrecursionlimit(DEEP_RECURSION_LIMIT)
         try:
             outcome["value"] = func()
-        except BaseException as exc:  # re-raised on the calling thread below
+        except BaseException as exc:
             outcome["error"] = exc
         finally:
             sys.setrecursionlimit(old_limit)

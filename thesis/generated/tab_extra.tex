@@ -1,0 +1,31 @@
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{@{}l r r r r r r@{}}
+\toprule
+ & \multicolumn{2}{c}{valid} & \multicolumn{3}{c}{invalid} & \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-6}
+Rule & cases & accepted & cases & rejected & by the rule check & edge \\
+\midrule
+\texttt{add\_hypothesis} & 1 & 1 & 1 & 1 & 1 & -- \\
+\texttt{commute} & 3 & 3 & 3 & 3 & 3 & -- \\
+\texttt{conjunction} & 1 & 1 & 2 & 2 & 2 & 1 \\
+\texttt{consequence} & 0 & 0 & 1 & 1 & 1 & -- \\
+\texttt{copy} & 1 & 1 & 2 & 2 & 2 & -- \\
+\texttt{double\_negation} & 1 & 1 & 2 & 2 & 2 & -- \\
+\texttt{duplicate} & 1 & 1 & 2 & 2 & 2 & -- \\
+\texttt{excluded\_middle} & 1 & 1 & 4 & 4 & 4 & 1 \\
+\texttt{existential\_gen} & 2 & 2 & 4 & 4 & 4 & -- \\
+\texttt{instantiate} & 4 & 4 & 4 & 4 & 4 & -- \\
+\texttt{modus\_ponens} & 3 & 3 & 5 & 5 & 5 & -- \\
+\texttt{paramodulation} & 4 & 4 & 8 & 8 & 8 & 2 \\
+\texttt{reflexivity} & 1 & 1 & 4 & 4 & 4 & 1 \\
+\texttt{remove\_double\_negation} & 1 & 1 & 2 & 2 & 2 & -- \\
+\texttt{rename\_variable} & 1 & 1 & 2 & 2 & 2 & -- \\
+\texttt{resolution} & 4 & 4 & 9 & 9 & 9 & 1 \\
+\texttt{rewrite} & 1 & 1 & 2 & 2 & 2 & -- \\
+\texttt{split\_conjunct} & 1 & 1 & 2 & 2 & 2 & 1 \\
+\texttt{transitivity} & 2 & 2 & 4 & 4 & 4 & -- \\
+\texttt{weaken} & 2 & 2 & 3 & 3 & 3 & 1 \\
+\midrule
+Total & 35 & 35 & 66 & 66 & 66 & 8 \\
+\bottomrule
+\end{tabular}}

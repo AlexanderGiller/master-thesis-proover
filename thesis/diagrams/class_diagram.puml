@@ -1,0 +1,185 @@
+@startuml
+' Module and data view of the verifier (state of the final implementation)
+hide empty methods
+hide empty fields
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontSize 11
+left to right direction
+
+package "main.py (driver)" as MAIN {
+  class Driver <<module>> {
+    +check_proof_file(proof, problem): dict
+    +classify_verdict(result): str
+    +check_proof_file_with_timeout(proof, problem, t)
+    +report_proof_check(proof, problem, t, binary_verdict)
+    -_check_proof_worker(proof, problem, queue)
+    -_check_unique_step_names(steps)
+    -_check_ends_in_false(steps)
+    +parse_cli_args() / batch mode
+  }
+}
+
+package "src.parser" as PARSER {
+  class "parser.py" as ParserAPI <<module>> {
+    +parse_file(path): list[AnnotatedFormula]
+    +load_proof(path): ProofFile
+  }
+  class TPTPTransformer
+  class "tptp_grammar.lark" as Grammar <<LALR grammar>>
+  class ProofFile {
+    +problem_ref: str
+    +steps: list[AnnotatedFormula]
+  }
+  class AnnotatedFormula {
+    +name: str
+    +role: FormulaRole
+    +formula: Formula
+    +inference: InferenceRecord?
+    +raw_source: FileSource | IntroducedSource?
+  }
+  class InferenceRecord {
+    +rule: str
+    +parents: list[str]
+    +info: list[StatusInfo | NewSymbolsInfo | SkolemizeInfo | ...]
+    ..derived..
+    +status / new_symbols / skolem_var / skolem_term
+  }
+  class FileSource {
+    +path: str
+    +ref: str?
+  }
+  class IntroducedSource {
+    +kind
+  }
+  abstract class Formula <<AST node>>
+  note bottom of Formula
+    Variable, Constant, FunctionTerm,
+    Atom, Equality, Negation,
+    BinaryFormula, JunctionFormula (n-ary & / |),
+    QuantifiedFormula
+  end note
+}
+
+package "src.checker" as CHECK {
+  package "global checks" {
+    class "file_dir" as FileDir <<module>> {
+      +check_axiom_provenance(step, problem, path, expected_role)
+    }
+    class "dependency_checker" as Dep <<module>> {
+      +check_no_circular_dependencies(steps)
+      +check_conjecture_not_assumed(steps)
+    }
+    class "negated_conjecture_checker" as NegConj <<module>> {
+      +check_negated_conjecture(step, conjecture)
+    }
+  }
+  package "rule checkers: (step, parents) -> list[Issue]" {
+    class "structural_checker" as Struct <<module>> {
+      copy, duplicate, rename_variable,
+      double_negation, remove_double_negation
+    }
+    class "propositional_checker" as Prop <<module>> {
+      modus_ponens, instantiate_mp,
+      conjunction, split_conjunct
+    }
+    class "junction_checker" as Junc <<module>> {
+      weaken, commute, excluded_middle
+    }
+    class "instantiate_checker" as Inst <<module>> {
+      instantiate
+    }
+    class "existential_gen_checker" as ExGen <<module>> {
+      existential_gen
+    }
+    class "clausal_checker" as Claus <<module>> {
+      resolution, paramodulation,
+      reflexivity, transitivity, rewrite
+    }
+    class "skolem_checker" as Skol <<module>> {
+      skolemize (shape, polarity,
+      scope, Skolem term, replacement)
+    }
+  }
+  package "shared core" {
+    class "alpha_eq" as Alpha <<module>> {
+      +is_alpha_equivalent(f1, f2)
+    }
+    class "formula_utils" as Utils <<module>> {
+      +match_template_to_instance(...)
+      +substitute_node(...)
+      +flatten_prefix(...)
+      +collect_function_symbols(...)
+    }
+  }
+  class "external_atp_checker" as ATP <<module>> {
+    +status_allows_atp(status)
+    +validate_step_with_atp(step, premises, t): True | False | unknown
+    +formula_to_tptp(formula)
+  }
+  class "<Rule>Issue" as Issue <<dataclass>> {
+    +step_name: str
+    +reason: str
+  }
+}
+
+package "support" as SUP {
+  class "deep_recursion" as Deep <<module>> {
+    +run_with_larger_stack(f)
+  }
+  class "scoring" as Scoring <<module>> {
+    ProofScorer, ScoringResult
+  }
+  class "performance" as Perf <<module>> {
+    PerformanceTracker
+  }
+}
+
+class "Vampire (CASC mode)" as Vampire <<external process>>
+
+ParserAPI --> TPTPTransformer
+ParserAPI ..> Grammar
+ParserAPI --> ProofFile : creates
+ProofFile *-- "*" AnnotatedFormula
+AnnotatedFormula *-- "0..1" InferenceRecord
+AnnotatedFormula o-- "0..1" FileSource
+AnnotatedFormula o-- "0..1" IntroducedSource
+AnnotatedFormula --> Formula
+
+Driver --> ParserAPI : parse / load
+Driver --> FileDir
+Driver --> Dep
+Driver --> NegConj
+Driver --> Struct
+Driver --> Prop
+Driver --> Junc
+Driver --> Inst
+Driver --> ExGen
+Driver --> Claus
+Driver --> Skol
+Driver --> ATP : fallback (thm / cth only)
+Driver --> Deep
+Driver --> Scoring : batch mode
+Driver --> Perf
+Driver ..> Issue : collects into issue maps
+ATP --> Vampire : subprocess
+
+FileDir ..> Alpha
+NegConj ..> Alpha
+Struct ..> Alpha
+Prop ..> Utils
+Junc ..> Alpha
+Inst ..> Utils
+ExGen ..> Utils
+Claus ..> Utils
+Claus ..> Alpha
+Skol ..> Alpha
+
+note top of Driver
+  Dispatch by role and rule name in an if/elif chain;
+  the design describes it as a registry.
+  Verdict: VerifiedGood | VerifiedBad | Unknown
+  (Timeout from the wrapper).
+end note
+@enduml

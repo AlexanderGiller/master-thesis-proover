@@ -63,9 +63,13 @@ def _normalize_quantifiers(node):
             negated=node.negated,
         )
     if isinstance(node, Atom):
-        return Atom(predicate=node.predicate, args=[_normalize_quantifiers(arg) for arg in node.args])
+        return Atom(
+            predicate=node.predicate, args=[_normalize_quantifiers(arg) for arg in node.args]
+        )
     if isinstance(node, FunctionTerm):
-        return FunctionTerm(functor=node.functor, args=[_normalize_quantifiers(arg) for arg in node.args])
+        return FunctionTerm(
+            functor=node.functor, args=[_normalize_quantifiers(arg) for arg in node.args]
+        )
     return node
 
 
@@ -147,13 +151,9 @@ def _alpha_eq(a, b, map1: dict, map2: dict) -> bool:
 def is_alpha_equivalent(f1, f2) -> bool:
     """True if f1 and f2 are identical up to consistent renaming of bound variables.
 
-    Important: This checks true alpha-equivalence according to the standard definition:
+    This checks true alpha-equivalence according to the standard definition:
     - Bound variables can be renamed consistently (e.g., ![X]: p(X) ≡ ![Y]: p(Y))
     - Constants must be identical (e.g., p(a) ≠ p(b))
     - Free variables must have the same name (e.g., p(X) ≠ p(Y) if neither is bound)
-
-    Example:
-    - ![A, B]: (p(A) & ~p(B)) is alpha-equivalent to ![X, Y]: (p(X) & ~p(Y))  ✓
-    - p(a) & ~p(b) is NOT alpha-equivalent to p(d) & ~p(e)  ✗
     """
     return _alpha_eq(_normalize_quantifiers(f1), _normalize_quantifiers(f2), {}, {})

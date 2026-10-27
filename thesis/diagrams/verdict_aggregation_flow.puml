@@ -1,0 +1,32 @@
+@startuml
+' Aggregation of the check results into the verdict of a proof (classify_verdict and the timeout wrapper)
+skinparam shadowing false
+skinparam defaultFontSize 11
+start
+if (worker finished within the time limit?) then (no)
+  :Timeout\n(uncertain, 0 points);
+  stop
+else (yes)
+endif
+if (parse error or exception?) then (yes)
+  :VerifiedBad\n(failed);
+  stop
+else (no)
+endif
+:collect the issue maps of the global checks,\nthe rule checks, and the ATP fallback;
+if (no issue at all?) then (yes)
+  :VerifiedGood\n(verified);
+  stop
+else (no)
+endif
+if (every issue is an undecided step?\n(ATP without answer, no checker for the rule)) then (yes)
+  if (--binary-verdict?) then (yes)
+    :VerifiedBad;
+  else (no)
+    :Unknown\n(uncertain, 0 points);
+  endif
+else (no)
+  :VerifiedBad\n(failed: a definite defect);
+endif
+stop
+@enduml

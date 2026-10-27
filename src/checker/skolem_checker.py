@@ -95,7 +95,9 @@ def _rename_node(node: object, rename_map: dict[str, str]) -> object:
     if isinstance(node, QuantifiedFormula):
         return QuantifiedFormula(
             quantifier=node.quantifier,
-            variables=[rename_map.get(str(var), str(var)) for var in _normalize_variables(node.variables)],
+            variables=[
+                rename_map.get(str(var), str(var)) for var in _normalize_variables(node.variables)
+            ],
             formula=_rename_node(node.formula, rename_map),
         )
     return node
@@ -130,7 +132,28 @@ def _free_variable_names(node: object, bound: set[str] | None = None) -> set[str
     return set()
 
 
-def _analyze_target_bindings(node: object, target_var: str, polarity: bool = True) -> dict[str, int]:
+def _child_polarities(connective: object, polarity: bool) -> tuple[bool, bool, bool]:
+    """Polarity of the left and right operand of a binary connective.
+
+    Returns (left, right, mixed). `mixed` is True for <=> and <~>, where an
+    operand occurs in both polarities, so that a quantifier below it has no
+    well-defined polarity.
+    """
+    c = str(connective)
+    if c == "=>":
+        return (not polarity, polarity, False)
+    if c == "<=":
+        return (polarity, not polarity, False)
+    if c in ("~|", "~&"):
+        return (not polarity, not polarity, False)
+    if c in ("<=>", "<~>"):
+        return (polarity, polarity, True)
+    return (polarity, polarity, False)
+
+
+def _analyze_target_bindings(
+    node: object, target_var: str, polarity: bool = True
+) -> dict[str, int]:
     """Collect how target_var is quantified syntactically vs. effectively."""
     stats = {
         "any": 0,
@@ -146,13 +169,9 @@ def _analyze_target_bindings(node: object, target_var: str, polarity: bool = Tru
             walk(current.formula, not current_polarity, negation_depth + 1)
             return
         if isinstance(current, BinaryFormula):
-            # A => B is equivalent to ~A v B; only the left side flips polarity.
-            if current.connective == "=>":
-                walk(current.left, not current_polarity, negation_depth)
-                walk(current.right, current_polarity, negation_depth)
-            else:
-                walk(current.left, current_polarity, negation_depth)
-                walk(current.right, current_polarity, negation_depth)
+            left_pol, right_pol, _ = _child_polarities(current.connective, current_polarity)
+            walk(current.left, left_pol, negation_depth)
+            walk(current.right, right_pol, negation_depth)
             return
         if isinstance(current, JunctionFormula):
             for operand in current.operands:
@@ -203,7 +222,7 @@ def _skolemize_formula(
     counter: count,
     capture: dict[str, object],
     polarity: bool = True,
-) -> tuple[Atom|object, object]:
+) -> tuple[Atom | object, object]:
     """Walk the parent formula looking for the quantifier binding target_var.
 
     `polarity` tracks whether we are under an even (True) or odd (False)
@@ -219,8 +238,16 @@ def _skolemize_formula(
                 predicate=node.predicate,
                 args=[
                     _skolemize_formula(
-                        arg, target_var, skolem_term, scope, active, rename_map, used_names, counter,
-                        capture, polarity,
+                        arg,
+                        target_var,
+                        skolem_term,
+                        scope,
+                        active,
+                        rename_map,
+                        used_names,
+                        counter,
+                        capture,
+                        polarity,
                     )[0]
                     for arg in node.args
                 ],
@@ -234,8 +261,16 @@ def _skolemize_formula(
                 functor=node.functor,
                 args=[
                     _skolemize_formula(
-                        arg, target_var, skolem_term, scope, active, rename_map, used_names, counter,
-                        capture, polarity,
+                        arg,
+                        target_var,
+                        skolem_term,
+                        scope,
+                        active,
+                        rename_map,
+                        used_names,
+                        counter,
+                        capture,
+                        polarity,
                     )[0]
                     for arg in node.args
                 ],
@@ -246,7 +281,10 @@ def _skolemize_formula(
     if isinstance(node, Variable):
         renamed = rename_map.get(node.name, node.name)
         if active and node.name == target_var:
-            return _rename_node(skolem_term, capture.get("rename_map", rename_map)), capture["found"]
+            return (
+                _rename_node(skolem_term, capture.get("rename_map", rename_map)),
+                capture["found"],
+            )
         return Variable(renamed), capture["found"]
 
     if isinstance(node, Constant):
@@ -254,29 +292,67 @@ def _skolemize_formula(
 
     if isinstance(node, Negation):
         inner, found = _skolemize_formula(
-            node.formula, target_var, skolem_term, scope, active, rename_map, used_names, counter,
-            capture, not polarity,
+            node.formula,
+            target_var,
+            skolem_term,
+            scope,
+            active,
+            rename_map,
+            used_names,
+            counter,
+            capture,
+            not polarity,
         )
         return Negation(inner), found
 
     if isinstance(node, BinaryFormula):
+        left_pol, right_pol, mixed = _child_polarities(node.connective, polarity)
+        if mixed and _analyze_target_bindings(node, target_var)["any"] > 0:
+            capture["mixed_polarity"] = True
         left, found_left = _skolemize_formula(
-            node.left, target_var, skolem_term, scope, active, rename_map, used_names, counter,
-            capture, polarity,
+            node.left,
+            target_var,
+            skolem_term,
+            scope,
+            active,
+            rename_map,
+            used_names,
+            counter,
+            capture,
+            left_pol,
         )
         right, found_right = _skolemize_formula(
-            node.right, target_var, skolem_term, scope, active, rename_map, used_names, counter,
-            capture, polarity,
+            node.right,
+            target_var,
+            skolem_term,
+            scope,
+            active,
+            rename_map,
+            used_names,
+            counter,
+            capture,
+            right_pol,
         )
-        return BinaryFormula(connective=node.connective, left=left, right=right), found_left or found_right
+        return (
+            BinaryFormula(connective=node.connective, left=left, right=right),
+            found_left or found_right,
+        )
 
     if isinstance(node, JunctionFormula):
         operands = []
         found = False
         for operand in node.operands:
             transformed, operand_found = _skolemize_formula(
-                operand, target_var, skolem_term, scope, active, rename_map, used_names, counter,
-                capture, polarity,
+                operand,
+                target_var,
+                skolem_term,
+                scope,
+                active,
+                rename_map,
+                used_names,
+                counter,
+                capture,
+                polarity,
             )
             operands.append(transformed)
             found = found or operand_found
@@ -284,12 +360,28 @@ def _skolemize_formula(
 
     if isinstance(node, Equality):
         left, found_left = _skolemize_formula(
-            node.left, target_var, skolem_term, scope, active, rename_map, used_names, counter,
-            capture, polarity,
+            node.left,
+            target_var,
+            skolem_term,
+            scope,
+            active,
+            rename_map,
+            used_names,
+            counter,
+            capture,
+            polarity,
         )
         right, found_right = _skolemize_formula(
-            node.right, target_var, skolem_term, scope, active, rename_map, used_names, counter,
-            capture, polarity,
+            node.right,
+            target_var,
+            skolem_term,
+            scope,
+            active,
+            rename_map,
+            used_names,
+            counter,
+            capture,
+            polarity,
         )
         return Equality(left=left, right=right, negated=node.negated), found_left or found_right
 
@@ -304,7 +396,9 @@ def _skolemize_formula(
 
         is_universal = node.quantifier == Quantifier.UNIVERSAL
         effective_quantifier = (
-            node.quantifier if polarity else (Quantifier.EXISTENTIAL if is_universal else Quantifier.UNIVERSAL)
+            node.quantifier
+            if polarity
+            else (Quantifier.EXISTENTIAL if is_universal else Quantifier.UNIVERSAL)
         )
 
         next_scope = scope + fresh_vars
@@ -323,9 +417,7 @@ def _skolemize_formula(
                 polarity,
             )
             return (
-                QuantifiedFormula(
-                    quantifier=node.quantifier, variables=fresh_vars, formula=inner
-                ),
+                QuantifiedFormula(quantifier=node.quantifier, variables=fresh_vars, formula=inner),
                 found,
             )
 
@@ -351,18 +443,13 @@ def _skolemize_formula(
                 )
 
             capture["found"] = True
-            # Variables bound by the same existential block are not valid
-            # dependencies for the eliminated variable's Skolem term.
             free_in_body = _free_variable_names(node.formula, set(vars_iter))
-            capture["universals"] = [
-                local_map[name] for name in free_in_body if name in local_map
-            ]
-            # Only previously accumulated scope variables are valid dependencies
-            # for a Skolem term here; sibling existential variables from the same
-            # quantifier block must not be added.
+            capture["universals"] = [local_map[name] for name in free_in_body if name in local_map]
             capture["scope"] = list(scope)
             capture["rename_map"] = dict(local_map)
-            remaining = [fresh for original, fresh in zip(vars_iter, fresh_vars) if original != target_var]
+            remaining = [
+                fresh for original, fresh in zip(vars_iter, fresh_vars) if original != target_var
+            ]
             inner, _ = _skolemize_formula(
                 node.formula,
                 target_var,
@@ -405,8 +492,7 @@ def _skolemize_formula(
 
 
 def check_skolemization(
-    skolem_step: AnnotatedFormula,
-    parent_step: AnnotatedFormula
+    skolem_step: AnnotatedFormula, parent_step: AnnotatedFormula
 ) -> list[SkolemizationIssue]:
     """Check if the skolem_step is a valid Skolemization of the parent_step."""
     issues: list[SkolemizationIssue] = []
@@ -432,21 +518,21 @@ def check_skolemization(
         )
 
     status_entries = [item.status for item in inf.info if isinstance(item, StatusInfo)]
-    if len(status_entries) != 1:
-        issues.append(
-            SkolemizationIssue(
-                skolem_step.name,
-                f"skolemize must contain exactly one status, got {len(status_entries)}",
-            )
-        )
-    elif status_entries[0] != InferenceStatus.ESA:
-        issues.append(
-            SkolemizationIssue(
-                skolem_step.name,
-                f"skolemize must be 'esa', got {status_entries[0]}",
-            )
-        )
 
+    # A repeated status(esa) occurs in valid benchmark proofs (PRV060), so only a
+    # missing status or a status other than esa is an error.
+    if not status_entries:
+        issues.append(
+            SkolemizationIssue(skolem_step.name, "skolemize must have status 'esa', got none")
+        )
+    for status in status_entries:
+        if status != InferenceStatus.ESA:
+            issues.append(
+                SkolemizationIssue(
+                    skolem_step.name,
+                    f"skolemize must be 'esa', got {status}",
+                )
+            )
     new_symbols_info = next((item for item in inf.info if isinstance(item, NewSymbolsInfo)), None)
     if (
         new_symbols_info is None
@@ -482,8 +568,6 @@ def check_skolemization(
     if isinstance(sk_term, FunctionTerm):
         sk_functor = sk_term.functor
     elif isinstance(sk_term, Constant):
-        # A Skolem "function" with zero universal dependencies in scope is
-        # simply a nullary constant (e.g. sK0), not a FunctionTerm.
         sk_functor = sk_term.name
     else:
         issues.append(
@@ -516,6 +600,16 @@ def check_skolemization(
     )
     universals_at_elim = capture["universals"]
 
+    if capture.get("mixed_polarity"):
+        issues.append(
+            SkolemizationIssue(
+                skolem_step.name,
+                f"variable '{skolemize_info.variable}' is quantified below an equivalence or "
+                "exclusive disjunction, where its polarity is not defined",
+            )
+        )
+        return issues
+
     if not found or universals_at_elim is None:
         binding_stats = _analyze_target_bindings(parent_step.formula, skolemize_info.variable)
         if binding_stats["any"] == 0:
@@ -538,9 +632,7 @@ def check_skolemization(
                 "in the parent formula and cannot be eliminated by skolemize"
             )
         else:
-            reason = (
-                f"existential variable '{skolemize_info.variable}' not found in parent formula"
-            )
+            reason = f"existential variable '{skolemize_info.variable}' not found in parent formula"
         issues.append(
             SkolemizationIssue(
                 skolem_step.name,

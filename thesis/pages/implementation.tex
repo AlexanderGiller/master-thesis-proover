@@ -1,0 +1,560 @@
+\input{generated/eval_size_macros}
+
+\section{Implementation}
+\label{sec:implementation}
+
+This chapter describes how the design of Chapter~\ref{sec:design} is implemented in Python.
+Section~\ref{subsec:impl-overview} gives an overview of the code base.
+Sections~\ref{subsec:impl-model} and~\ref{subsec:impl-parser} describe the data model and the parser, Section~\ref{subsec:impl-driver} the driver that dispatches the steps and computes the verdict.
+Sections~\ref{subsec:impl-global} to~\ref{subsec:impl-atp} cover the checkers, Section~\ref{subsec:impl-resources} the resource control, and Sections~\ref{subsec:impl-testing} and~\ref{subsec:impl-tooling} the test suite and the tooling used for the evaluation.
+Section~\ref{subsec:impl-algorithms} presents selected algorithms in detail, and Section~\ref{subsec:impl-example} follows one valid and one invalid proof through the implementation.
+Section~\ref{subsec:impl-bugs} reports the defects that testing uncovered and how they were corrected. The remaining limitations of the implementation are discussed in Section~\ref{subsec:disc-limitations}.
+
+\subsection{Overview}
+\label{subsec:impl-overview}
+
+The implementation is written in Python~3.12 and uses the parser library \texttt{lark} as its only runtime dependency.
+It consists of about 5\,500 lines of code (4\,250 in the \texttt{src} package and 1\,280 in the driver \texttt{main.py}) in four layers (Table~\ref{tab:impl-modules}), namely the parser and the AST, the rule checkers with shared utilities, the driver, and the tooling for scoring and performance measurement.
+The separation follows the responsibilities of the design. Syntax handling is independent of logical verification, and each rule family has its own module, so that new constructs or rules can be added without touching the others.
+
+\begin{table}[tbp]
+\centering
+\small
+\caption{Module structure of the implementation (approximate line counts).}
+\label{tab:impl-modules}
+\begin{tabular}{@{}l P{0.60\linewidth} r@{}}
+\toprule
+Layer & Module (\texttt{src/\dots}) & Lines \\
+\midrule
+Parser and AST & \texttt{parser/parser.py}, \texttt{parser/tptp\_grammar.lark}, \texttt{parser/ast\_nodes.py} & 720 \\
+Constants & \texttt{var\_mapping.py} (enumerations for roles, statuses, rules, connectives) & 100 \\
+Global checks & \texttt{checker/file\_dir.py}, \texttt{dependency\_checker.py}, \texttt{negated\_conjecture\_checker.py} & 480 \\
+Structural and propositional & \texttt{structural\_checker.py}, \texttt{propositional\_checker.py}, \texttt{junction\_checker.py} & 430 \\
+Quantifier rules & \texttt{instantiate\_checker.py}, \texttt{existential\_gen\_checker.py}, \texttt{skolem\_checker.py} & 820 \\
+Clausal and equational & \texttt{clausal\_checker.py} & 500 \\
+Shared utilities & \texttt{alpha\_eq.py}, \texttt{formula\_utils.py} & 430 \\
+ATP fallback & \texttt{external\_atp\_checker.py} & 200 \\
+Driver & \texttt{main.py}, \texttt{deep\_recursion.py} & 1\,350 \\
+Tooling & \texttt{scoring/}, \texttt{performance/} & 680 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three principles guided the implementation, and they explain several decisions in the following sections.
+First, \emph{checkers are pure functions}. A checker receives the step and its parent steps and returns a list of issue objects. It does not print anything, read files, or modify the AST.
+This makes every checker testable with a few formulas and independent of the parser (Section~\ref{subsec:impl-testing}).
+Second, \emph{checks are conservative}. A checker accepts a step only if it recognizes the exact shape that the rule definition demands, and a step in another shape is either rejected or, if its status permits, passed to the external prover (Section~\ref{subsec:impl-atp}).
+An unrecognized shape is therefore never accepted without evidence.
+Third, \emph{findings are data}. All issues are collected in maps keyed by step name instead of aborting at the first error, so that one run reports every defect of a proof.
+
+The dependencies between the modules form a directed acyclic graph with the AST at the bottom. \texttt{ast\_nodes} and \texttt{var\_mapping} are imported by every other module, and \texttt{alpha\_eq} and \texttt{formula\_utils} by the checkers.
+The checkers do not import each other, and only \texttt{main.py} imports the parser, all checkers, and the ATP module.
+No checker imports the driver, which prevents circular dependencies and means that a checker can be loaded in a test without starting any part of the verifier.
+
+\subsection{Internal Representation}
+\label{subsec:impl-model}
+
+Formulas are represented by Python data classes defined in \texttt{ast\_nodes.py}.
+Terms are represented by \texttt{Variable}, \texttt{Constant}, and \texttt{FunctionTerm}, atomic formulas by \texttt{Atom} and \texttt{Equality}, and compound formulas by \texttt{Negation}, \texttt{BinaryFormula}, \texttt{JunctionFormula}, and \texttt{QuantifiedFormula}.
+Conjunctions and disjunctions are \texttt{JunctionFormula} objects with a list of operands rather than nested binary trees, which simplifies the junction and clausal checks, since many rules operate on lists of literals.
+A \texttt{QuantifiedFormula} stores the quantifier and the list of bound variables, which the instantiation, generalization, and Skolemization checks rely on.
+
+A proof step is an \texttt{AnnotatedFormula} with name, role, formula, and either a source or an \texttt{InferenceRecord}.
+The record contains the rule name, the parents, and a list of information items with the status, the \texttt{new\_symbols} declaration (kind and symbols), and, for Skolemization, the \texttt{skolemize} information with the eliminated variable and the Skolem term.
+Roles, statuses, rule names, quantifiers, and connectives are \texttt{StrEnum} classes in \texttt{var\_mapping.py}.
+This avoids inconsistencies caused by ad hoc string handling and makes the set of recognized values explicit.
+
+\subsection{Parser}
+\label{subsec:impl-parser}
+
+The parser is generated by Lark from the grammar \texttt{tptp\_grammar.lark} using the LALR algorithm with cached tables.
+The parser object is created once per process through a cached helper.
+A \texttt{TPTPTransformer} maps the grammar productions to the data classes above.
+During this mapping, some constructs are normalized: for instance, the connective \verb|<=| is converted into a canonical implication direction, so that later checks have fewer cases.
+The parser also handles source annotations, inference records, and \texttt{include} directives.
+The function \texttt{load\_proof} combines parsing with the extraction of the referenced problem and returns a \texttt{ProofFile} object.
+
+Because the grammar is recursive, deeply nested formulas lead to deep recursion in the transformer and in all checkers.
+Section~\ref{subsec:impl-resources} describes how this is handled.
+
+\subsection{Driver and Dispatch}
+\label{subsec:impl-driver}
+
+The driver is the function \texttt{check\_proof\_file} in \texttt{main.py}.
+It parses the problem file and the proof, builds an index from step names to steps, runs the global checks, and then iterates over the steps in file order.
+For each step it selects a checker by the step's role and rule name in an \texttt{if}/\texttt{elif} chain. Axioms, conjectures, and every other formula with a \texttt{file(\dots)} source go to the provenance check, the negated conjecture to its dedicated checker, the rules of Table~\ref{tab:rule-families} to their modules, \texttt{skolemize} to the Skolem checker, and every other step with status \texttt{thm} or \texttt{cth} to the external ATP.
+Steps with another status and no checker, and formulas with an \texttt{introduced(\dots)} source, are reported as undecidable. A step without any justification counts as a defect.
+Figure~\ref{fig:sequence-check-proof} summarizes this end-to-end call sequence including timeout and ATP fallback branches.
+
+\begin{figure}[tbp]
+\centering
+\includegraphics[width=\textwidth]{diagrams/sequence_diagram_check_proof.png}
+\caption{Call sequence of \texttt{check\_proof\_file} including parser, global checks, rule dispatch, ATP fallback, and verdict aggregation.}
+\label{fig:sequence-check-proof}
+\end{figure}
+
+The driver does not stop at the first error.
+Each check writes its findings to a result map keyed by step name. There is one map per rule family (for example \texttt{skolem\_issues} or \texttt{resolution\_issues}), one for the dependency checks, and one for the ATP fallback.
+The maps are returned to the caller, so that the console report, the summary table, and the tests all work on the same data (Section~\ref{subsec:design-diagnostics}).
+The driver keeps two sets for the freshness check of Skolem symbols, one with the function symbols of the problem file, collected once, and one with the Skolem symbols introduced so far.
+A \texttt{skolemize} step is rejected if its new symbol is in one of these sets.
+
+\paragraph{Verdict.}
+The checker \texttt{check\_proof\_file} returns the issue maps together with the flag \texttt{all\_ok}, which is true if all maps are empty.
+The function \texttt{classify\_verdict} maps the issue maps to the three-valued verdict of Table~\ref{tab:verdicts} and stores it in the result under \texttt{verdict}.
+The verdict is \texttt{VerifiedGood} if all maps are empty.
+It is \texttt{Unknown} if the only findings are steps that could not be decided, either because the prover gave no result (timeout, prover missing, no SZS status) or because no checker exists for the rule.
+In every other case it is \texttt{VerifiedBad}.
+A mixture of undecided and refuted steps is therefore \texttt{VerifiedBad}.
+The reporting function prints the verdict as the SZS status. A timeout of the whole proof yields \texttt{Timeout}, and a crash or an unparsable file yields \texttt{VerifiedBad}.
+With the option \texttt{--binary-verdict}, \texttt{Unknown} is printed as \texttt{VerifiedBad}, and the scoring module treats \texttt{Unknown} like \texttt{Timeout} with zero points.
+
+\subsection{Global Checks}
+\label{subsec:impl-global}
+
+The provenance check in \texttt{file\_dir.py} verifies that an imported formula (an axiom, a conjecture, or another input role such as \texttt{hypothesis}) carries a \texttt{file(\dots)} annotation, that the cited file and formula name exist in the problem, that the role matches, and that the formula is alpha-equivalent to the original.
+Alpha-equivalence is implemented in \texttt{alpha\_eq.py} as a simultaneous traversal with two mappings between bound variables.
+Before the traversal, consecutive quantifiers of the same kind are merged into one prefix and nested junctions of the same connective are flattened (Figure~\ref{fig:impl-alpha}).
+The comparison is used for provenance, for the structural rules, and for many quantifier rules.
+
+\begin{figure}[tbp]
+\centering
+\footnotesize
+\begin{verbatim}
+def is_alpha_equivalent(f1, f2):
+    return _alpha_eq(normalize(f1), normalize(f2), {}, {})
+
+def _alpha_eq(a, b, map1, map2):
+    if type(a) is not type(b): return False
+    if a is a Variable:                       # bound or free
+        if a in map1 or b in map2:            # bound: mappings must agree
+            return map1.get(a) == b and map2.get(b) == a
+        return a == b                         # free: names must be equal
+    if a is a Quantified formula:
+        require same quantifier and arity
+        extend map1, map2 with the bound variables of a and b
+        result = _alpha_eq(a.body, b.body, map1, map2)
+        restore map1, map2                    # scoping
+        return result
+    otherwise: compare symbols, then recurse over the children in order
+\end{verbatim}
+\caption{Structure of the alpha-equivalence check (pseudocode, simplified).}
+\label{fig:impl-alpha}
+\end{figure}
+
+Two further global checks are implemented in the driver itself, because they concern the proof as a whole.
+The first rejects a proof in which two steps have the same name.
+Without it, the index from names to steps would silently keep the first definition, and a parent reference could then refer to a different formula than the author intended.
+The check counts the occurrences of each name and reports every name that occurs more than once together with the number of definitions.
+The second check requires that the proof derives \texttt{\$false}, so at least one step that is neither an axiom nor a conjecture must have the formula \texttt{\$false} and an inference record.
+Without this check, a proof that stops after some correct steps would be accepted, as all of its steps are valid, although it does not refute anything.
+The condition ``has an inference record'' excludes an axiom or conjecture that is literally \texttt{\$false}.
+Both checks write their findings into their own maps (\texttt{duplicate\_name\_issues} and \texttt{no\_false\_issues}), which enter the verdict like the others.
+
+The dependency checks in \texttt{dependency\_checker.py} detect cycles with an iterative depth-first search with three colors and report the cycle. Dangling parents are ignored there, because the step checks report them.
+A second function rejects any step other than the negation step that cites a \texttt{conjecture}.
+The negated conjecture checker verifies role, status \texttt{cth}, the parent, and that the formula is the negation of the conjecture, up to renaming of bound variables.
+
+\subsection{Structural, Propositional, and Quantifier Rules}
+\label{subsec:impl-simple-rules}
+
+The structural rules (\texttt{copy}, \texttt{duplicate}, \texttt{rename\_variable}, \texttt{double\_negation}, \texttt{remove\_double\_negation}) are checked in \texttt{structural\_checker.py}. The checker verifies the metadata and that the conclusion has the expected relation to its parent, mostly by alpha-equivalence.
+The propositional rules (\texttt{modus\_ponens}, \texttt{conjunction}, \texttt{split\_conjunct}) and the junction rules (\texttt{weaken}, \texttt{commute}, \texttt{excluded\_middle}) act on the top-level connective structure, and here the n-ary junction nodes make the checks simpler.
+The syntactic checks for \texttt{weaken}, \texttt{commute}, and \texttt{excluded\_middle} cover only the standard shapes of the rules.
+If such a check fails and the step has status \texttt{thm}, the driver asks the external ATP before it reports a failure, so that valid but unusual variants are not rejected.
+
+The \texttt{instantiate} and \texttt{existential\_gen} checks use template matching with a capture check (\texttt{match\_template\_to\_instance} in \texttt{formula\_utils.py}, Section~\ref{subsec:impl-algorithms}).
+Shared utilities for flattening quantifier prefixes, collecting function symbols, and applying substitutions are collected in \texttt{formula\_utils.py}, so that all checkers interpret formulas consistently.
+
+\subsection{Skolemization}
+\label{subsec:impl-skolem}
+
+The Skolem checker (\texttt{skolem\_checker.py}, the largest checker) implements the conditions of Section~\ref{subsec:design-skolem}.
+It first validates the shape of the step: rule \texttt{skolemize}, exactly one parent, at least one status and only the status \texttt{esa} (a repeated \texttt{status(esa)} occurs in a valid benchmark proof), exactly one \texttt{new\_symbols} declaration of kind \texttt{skolem} with one symbol, and a \texttt{skolemize} information item that names the eliminated variable.
+It then locates the quantifier that binds the eliminated variable in the parent, analyzing its syntactic and its effective quantifier kind while tracking the polarity (negations flip it, the antecedent of an implication flips it, and the operands of \texttt{\textasciitilde{}|} and \texttt{\textasciitilde{}\&} flip it), and computes the universal variables in whose scope it occurs.
+A quantifier below \texttt{<=>} or \texttt{<\textasciitilde{}>} occurs in both polarities and is rejected.
+Finally it checks that the Skolem term is built from the declared symbol and exactly these variables, and that applying the replacement to the parent yields the conclusion up to alpha-equivalence. Before this comparison, bound variables are renamed apart to avoid capture.
+The freshness of the symbol is not decided in the checker itself but in the driver, which holds the symbol sets across steps (Section~\ref{subsec:impl-driver}).
+
+\subsection{Equality and Clausal Reasoning}
+\label{subsec:impl-clausal}
+
+The module \texttt{clausal\_checker.py} implements \texttt{resolution}, \texttt{paramodulation}, \texttt{reflexivity}, \texttt{transitivity}, and \texttt{rewrite}.
+Resolution unifies a pair of complementary literals of the two parents and compares the resulting resolvent with the conclusion (Section~\ref{subsec:impl-algorithms}).
+Paramodulation rewrites one side of an equation from one parent in the other parent, with bound variables renamed apart to avoid capture, and compares the result with the conclusion.
+Reflexivity checks for a trivial equality $t = t$, and transitivity checks that two parent equalities chain to the conclusion.
+
+The \texttt{rewrite} rule is the most restrictive check.
+In the benchmark format, rewrite steps cite only one parent and omit the demodulating equation, so the intended transformation cannot be reconstructed.
+The checker therefore accepts a step only if its conclusion is the parent formula up to renaming of bound variables, which is sound, because the conclusion is then trivially entailed.
+A genuine rewrite that changes the formula is rejected. This is incomplete but fail-closed, and no valid proof of the benchmark contains such a step.
+We did not delegate these steps to the prover, because the invalid proof \texttt{PRV024} contains rewrite steps whose conclusion follows from the parent but not by the cited rule, and an entailment test would accept it (Section~\ref{subsec:eval-ablation}).
+
+\paragraph{Overview of the rule checkers.}
+Table~\ref{tab:impl-rules} summarizes, for each rule family, what the internal check establishes and what it leaves to the prover.
+It also shows where precision is limited. The internal check of a rule is exact for the standard shape of the rule, and the fallback decides all other cases.
+
+\begin{table}[tbp]
+\centering
+\small
+\caption{Rule families, their internal checks, and the behavior on a failed check.}
+\raggedright
+\label{tab:impl-rules}
+\begin{tabular}{@{}P{0.24\linewidth} P{0.36\linewidth} P{0.28\linewidth}@{}}
+\toprule
+Rules & Internal check & On failure \\
+\midrule
+\texttt{copy}, \texttt{duplicate}, \texttt{rename\_variable} & Conclusion alpha-equivalent to the parent (duplicate: both parents equal) & Issue \\
+\texttt{double\_negation}, \texttt{remove\_double\_negation} & Conclusion differs from the parent by exactly one double negation at the top & Issue \\
+\texttt{modus\_ponens}, \texttt{conjunction}, \texttt{split\_conjunct} & Conclusion is the consequent of the implication whose antecedent is the other parent; conjunction of the parents; a conjunct of the parent & Issue \\
+\texttt{weaken}, \texttt{commute}, \texttt{excluded\_middle} & Standard shapes: added disjunct, permuted operands, $A \lor \lnot A$ & ATP fallback if status is \texttt{thm} \\
+\texttt{instantiate}, \texttt{existential\_gen} & Template matching with a consistent substitution and capture check & Issue \\
+\texttt{skolemize} & Shape, polarity, scope, Skolem term, replacement (Section~\ref{subsec:impl-skolem}); freshness in the driver & Issue \\
+\texttt{resolution}, \texttt{paramodulation} & Unification of complementary literals (equation sides), resolvent compared to the conclusion & Issue \\
+\texttt{reflexivity}, \texttt{transitivity} & $t = t$; chain of two equalities & Issue \\
+\texttt{rewrite} & Conclusion equals the parent up to renaming & Issue \\
+\texttt{consequence}, \texttt{add\_hypothesis}, all other rules with status \texttt{thm} or \texttt{cth} & None & Decided by the ATP \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Delegation to the External ATP}
+\label{subsec:impl-atp}
+
+The module \texttt{external\_atp\_checker.py} implements the fallback of Section~\ref{subsec:design-atp}.
+The function \texttt{status\_allows\_atp} implements the eligibility rule, under which only the statuses \texttt{thm} and \texttt{cth} may be delegated.
+The function \texttt{validate\_step\_with\_atp} serializes the premises as axioms and the step as conjecture into a TPTP problem (with quoting of symbols and variable names that are not valid TPTP tokens), writes it to a temporary file, and starts the prover as a subprocess with a time limit.
+The default prover is Vampire in CASC mode. The command can be configured through the environment variables \texttt{EXTERNAL\_ATP\_COMMAND} and \texttt{EXTERNAL\_ATP\_BINARY}, and the module translates file paths if the prover is launched through WSL.
+The answer is read from the SZS status line of the output (Figure~\ref{fig:impl-atp}).
+
+\begin{figure}[tbp]
+\centering
+\footnotesize
+\begin{verbatim}
+validate_step_with_atp(step, premises, timeout) -> True | False | "unknown"
+    write premises as axioms, step as conjecture to a temporary .p file
+    run prover (subprocess, timeout)
+    executable not found        -> "unknown"
+    timeout                     -> "unknown"
+    no "% SZS status" line      -> "unknown"
+    Theorem | Unsatisfiable | ContradictoryAxioms -> True
+    CounterSatisfiable | Satisfiable              -> False
+    any other status (Timeout, GaveUp, ...)       -> "unknown"
+\end{verbatim}
+\caption{Result mapping of the ATP fallback.}
+\label{fig:impl-atp}
+\end{figure}
+
+The function returns a tri-state value, so that the caller can distinguish a refutation from an unresolved call.
+Only the answers \texttt{Theorem}, \texttt{Unsatisfiable}, and \texttt{ContradictoryAxioms} count as confirmation.
+The last one is accepted because a final step \texttt{\$false} with parents that are contradictory in themselves is a valid refutation, and Vampire reports exactly this status when the premises are inconsistent.
+Only \texttt{CounterSatisfiable} and \texttt{Satisfiable} are reported as a refutation of the step.
+Every other status, for instance \texttt{Timeout}, \texttt{GaveUp}, or \texttt{ResourceOut}, and missing output count as unresolved, because they say nothing about the step.
+The prover receives only the parents of the step, never the original conjecture or the rest of the proof.
+The calls are sequential, and each call may use the full per-proof time limit.
+Two sound shortcuts avoid prover calls, one for an \texttt{add\_hypothesis} step of the form $H \Rightarrow \varphi$ with parent $\varphi$, and one for a final \texttt{consequence} step to \texttt{\$false} whose parents are complementary. All other steps of these rules go to the prover.
+
+\subsection{Resource Control}
+\label{subsec:impl-resources}
+
+Each proof is checked in a separate process created with Python's \texttt{multiprocessing} module.
+The parent waits for the result for the configured number of seconds (30 by default, configurable on the command line) and terminates the worker if the limit is exceeded.
+The worker passes its result back through a queue, and exceptions are caught and returned as an error message.
+Figure~\ref{fig:impl-timeout} shows the mechanism.
+
+\begin{figure}[tbp]
+\centering
+\footnotesize
+\begin{verbatim}
+def check_proof_file_with_timeout(proof_path, problem_path, timeout):
+    queue = Queue()
+    process = Process(target=_check_proof_worker,
+                      args=(proof_path, problem_path, queue))
+    process.start()
+    deadline = now() + timeout
+    while now() < deadline:               # poll the queue before joining:
+        try:                              # a large result blocks the child
+            return queue.get(timeout=0.05)  # until it has been read
+        except Empty:
+            if not process.is_alive():    # worker died without a result
+                return "error", f"exited with code {process.exitcode}"
+    process.terminate()                   # limit exceeded
+    process.join()
+    return "timeout", None
+\end{verbatim}
+\caption{Timeout handling of the driver (excerpt from \texttt{main.py}, simplified).}
+\label{fig:impl-timeout}
+\end{figure}
+
+A worker that dies without a result (for example, because the operating system killed it for memory) is reported as an error and not as a verdict.
+The prover is started from inside the worker as a child process, so terminating the worker does not by itself stop a running prover. However, each prover call has its own time limit (\texttt{--time\_limit} and the timeout of \texttt{subprocess.run}), so that an orphaned prover ends shortly after.
+Process isolation contains crashes and memory exhaustion of a single proof and allows non-cooperative code, such as a hanging ATP call, to be terminated reliably.
+
+Inside the worker, the checking runs in a dedicated thread with a stack of 64\,MB and a recursion limit of 100\,000 (\texttt{deep\_recursion.py}).
+This is necessary because both the parser's transformer and the checkers traverse formulas recursively, and the benchmark contains stress tests with hundreds of nested negations or function applications.
+Raising only the recursion limit would risk a hard interpreter crash, because each Python frame also needs space on the operating system's thread stack.
+The dependency analysis uses an iterative search and is therefore independent of proof length.
+
+\subsection{Test Suite}
+\label{subsec:impl-testing}
+
+The test suite consists of 293 \texttt{pytest} test functions in 26 files.
+Most files exercise one module in isolation, for example \texttt{test\_skolem\_checker} or \texttt{test\_clausal\_checker}, which is possible because the checkers are functions of the step and its parents.
+In addition, there are tests for the parser and the AST, a parametrized provenance test over the example proofs (\texttt{test\_all\_examples}), tests for the tri-state ATP result (\texttt{test\_external\_atp\_checker}, \texttt{test\_main\_atp\_tristate}), edge-case tests, and a mutation-based test (\texttt{test\_mutation\_fuzzing}) that perturbs seed proofs and checks that the verifier reacts with the expected outcome or issue category.
+A GitHub Actions workflow runs the suite on Python~3.12 for every push and pull request and fails if the line coverage is below 85\,\% (NFR7).
+Of the 293 tests, two are skipped when no external prover is installed. The whole-suite test over the Extra set (Section~\ref{subsec:eval-extra}) and the unmutated baseline of the mutation test need the prover for the final step of each proof.
+All other tests run without a prover, which keeps the continuous integration independent of it.
+The tests fall into four groups.
+\emph{Unit tests} call one checker with hand-written formulas (for example, an instantiation that captures a variable).
+\emph{Regression tests} reproduce each defect that was found (Section~\ref{subsec:impl-bugs}) with the smallest formula pair that triggers it. They were written before the correction and fail on the old code.
+\emph{Property-style tests} perturb seed proofs and check that the verdict changes in the expected way.
+\emph{End-to-end tests} run the driver on whole proofs and compare the report with the expectation.
+The statement coverage of the checker package is \EvalCheckerCov\,\%, and \EvalTotalCov\,\% for the whole \texttt{src} directory (Section~\ref{subsec:eval-modularity}).
+
+\subsection{Tooling for Reporting and Evaluation}
+\label{subsec:impl-tooling}
+
+The command-line interface in \texttt{main.py} checks either a single proof or, by default, all proofs of the directory \texttt{ProoVer2026/PRV} (another directory with \texttt{-d}).
+For a single proof it prints a report grouped by check and finishes with an SZS line, and for a batch it prints counts of the outcomes and a per-proof summary table with the failed checks. With \texttt{--quiet} only the SZS line per proof is printed, and \texttt{--debug} additionally prints how each step was dispatched.
+The scoring module (\texttt{src/scoring}) compares the outcomes with expected results given in CSV files and computes the points of the ProoVer scheme ($+2$, $+1$, $0$, $-1$, $-10$) per proof and in total, together with a breakdown of errors by check category.
+The performance module (\texttt{src/performance}) records the wall-clock time per proof in batch mode and writes it to a CSV file. These times do not include the start-up of the interpreter, which is why the evaluation measures with its own script.
+The scripts in \texttt{scripts/} automate the experiments of Chapter~\ref{sec:evaluation}.
+\texttt{gen\_extra\_tests.py} generates the rule-level proofs of the Extra set from templates, and \texttt{exp\_extra\_tests.py} runs them and compares the verdicts with the ground truth.
+\texttt{eval\_all.py} is the driver of the evaluation. It checks every proof in a fresh process (\texttt{\_eval\_worker.py}) several times, parses the branch log of the driver to count how each step was decided, measures wall-clock time and peak memory with \texttt{resource.getrusage}, applies the mutation operators, runs the malformed-input cases, and writes all tables and macros of the evaluation chapter as \LaTeX{} files, so that no number in that chapter is typed by hand.
+The experiments with the Skolemization checker and the compatibility of the prover versions have their own scripts (\texttt{exp\_skolem\_mutants.py}, \texttt{exp\_vampire\_compat.py}).
+\texttt{gen\_dag\_figure.py} draws the dependency graph of a proof with Graphviz and colors each node by the check that validates it (Figure~\ref{fig:design-dag}).
+
+\subsection{Selected Algorithms}
+\label{subsec:impl-algorithms}
+
+This section shows the core of three algorithms as they appear in the code, because small details in them decide whether the verifier is sound. These are template matching with a capture check, unification with an occurs check, and the standardization apart of the premises of a resolution step.
+Each was corrected after a defect was found by the Extra set or by the final review (Section~\ref{subsec:impl-bugs}), and the excerpts show the corrected form.
+
+\paragraph{Template matching.}
+The checks for \texttt{instantiate} and \texttt{existential\_gen} must decide whether a conclusion is an instance of a quantified parent.
+The quantified variables of the parent are the \emph{abstract variables}. They may be mapped to any term, but each to the same term everywhere.
+All other variables, constants, and symbols must match exactly, and variables bound inside the formula must correspond one to one (Figure~\ref{fig:impl-match}).
+The parameter \texttt{local\_bound} carries the variables that are bound by quantifiers \emph{inside} the instance on the path to the current position.
+If an abstract variable were mapped to a term that contains such a variable, the term would be captured by the inner quantifier and change its meaning.
+For example, instantiating $x$ in $\forall x\,\exists y\,p(x,y)$ with the term $y$ yields $\exists y\,p(y,y)$, in which the substituted $y$ has been captured by the quantifier. This formula is not a consequence of the parent (take $p(x,y)$ to mean $x \neq y$).
+
+\begin{figure}[tbp]
+\centering
+\footnotesize
+\begin{verbatim}
+def match_template_to_instance(template, instance, abstract_vars,
+                               bound_map=None, substitutions=None,
+                               local_bound=frozenset()):
+    if isinstance(template, Variable):
+        mapped = bound_map.get(template.name)
+        if mapped is not None:                 # bound inside the formula
+            return isinstance(instance, Variable) and instance.name == mapped
+        if template.name in abstract_vars:
+            if local_bound and term_vars(instance) & local_bound:
+                return False                   # variable capture
+            existing = substitutions.get(template.name)
+            if existing is None:
+                substitutions[template.name] = instance
+                return True
+            return nodes_equal(existing, instance, {})
+        return isinstance(instance, Variable) and template.name == instance.name
+    if type(template) is not type(instance):
+        return False
+    ...                                         # constants, terms, atoms,
+    ...                                         # connectives: compare, recurse
+    if isinstance(template, QuantifiedFormula):
+        ...                                     # same quantifier and arity;
+        ...                                     # extend bound_map with the bound
+        ...                                     # variables; recurse with
+        ...                                     # local_bound | instance.variables
+\end{verbatim}
+\caption{Template matching with capture check (excerpt of \texttt{formula\_utils.py}, abbreviated).}
+\label{fig:impl-match}
+\end{figure}
+
+\paragraph{Unification.}
+The resolution and paramodulation checks need a most general unifier of two literals.
+The implementation uses substitutions as dictionaries from variable names to terms, which are extended while the arguments are unified from left to right (Figure~\ref{fig:impl-unify}).
+The function \texttt{\_walk} follows the bindings of a variable until it reaches an unbound variable or a non-variable term.
+The occurs check rejects a binding $x \mapsto t$ if $x$ occurs in $t$ (after applying the current substitution). Without it, $p(x)$ and $p(f(x))$ would unify, and a step that depends on this unification would be accepted although no resolution step is possible.
+
+\begin{figure}[tbp]
+\centering
+\footnotesize
+\begin{verbatim}
+def _occurs(name, term, subst):
+    term = _walk(term, subst)
+    if isinstance(term, Variable):
+        return term.name == name
+    if isinstance(term, FunctionTerm):
+        return any(_occurs(name, arg, subst) for arg in term.args)
+    return False
+
+def _unify_terms(t1, t2, subst):
+    t1, t2 = _walk(t1, subst), _walk(t2, subst)
+    if isinstance(t1, Variable) and isinstance(t2, Variable) \
+            and t1.name == t2.name:
+        return subst
+    if isinstance(t1, Variable):
+        if _occurs(t1.name, t2, subst): return None      # occurs check
+        return {**subst, t1.name: t2}
+    if isinstance(t2, Variable):
+        if _occurs(t2.name, t1, subst): return None
+        return {**subst, t2.name: t1}
+    if isinstance(t1, FunctionTerm) and isinstance(t2, FunctionTerm):
+        if t1.functor != t2.functor or len(t1.args) != len(t2.args):
+            return None
+        for a, b in zip(t1.args, t2.args):
+            subst = _unify_terms(a, b, subst)
+            if subst is None: return None
+        return subst
+    ...                                                  # constants
+\end{verbatim}
+\caption{Unification with occurs check (excerpt of \texttt{clausal\_checker.py}).}
+\label{fig:impl-unify}
+\end{figure}
+
+\paragraph{Resolution.}
+Figure~\ref{fig:impl-resolution} shows the structure of the resolution check.
+The universal prefixes of the two parents are flattened into variable lists and clause bodies.
+The variables of the second parent are renamed so that they differ from every name that occurs in the first parent. This is necessary because the variables of two clauses are independent even if they have the same name.
+Without the renaming, resolving $\forall x\,(p(x) \lor q(x))$ with $\forall x\,(\lnot p(f(x)) \lor r(x))$ would fail to unify $p(x)$ with $p(f(x))$ because of a spurious occurs-check failure, and conversely clauses that happen to share names could be unified wrongly.
+For each pair of complementary literals the checker computes a unifier, resolves it into idempotent form (the bindings are built in triangular form, $x \mapsto f(z), z \mapsto a$), applies it to the remaining literals, removes duplicates up to alpha-equivalence, rebuilds the clause with the universal prefix, and compares it with the conclusion.
+The comparison tolerates a different order of the quantified variables (\texttt{\_matches\_up\_to\_quantifier\_permutation}), because the order of the variables in a universal prefix does not matter.
+The search tries all pairs. Since the clauses in the benchmark have at most a few literals, the quadratic search is not a bottleneck (Section~\ref{subsec:eval-runtime}).
+
+\begin{figure}[tbp]
+\centering
+\footnotesize
+\begin{verbatim}
+def check_resolution(step, first_parent, second_parent):
+    issues = _check_inference_metadata(step, RESOLUTION)
+    vars1, body1 = flatten_prefix(first_parent.formula, UNIVERSAL)
+    vars2, body2 = flatten_prefix(second_parent.formula, UNIVERSAL)
+    vars2, body2 = _rename_apart(vars2, body2,        # standardize apart
+                                 _collect_all_names(first_parent.formula))
+    lits1, lits2 = _flatten_disjuncts(body1), _flatten_disjuncts(body2)
+    for i, l1 in enumerate(lits1):
+        for j, l2 in enumerate(lits2):
+            (a1, neg1), (a2, neg2) = _strip_negation(l1), _strip_negation(l2)
+            if neg1 == neg2: continue                 # not complementary
+            subst = _unify_atoms(a1, a2, {})
+            if subst is None: continue
+            subst = _idempotent(subst)                 # resolve triangular form
+            rest = [substitute(l, subst) for k, l in enumerate(lits1) if k != i]
+            rest += [substitute(l, subst) for k, l in enumerate(lits2) if k != j]
+            resolvent = _build_resolvent(dedupe_alpha(rest), order)
+            if _matches_up_to_quantifier_permutation(resolvent, step.formula):
+                return issues                          # success
+    issues.append(ClausalIssue(step.name, "no pair of complementary, "
+                  "unifiable literals produces the stated conclusion"))
+    return issues
+\end{verbatim}
+\caption{Structure of the resolution check (excerpt of \texttt{clausal\_checker.py}, abbreviated).}
+\label{fig:impl-resolution}
+\end{figure}
+
+\paragraph{Negation of the conjecture.}
+The checker for the negated conjecture must accept the formulas that a prover writes for the negation of the conjecture and reject all others.
+It computes the expected formula by negating the conjecture and pushing the negation inward through quantifiers and connectives. The negation of a universally quantified formula is an existentially quantified negation, the negation of a conjunction a disjunction of negations, and so on, and the negation of a negation $\lnot A$ is $A$.
+The checker accepts the stated formula if it is alpha-equivalent to the plain negation $\lnot F$ or to the pushed form.
+For $F = \lnot\lnot Y$, the pushed form is $\lnot Y$ and not $Y$. An earlier version got this wrong (Section~\ref{subsec:impl-bugs}).
+
+\subsection{Worked Examples}
+\label{subsec:impl-example}
+
+This section follows two proofs through the verifier: \texttt{PRV005}, which is valid (one of the nine proofs of the original set that were later set aside, Section~\ref{subsec:eval-setup}, but a clear example), and \texttt{PRV008}, which is invalid because of a subtle error in the Skolemization.
+Both refute the conjecture $\exists x\,\exists y\, s(x,y)$ from the axiom
+\[
+\forall x\,\exists y\,\bigl(s(x,y) \land \forall x\; t(x,y)\bigr),
+\]
+in which the inner quantifier binds the same name $x$ as the outer one.
+
+\paragraph{The valid proof.}
+\texttt{PRV005} has three derived steps.
+The step \texttt{neg} states $\lnot\exists x\,\exists y\,s(x,y)$ with the rule \texttt{negated\_conjecture}.
+The step \texttt{sk} Skolemizes the axiom \texttt{a1}. The existential variable $y$ is replaced by $\mathit{sK0}(x)$, and the checker finds that $y$ lies in the scope of exactly one universal variable, $x$, so that the Skolem term $\mathit{sK0}(x)$ is correct.
+The conclusion is
+\[
+\forall x\,\bigl(s(x,\mathit{sK0}(x)) \land \forall x_1\; t(x_1,\mathit{sK0}(x))\bigr);
+\]
+the inner variable was renamed to $x_1$, so that the term $\mathit{sK0}(x)$ in the inner conjunct still refers to the outer $x$.
+Finally, \texttt{bot} derives \texttt{\$false} from \texttt{sk} and \texttt{neg} with the generic rule \texttt{consequence}.
+The driver processes the steps in file order.
+The axiom and the conjecture pass the provenance check, \texttt{neg} the negated-conjecture check, and \texttt{sk} the Skolem checker, including the freshness of \texttt{sK0}, which neither occurs in the problem nor was introduced earlier.
+The step \texttt{bot} is the only one that needs the prover. It is sent as the problem ``\texttt{sk}, \texttt{neg} $\vdash$ \texttt{\$false}'', and the answer \texttt{ContradictoryAxioms} takes about 0.1\,s.
+The global checks (no cycle, unique names, final \texttt{\$false}) pass, and the verdict is \texttt{VerifiedGood}.
+
+\paragraph{The invalid proof.}
+\texttt{PRV008} contains the same Skolemization, but with the conclusion
+\[
+\forall x\,\bigl(s(x,\mathit{sK0}(x)) \land \forall x\; t(x,\mathit{sK0}(x))\bigr),
+\]
+in which the inner quantifier still binds $x$.
+In this formula, the second occurrence of $\mathit{sK0}(x)$ is in the scope of the inner $\forall x$, so that its argument refers to the inner variable and not to the outer one.
+The conclusion therefore says that $t(x,\mathit{sK0}(x))$ holds for all $x$, which is not the formula that the rule prescribes. The Skolemization of the axiom keeps $t(x',\mathit{sK0}(x))$ for all $x'$ with the argument of the Skolem function fixed by the outer variable.
+The error is easy to overlook, because the stated formula looks like the Skolemized axiom, and the shadowing of the name $x$ is the only difference.
+The Skolem checker detects this when it compares the result of the replacement with the stated conclusion. It substitutes $\mathit{sK0}(x)$ for $y$ in the parent and renames the bound variables apart before the comparison, with the result that the substituted term in the inner conjunct contains a free $x$ and is not alpha-equivalent to the stated formula.
+The checker reports ``The resulting formula is not a correct Skolemization of the parent formula'' for the step \texttt{sk}. All other checks pass, and the verdict is \texttt{VerifiedBad}.
+The remaining steps of the proof are not affected by the error.
+The example shows why the checker validates each Skolemization step against the rule and not only against the final refutation. The defect is in one step whose conclusion cannot be judged by asking whether the proof as a whole is plausible.
+
+\paragraph{The report.}
+For every proof, the driver prints a report grouped by check, and finishes with the SZS status.
+For a valid proof, each group shows a line \texttt{[OK] All \dots{} steps verified correctly} and the final line is \texttt{\% SZS status VerifiedGood}.
+For an invalid proof, the group of the failed check lists each affected step with the reason, as in the case of \texttt{PRV008} above, and the final line is \texttt{\% SZS status VerifiedBad}.
+The same data are available to the tests as the issue maps, which makes it possible to assert on the cause of a rejection and not only on the verdict.
+
+\subsection{Defects Found During Testing}
+\label{subsec:impl-bugs}
+
+Writing the Extra set (Section~\ref{subsec:eval-extra}) exposed three defects in the checkers, none of which any earlier test or benchmark proof had triggered.
+We describe them here, together with the defects found later, because they show where a verifier typically goes wrong. None of the corrections changed a verdict on the ProoVer set.
+
+\paragraph{Doubly negated conjecture.}
+The function that computes the negation of a conjecture removed \emph{two} negations from a conjecture of the form $\lnot\lnot Y$ and returned $Y$ instead of $\lnot Y$.
+As a result, the checker accepted $Y$, a formula equivalent to the conjecture itself, as the negated conjecture.
+A proof that derives a contradiction from the conjecture and the axioms, which shows that the conjecture is \emph{false}, would then have been accepted as a refutation of the negated conjecture, that is, as a proof of the conjecture.
+The correction removes exactly one negation, and the accepted forms are the plain negation and the one-level pushed form.
+A regression test uses the conjecture $\lnot\lnot p$ with the formulas $p$ and $\lnot p$ as candidate negations.
+
+\paragraph{Variable capture in \texttt{instantiate}.}
+The matching function allowed an abstract variable to be mapped to a term that contains a variable bound by a quantifier inside the formula, so that instantiating $\forall x\,\exists y\,p(x,y)$ with $y$ gave $\exists y\,p(y,y)$.
+The correction is the parameter \texttt{local\_bound} of Figure~\ref{fig:impl-match}.
+The first version of the correction had no effect, because it passed the extended set only in the recursive calls of the term cases, but not in the call for quantified formulas, which is where the set grows.
+A regression test with exactly this formula pair found this.
+
+\paragraph{Resolution without standardizing apart and without occurs check.}
+Resolution used the variable names of both parents unchanged and a unifier without occurs check.
+Two clauses that share a variable name by accident therefore constrained each other, and circular bindings were accepted.
+The corrections are the renaming of Figure~\ref{fig:impl-resolution} and the occurs check of Figure~\ref{fig:impl-unify}.
+
+\paragraph{Polarity below implications.}
+The Skolem checker flipped the polarity of a quantifier below a negation, but not in the antecedent of an implication.
+A step that Skolemized \texttt{?[X]: p(X)} in the antecedent of \texttt{(?[X]: p(X)) => r} was therefore accepted, although the quantifier is effectively universal there and cannot be eliminated.
+The defect was found when the measurements of the single-step comparison (Section~\ref{subsec:disc-transfer}) disagreed with the entailment oracle on the step \texttt{s1} of \texttt{TST064}, and not by the benchmark.
+The corrected traversal derives the polarity of the operands from the connective (implication, reverse implication, \texttt{\textasciitilde{}|}, \texttt{\textasciitilde{}\&}), and rejects a quantifier below \texttt{<=>} or \texttt{<\textasciitilde{}>}, where both polarities occur.
+Four regression tests (existential and universal in the antecedent, existential in the consequent, equivalence) cover it.
+
+\paragraph{Defects found in the final code review.}
+A review of the code before the release found further defects, none of which changes a verdict on the ProoVer or Extra set.
+First, the driver checked the provenance of formulas with the roles \texttt{axiom} and \texttt{conjecture}, but a formula with the role \texttt{hypothesis} (or \texttt{definition}, \texttt{lemma}) and a \texttt{file(\dots)} source was not checked at all, so that a proof could introduce an arbitrary assumption under this role.
+The driver now checks every formula with a \texttt{file(\dots)} source against the problem, including its role, and treats a formula with an \texttt{introduced(\dots)} source, which has no premises, as undecidable.
+Second, the ATP fallback reported every SZS status other than a confirmation as a refutation, so that a prover that stopped at its own time limit (\texttt{Timeout}) rejected the step instead of leaving it unresolved. In the measured runs all refutations had the status \texttt{CounterSatisfiable}, so no result is affected.
+Third, the grammar rule for \texttt{introduced(\dots)} sources matched the introduction type as an anonymous literal that Lark discards, so that the transformer failed on every such source and the proof was rejected as unparsable.
+Fourth, the review of the individual checkers found four soundness defects in cases that the benchmark rarely or never exercises:
+\begin{itemize}
+  \item Resolution applied the unifier in a single pass, although the unification algorithm builds it in triangular form. A binding such as $\{X \mapsto f(Z), Z \mapsto a\}$ therefore produced the resolvent $\forall Z\, q(f(Z))$ instead of $q(f(a))$, and a conclusion that is too strong was accepted.
+  \item The capture check of the template matching (Figure~\ref{fig:impl-match}) lost the set of bound variables below a negation, so that \texttt{instantiate} accepted $\exists Y \neg p(Y,Y)$ from $\forall X \exists Y \neg p(X,Y)$.
+  \item \texttt{instantiate} could rename a kept universal variable to a name that is bound further inside the formula.
+  \item \texttt{existential\_gen} accepted the generalization of a single operand of a disjunction, which is only valid for a conjunction.
+\end{itemize}
+In addition, \texttt{existential\_gen} used the variable mapping in the wrong direction, which only caused valid steps to be rejected, and a Skolemization step without a status was not reported.
+Each correction comes with regression tests that fail on the old code. The comparison on all 285 proofs shows no change of a verdict on the ProoVer and Extra sets.
+
+\paragraph{Lessons.}
+The first three defects all have to do with variable names and scopes, which is the usual source of trouble in first-order proof checking.
+Each could be found by a small, hand-written test case, but not by the benchmark, because the proofs of the benchmark are produced by provers and use fresh variable names consistently.
+This supports two design decisions, namely the rule-level test suite with deliberately injected defects and the principle that a rule check is conservative.
+It also shows the limits of the approach. A defect of this kind is only found if a test exists for it, so the checkers should be developed from the definition of each rule and its side conditions, as in Section~\ref{subsec:design-skolem}, and not from the examples at hand.
+The polarity defect is of the same kind, because it concerns a side condition that the benchmark never exercises.

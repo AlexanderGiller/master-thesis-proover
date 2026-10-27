@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from src.checker.formula_utils import flatten_prefix, match_template_to_instance
 from src.parser.ast_nodes import AnnotatedFormula, JunctionFormula
-from src.var_mapping import InferenceRule, InferenceStatus, Quantifier
+from src.var_mapping import BinaryConnective, InferenceRule, InferenceStatus, Quantifier
 
 
 @dataclass
@@ -32,9 +32,7 @@ def check_existential_gen(
         )
 
     if inf.status != InferenceStatus.THM:
-        issues.append(
-            ExistentialGenIssue(step.name, f"status must be 'thm', got '{inf.status}'")
-        )
+        issues.append(ExistentialGenIssue(step.name, f"status must be 'thm', got '{inf.status}'"))
 
     existential_vars, child_body = flatten_prefix(step.formula, Quantifier.EXISTENTIAL)
     if not existential_vars:
@@ -54,12 +52,15 @@ def check_existential_gen(
         new_count = len(existential_vars) - len(target_vars)
         new_vars = existential_vars[:new_count]
         preserved_vars = existential_vars[new_count:]
-        bound_map = dict(zip(target_vars, preserved_vars))
+        bound_map = dict(zip(preserved_vars, target_vars))
         return match_template_to_instance(child_body, target_inner, set(new_vars), dict(bound_map))
 
     if not _matches_generalization(parent_step.formula):
-        if isinstance(parent_step.formula, JunctionFormula) and any(
-            _matches_generalization(operand) for operand in parent_step.formula.operands
+        # From A & B one may infer ?[X]: A' (A is a consequence); from A | B one may not.
+        if (
+            isinstance(parent_step.formula, JunctionFormula)
+            and parent_step.formula.connective == BinaryConnective.AND
+            and any(_matches_generalization(operand) for operand in parent_step.formula.operands)
         ):
             return issues
         issues.append(

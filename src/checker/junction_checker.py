@@ -1,5 +1,4 @@
-"""Checkers for junction-reshaping and tautology-introduction proof steps.
-"""
+"""Checkers for junction-reshaping and tautology-introduction proof steps."""
 
 from dataclasses import dataclass
 
@@ -152,8 +151,6 @@ def check_excluded_middle(step: AnnotatedFormula) -> list[JunctionIssue]:
         issues.append(JunctionIssue(step.name, "excluded_middle formula must be a disjunction"))
         return issues
 
-    # Standard excluded-middle forms, including parser-level "!=" representation
-    # of negated equality, are binary disjunctions of complements.
     if len(operands) == 2 and _are_complements(operands[0], operands[1]):
         return issues
 
@@ -161,7 +158,9 @@ def check_excluded_middle(step: AnnotatedFormula) -> list[JunctionIssue]:
         if not isinstance(operand, Negation):
             continue
         remaining = operands[:index] + operands[index + 1 :]
-        phi = remaining[0] if len(remaining) == 1 else JunctionFormula(BinaryConnective.OR, remaining)
+        phi = (
+            remaining[0] if len(remaining) == 1 else JunctionFormula(BinaryConnective.OR, remaining)
+        )
         if is_alpha_equivalent(phi, operand.formula):
             return issues
 
