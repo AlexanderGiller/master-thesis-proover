@@ -32,9 +32,7 @@ def check_existential_gen(
         )
 
     if inf.status != InferenceStatus.THM:
-        issues.append(
-            ExistentialGenIssue(step.name, f"status must be 'thm', got '{inf.status}'")
-        )
+        issues.append(ExistentialGenIssue(step.name, f"status must be 'thm', got '{inf.status}'"))
 
     existential_vars, child_body = flatten_prefix(step.formula, Quantifier.EXISTENTIAL)
     if not existential_vars:
@@ -59,8 +57,10 @@ def check_existential_gen(
 
     if not _matches_generalization(parent_step.formula):
         # From A & B one may infer ?[X]: A' (A is a consequence); from A | B one may not.
-        if isinstance(parent_step.formula, JunctionFormula) and parent_step.formula.connective == BinaryConnective.AND and any(
-            _matches_generalization(operand) for operand in parent_step.formula.operands
+        if (
+            isinstance(parent_step.formula, JunctionFormula)
+            and parent_step.formula.connective == BinaryConnective.AND
+            and any(_matches_generalization(operand) for operand in parent_step.formula.operands)
         ):
             return issues
         issues.append(

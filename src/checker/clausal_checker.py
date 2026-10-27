@@ -46,9 +46,13 @@ def _check_inference_metadata(step: AnnotatedFormula, rule: InferenceRule) -> li
     if step.inference is None:
         return [ClausalIssue(step.name, f"{rule} step must have an inference record")]
     if step.inference.rule != rule:
-        issues.append(ClausalIssue(step.name, f"rule must be '{rule}', got '{step.inference.rule}'"))
+        issues.append(
+            ClausalIssue(step.name, f"rule must be '{rule}', got '{step.inference.rule}'")
+        )
     if step.inference.status != InferenceStatus.THM:
-        issues.append(ClausalIssue(step.name, f"status must be 'thm', got '{step.inference.status}'"))
+        issues.append(
+            ClausalIssue(step.name, f"status must be 'thm', got '{step.inference.status}'")
+        )
     return issues
 
 
@@ -88,11 +92,15 @@ def _collect_variable_names(node: object, bound: frozenset[str] = frozenset()) -
             names |= _collect_variable_names(arg, bound)
         return names
     if isinstance(node, Equality):
-        return _collect_variable_names(node.left, bound) | _collect_variable_names(node.right, bound)
+        return _collect_variable_names(node.left, bound) | _collect_variable_names(
+            node.right, bound
+        )
     if isinstance(node, Negation):
         return _collect_variable_names(node.formula, bound)
     if isinstance(node, BinaryFormula):
-        return _collect_variable_names(node.left, bound) | _collect_variable_names(node.right, bound)
+        return _collect_variable_names(node.left, bound) | _collect_variable_names(
+            node.right, bound
+        )
     if isinstance(node, JunctionFormula):
         names = set()
         for operand in node.operands:
@@ -167,7 +175,9 @@ def check_reflexivity(step: AnnotatedFormula, parent: AnnotatedFormula) -> list[
         issues.append(ClausalIssue(step.name, "conclusion must be a non-negated equality"))
         return issues
     if not is_alpha_equivalent(step.formula.left, step.formula.right):
-        issues.append(ClausalIssue(step.name, "conclusion is not a reflexive equality (left != right)"))
+        issues.append(
+            ClausalIssue(step.name, "conclusion is not a reflexive equality (left != right)")
+        )
     return issues
 
 
@@ -201,7 +211,9 @@ def check_transitivity(
         endpoint_pairs.append((eq1.right, eq2.left))
 
     if not endpoint_pairs:
-        issues.append(ClausalIssue(step.name, "parents do not share a common term to chain transitivity on"))
+        issues.append(
+            ClausalIssue(step.name, "parents do not share a common term to chain transitivity on")
+        )
         return issues
 
     if not isinstance(step.formula, Equality) or step.formula.negated:
@@ -210,13 +222,17 @@ def check_transitivity(
 
     for left, right in endpoint_pairs:
         if (
-            is_alpha_equivalent(step.formula.left, left) and is_alpha_equivalent(step.formula.right, right)
+            is_alpha_equivalent(step.formula.left, left)
+            and is_alpha_equivalent(step.formula.right, right)
         ) or (
-            is_alpha_equivalent(step.formula.left, right) and is_alpha_equivalent(step.formula.right, left)
+            is_alpha_equivalent(step.formula.left, right)
+            and is_alpha_equivalent(step.formula.right, left)
         ):
             return issues
 
-    issues.append(ClausalIssue(step.name, "conclusion does not match the transitive chain of its parents"))
+    issues.append(
+        ClausalIssue(step.name, "conclusion does not match the transitive chain of its parents")
+    )
     return issues
 
 
@@ -246,7 +262,9 @@ def check_rewrite(step: AnnotatedFormula, parent: AnnotatedFormula) -> list[Clau
 # --------------------------------------------------------------------------
 
 
-def _rewrite_occurrences(node: object, pattern: object, replacement: object, abstract_vars: set[str]) -> list:
+def _rewrite_occurrences(
+    node: object, pattern: object, replacement: object, abstract_vars: set[str]
+) -> list:
     """Return every formula obtainable from `node` by replacing exactly one
     occurrence of a subterm matching `pattern` (which may use abstract_vars as
     schema variables) with the correspondingly-substituted `replacement`."""
@@ -322,7 +340,9 @@ def _try_paramodulation(
     abstract_vars = set(eq_vars)
 
     for pattern, replacement in ((eq_body.left, eq_body.right), (eq_body.right, eq_body.left)):
-        for candidate in _rewrite_occurrences(target_parent.formula, pattern, replacement, abstract_vars):
+        for candidate in _rewrite_occurrences(
+            target_parent.formula, pattern, replacement, abstract_vars
+        ):
             if _matches_up_to_quantifier_permutation(candidate, step_formula):
                 return True
     return False

@@ -8,11 +8,7 @@ from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
 
-from src.checker.dependency_checker import (
-    check_conjecture_not_assumed,
-    check_no_circular_dependencies,
-)
-from src.checker.file_dir import check_axiom_provenance
+from src.checker.alpha_eq import is_alpha_equivalent
 from src.checker.clausal_checker import (
     check_paramodulation,
     check_reflexivity,
@@ -20,10 +16,14 @@ from src.checker.clausal_checker import (
     check_rewrite,
     check_transitivity,
 )
+from src.checker.dependency_checker import (
+    check_conjecture_not_assumed,
+    check_no_circular_dependencies,
+)
 from src.checker.existential_gen_checker import check_existential_gen
 from src.checker.external_atp_checker import status_allows_atp, validate_step_with_atp
+from src.checker.file_dir import check_axiom_provenance
 from src.checker.formula_utils import collect_function_symbols
-from src.checker.alpha_eq import is_alpha_equivalent
 from src.checker.instantiate_checker import check_instantiate
 from src.checker.junction_checker import check_commute, check_excluded_middle, check_weaken
 from src.checker.negated_conjecture_checker import check_negated_conjecture
@@ -42,19 +42,20 @@ from src.checker.structural_checker import (
     check_rename_variable,
 )
 from src.deep_recursion import run_with_larger_stack
-from src.parser.parser import load_proof, parse_file
 from src.parser.ast_nodes import Atom, BinaryFormula, Equality, FileSource, Negation
-from src.var_mapping import FormulaRole, InferenceStatus
-from src.var_mapping import BinaryConnective
-from src.scoring.scoring import ProofScorer, print_scoring_summary
+from src.parser.parser import load_proof, parse_file
 from src.performance.performance import PerformanceTracker, print_performance_table
+from src.scoring.scoring import ProofScorer, print_scoring_summary
+from src.var_mapping import BinaryConnective, FormulaRole, InferenceStatus
 
 PER_PROOF_TIMEOUT_SECONDS = 30.0
 DEBUG_PROOF_FLOW = False
 
+
 def _dbg(msg: str) -> None:
     if DEBUG_PROOF_FLOW:
         print(f"[DBG] {msg}")
+
 
 def _build_step_index(steps):
     index = {}
@@ -93,7 +94,9 @@ def _formulas_are_complements(left: object, right: object) -> bool:
     if isinstance(right, Negation) and is_alpha_equivalent(right.formula, left):
         return True
     if isinstance(left, Equality) and isinstance(right, Equality) and left.negated != right.negated:
-        return is_alpha_equivalent(left.left, right.left) and is_alpha_equivalent(left.right, right.right)
+        return is_alpha_equivalent(left.left, right.left) and is_alpha_equivalent(
+            left.right, right.right
+        )
     return False
 
 
@@ -190,7 +193,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
     skolem_issues = {}
     external_atp_issues = {}
 
-    def hit(branch: str, step_name: str, rule: str | None, status: str | None, parent_count: int) -> None:
+    def hit(
+        branch: str, step_name: str, rule: str | None, status: str | None, parent_count: int
+    ) -> None:
         branch_hits[branch] = branch_hits.get(branch, 0) + 1
         _dbg(f"{step_name}: branch={branch}, rule={rule}, status={status}, parents={parent_count}")
 
@@ -209,7 +214,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
     for step in proof.steps:
         rule = step.inference.rule if step.inference else None
         status = str(step.inference.status) if step.inference else None
-        parent_count = len(step.inference.parents) if (step.inference and step.inference.parents) else 0
+        parent_count = (
+            len(step.inference.parents) if (step.inference and step.inference.parents) else 0
+        )
         if step.role == "axiom":
             issues = check_axiom_provenance(step, problem_formulas, problem_path)
             if issues:
@@ -271,9 +278,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             hit("instantiate", step.name, rule, status, parent_count)
         elif step.inference and step.inference.rule == "existential_gen":
             if not step.inference.parents:
-                existential_gen_issues[step.name] = [
-                    "No parent specified for existential_gen step"
-                ]
+                existential_gen_issues[step.name] = ["No parent specified for existential_gen step"]
                 continue
             parent_name = step.inference.parents[0]
             parent = steps_by_name.get(parent_name)
@@ -300,9 +305,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             }[rule]
             expected_count = 1 if rule == "split_conjunct" else 2
             if len(parent_names) != expected_count:
-                target_issues[step.name] = [
-                    f"{rule} requires exactly {expected_count} parent(s)"
-                ]
+                target_issues[step.name] = [f"{rule} requires exactly {expected_count} parent(s)"]
                 continue
             parents = [steps_by_name.get(name) for name in parent_names]
             if any(parent is None for parent in parents):
@@ -319,7 +322,13 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 issues = check_split_conjunct(step, parents[0])
             if issues:
                 target_issues[step.name] = [it.reason for it in issues]
-            hit("modus_ponens/instantiate_mp/conjunction/split_conjunct", step.name, rule, status, parent_count)
+            hit(
+                "modus_ponens/instantiate_mp/conjunction/split_conjunct",
+                step.name,
+                rule,
+                status,
+                parent_count,
+            )
         elif step.inference and step.inference.rule in {
             "copy",
             "duplicate",
@@ -338,9 +347,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             }[rule]
             expected_count = 2 if rule == "duplicate" else 1
             if len(parent_names) != expected_count:
-                target_issues[step.name] = [
-                    f"{rule} requires exactly {expected_count} parent(s)"
-                ]
+                target_issues[step.name] = [f"{rule} requires exactly {expected_count} parent(s)"]
                 continue
             parents = [steps_by_name.get(name) for name in parent_names]
             if any(parent is None for parent in parents):
@@ -359,11 +366,20 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 issues = check_remove_double_negation(step, parents[0])
             if issues:
                 target_issues[step.name] = [it.reason for it in issues]
-            hit("copy/duplicate/rename_variable/double_negation/remove_double_negation", step.name, rule, status, parent_count)
+            hit(
+                "copy/duplicate/rename_variable/double_negation/remove_double_negation",
+                step.name,
+                rule,
+                status,
+                parent_count,
+            )
         elif step.inference and step.inference.rule == "excluded_middle":
             hit("excluded_middle", step.name, rule, status, parent_count)
             issues = check_excluded_middle(step)
-            metadata_ok = step.inference.rule == "excluded_middle" and step.inference.status == InferenceStatus.THM
+            metadata_ok = (
+                step.inference.rule == "excluded_middle"
+                and step.inference.status == InferenceStatus.THM
+            )
             if issues and metadata_ok:
                 # The syntactic check only covers the standard shape of this
                 # rule (phi | ~phi, possibly with phi itself flattened into
@@ -371,7 +387,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 # reporting a failure so unusual-but-valid variants aren't
                 # rejected as false negatives.
                 start = time.perf_counter()
-                valid, note = validate_step_with_atp(step.formula, [], timeout_seconds=PER_PROOF_TIMEOUT_SECONDS)
+                valid, note = validate_step_with_atp(
+                    step.formula, [], timeout_seconds=PER_PROOF_TIMEOUT_SECONDS
+                )
                 elapsed = time.perf_counter() - start
                 atp_calls += 1
                 atp_total_seconds += elapsed
@@ -383,7 +401,11 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                     excluded_middle_issues[step.name] = reasons
             elif issues:
                 excluded_middle_issues[step.name] = [it.reason for it in issues]
-        elif step.inference and step.inference.rule in {"weaken", "commute"} and len(step.inference.parents) == 1:
+        elif (
+            step.inference
+            and step.inference.rule in {"weaken", "commute"}
+            and len(step.inference.parents) == 1
+        ):
             hit("weaken/commute", step.name, rule, status, parent_count)
             rule = step.inference.rule
             target_issues = {"weaken": weaken_issues, "commute": commute_issues}[rule]
@@ -393,7 +415,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 target_issues[step.name] = [f"Parent step not found: {parent_name}"]
                 continue
             issues = check_weaken(step, parent) if rule == "weaken" else check_commute(step, parent)
-            metadata_ok = step.inference.rule == rule and step.inference.status == InferenceStatus.THM
+            metadata_ok = (
+                step.inference.rule == rule and step.inference.status == InferenceStatus.THM
+            )
             if issues and metadata_ok:
                 # The syntactic check only covers the common/simple shape of this
                 # rule (OR-prefix weakening / 2-operand swap). Fall back to the
@@ -401,9 +425,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 # for existential generalization) before reporting a failure, so
                 # we don't produce false negatives on valid but unusual steps.
                 start = time.perf_counter()
-                valid, note = validate_step_with_atp(step.formula,
-                                                     [parent.formula],
-                                                     timeout_seconds=PER_PROOF_TIMEOUT_SECONDS)
+                valid, note = validate_step_with_atp(
+                    step.formula, [parent.formula], timeout_seconds=PER_PROOF_TIMEOUT_SECONDS
+                )
                 elapsed = time.perf_counter() - start
                 atp_calls += 1
                 atp_total_seconds += elapsed
@@ -415,11 +439,17 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                     target_issues[step.name] = reasons
             elif issues:
                 target_issues[step.name] = [it.reason for it in issues]
-        elif step.inference and step.inference.rule == "add_hypothesis" and len(step.inference.parents) == 1:
+        elif (
+            step.inference
+            and step.inference.rule == "add_hypothesis"
+            and len(step.inference.parents) == 1
+        ):
             hit("add_hypothesis", step.name, rule, status, parent_count)
             parent = steps_by_name.get(step.inference.parents[0])
             if parent is None:
-                external_atp_issues[step.name] = [f"Parent step '{step.inference.parents[0]}' not found"]
+                external_atp_issues[step.name] = [
+                    f"Parent step '{step.inference.parents[0]}' not found"
+                ]
             else:
                 # Sound fast-path: the canonical shape phi -> (H => phi) is valid
                 # for every H, so no prover call is needed.
@@ -443,8 +473,14 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                     if valid is False:
                         external_atp_issues[step.name] = [f"External ATP rejected step: {note}"]
                     elif valid == "unknown":
-                        external_atp_issues[step.name] = [f"External ATP could not validate step: {note}"]
-        elif step.inference and step.inference.rule == "consequence" and len(step.inference.parents) == 2:
+                        external_atp_issues[step.name] = [
+                            f"External ATP could not validate step: {note}"
+                        ]
+        elif (
+            step.inference
+            and step.inference.rule == "consequence"
+            and len(step.inference.parents) == 2
+        ):
             hit("consequence", step.name, rule, status, parent_count)
             parent_names = step.inference.parents
             parents = [steps_by_name.get(name) for name in parent_names]
@@ -453,7 +489,11 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 external_atp_issues[step.name] = [f"Parent step(s) not found: {', '.join(missing)}"]
             else:
                 # Sound fast-path: two complementary parents yield $false.
-                is_false = isinstance(step.formula, Atom) and step.formula.predicate == "$false" and not step.formula.args
+                is_false = (
+                    isinstance(step.formula, Atom)
+                    and step.formula.predicate == "$false"
+                    and not step.formula.args
+                )
                 if is_false and _formulas_are_complements(parents[0].formula, parents[1].formula):
                     pass
                 else:
@@ -470,7 +510,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                     if valid is False:
                         external_atp_issues[step.name] = [f"External ATP rejected step: {note}"]
                     elif valid == "unknown":
-                        external_atp_issues[step.name] = [f"External ATP could not validate step: {note}"]
+                        external_atp_issues[step.name] = [
+                            f"External ATP could not validate step: {note}"
+                        ]
         elif (
             step.inference
             and step.inference.rule == "resolution"
@@ -496,7 +538,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             parents = [steps_by_name.get(name) for name in parent_names]
             if any(parent is None for parent in parents):
                 missing = [name for name, parent in zip(parent_names, parents) if parent is None]
-                paramodulation_issues[step.name] = [f"Parent step(s) not found: {', '.join(missing)}"]
+                paramodulation_issues[step.name] = [
+                    f"Parent step(s) not found: {', '.join(missing)}"
+                ]
             else:
                 issues = check_paramodulation(step, parents[0], parents[1])
                 if issues:
@@ -509,7 +553,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             hit("reflexivity", step.name, rule, status, parent_count)
             parent = steps_by_name.get(step.inference.parents[0])
             if parent is None:
-                reflexivity_issues[step.name] = [f"Parent step '{step.inference.parents[0]}' not found"]
+                reflexivity_issues[step.name] = [
+                    f"Parent step '{step.inference.parents[0]}' not found"
+                ]
             else:
                 issues = check_reflexivity(step, parent)
                 if issues:
@@ -530,9 +576,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 if issues:
                     transitivity_issues[step.name] = [it.reason for it in issues]
         elif (
-            step.inference
-            and step.inference.rule == "rewrite"
-            and len(step.inference.parents) == 1
+            step.inference and step.inference.rule == "rewrite" and len(step.inference.parents) == 1
         ):
             hit("rewrite", step.name, rule, status, parent_count)
             parent = steps_by_name.get(step.inference.parents[0])
@@ -598,7 +642,11 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 ]
             else:
                 start = time.perf_counter()
-                valid, note = validate_step_with_atp(step.formula, premise_formulas=parent_steps, timeout_seconds=PER_PROOF_TIMEOUT_SECONDS)
+                valid, note = validate_step_with_atp(
+                    step.formula,
+                    premise_formulas=parent_steps,
+                    timeout_seconds=PER_PROOF_TIMEOUT_SECONDS,
+                )
                 elapsed = time.perf_counter() - start
                 atp_calls += 1
                 atp_total_seconds += elapsed
@@ -606,16 +654,19 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 if valid is False:
                     external_atp_issues[step.name] = [f"External ATP rejected step: {note}"]
                 elif valid == "unknown":
-                    external_atp_issues[step.name] = [f"External ATP could not validate step: {note}"]
+                    external_atp_issues[step.name] = [
+                        f"External ATP could not validate step: {note}"
+                    ]
         elif step.inference:
             external_atp_issues[step.name] = [
                 f"No checker available for rule '{step.inference.rule}' with status '{step.inference.status}'"
             ]
-        elif step.role not in {FormulaRole.AXIOM, FormulaRole.CONJECTURE} and step.raw_source is None:
+        elif (
+            step.role not in {FormulaRole.AXIOM, FormulaRole.CONJECTURE} and step.raw_source is None
+        ):
             external_atp_issues[step.name] = [
                 "Step has no justification: expected inference(...) or source(...) annotation"
             ]
-
 
     all_ok = (
         not circular_dependency_issues
@@ -733,7 +784,10 @@ def check_proof_file_with_timeout(
                     try:
                         return result_queue.get(timeout=0.2)
                     except Empty:
-                        return "error", f"Proof checking process exited with code {process.exitcode}"
+                        return (
+                            "error",
+                            f"Proof checking process exited with code {process.exitcode}",
+                        )
     finally:
         process.join(0.2)
         if process.is_alive():
@@ -903,7 +957,10 @@ def collect_example_pairs(example_dir: Path):
         if problem.exists():
             pairs.append((str(proof), str(problem)))
         else:
-            print(f"Warning: problem file not found for {proof} -> expected {problem}", file=sys.stderr)
+            print(
+                f"Warning: problem file not found for {proof} -> expected {problem}",
+                file=sys.stderr,
+            )
     return pairs
 
 
@@ -941,9 +998,7 @@ def summarize_issues(details: dict | None, status: str) -> str:
         return "Timeout" if status == "Timeout" else "Checker error"
 
     failures = [
-        f"{label} ({len(details[key])})"
-        for key, label in ISSUE_SUMMARY_COLUMNS
-        if details.get(key)
+        f"{label} ({len(details[key])})" for key, label in ISSUE_SUMMARY_COLUMNS if details.get(key)
     ]
     return ", ".join(failures) if failures else "-"
 
@@ -974,9 +1029,7 @@ def print_prv_results_table(results: list[tuple[str, str, dict | None]]) -> None
     print(separator)
     for row in rows:
         print(
-            "| "
-            + " | ".join(value.ljust(widths[index]) for index, value in enumerate(row))
-            + " |"
+            "| " + " | ".join(value.ljust(widths[index]) for index, value in enumerate(row)) + " |"
         )
     print(separator)
 
@@ -1105,10 +1158,10 @@ if __name__ == "__main__":
         out(f"✓ Loaded {len(scorer.expected)} expected results from {expected_file}")
     else:
         out(f"⚠ Warning: No expected results loaded from {expected_file}")
-    
+
     # Initialize performance tracker
     tracker = PerformanceTracker()
-    
+
     total = len(all_pairs)
     verified_count = 0
     not_verified_count = 0
@@ -1155,13 +1208,13 @@ if __name__ == "__main__":
             )
             proof_name = Path(proof_sub_path).name
             tracker.stop(proof_name)
-            
+
             prv_results.append((proof_name, status, details))
-            
+
             # Score the proof
             score_result = scorer.score_proof(proof_name, status, details)
             scoring_results.append(score_result)
-            
+
             if status == "VerifiedGood":
                 verified_count += 1
             elif status == "Timeout":
@@ -1232,13 +1285,13 @@ if __name__ == "__main__":
     out(f"  External ATP: {external_atp_failure_count}")
     if not args.quiet:
         print_prv_results_table(prv_results)
-    
+
     # Print performance summary
     if tracker.get_all_measurements():
         out(f"\n{'='*70}")
         out("PERFORMANCE SUMMARY")
         out(f"{'='*70}")
-        
+
         overall = tracker.get_overall_summary()
         out(f"Total proofs checked:  {overall['total_measurements']}")
         out(f"Av. WC Time:           {overall['avg_wc_time']:.4f} seconds")
@@ -1247,33 +1300,37 @@ if __name__ == "__main__":
         out(f"Total CPU Time:        {overall['total_cpu_time']:.2f} seconds")
         out(f"Min WC Time:           {overall['min_wc_time']:.4f} seconds")
         out(f"Max WC Time:           {overall['max_wc_time']:.4f} seconds")
-        
+
         # Calculate overhead
-        total_overhead = overall['total_wc_time'] - overall['total_cpu_time']
-        overhead_pct = (total_overhead / overall['total_wc_time'] * 100) if overall['total_wc_time'] > 0 else 0
+        total_overhead = overall["total_wc_time"] - overall["total_cpu_time"]
+        overhead_pct = (
+            (total_overhead / overall["total_wc_time"] * 100) if overall["total_wc_time"] > 0 else 0
+        )
         out(f"Total Overhead:        {total_overhead:.2f} seconds ({overhead_pct:.1f}%)")
         out(f"{'='*70}\n")
-        
+
         # Print detailed performance table
         if not args.quiet:
             print_performance_table(tracker)
-        
+
         # Export performance data to CSV
         perf_csv_file = base / "results" / f"{run_name}_performance.csv"
         perf_csv_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(perf_csv_file, 'w', newline='', encoding='utf-8') as f:
+        with open(perf_csv_file, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(['Proof', 'WC Time (s)', 'CPU Time (s)', 'Overhead (s)'])
+            writer.writerow(["Proof", "WC Time (s)", "CPU Time (s)", "Overhead (s)"])
             for m in tracker.get_all_measurements():
                 overhead = m.wc_time - m.cpu_time
-                writer.writerow([m.operation_name, f"{m.wc_time:.4f}", f"{m.cpu_time:.4f}", f"{overhead:.4f}"])
+                writer.writerow(
+                    [m.operation_name, f"{m.wc_time:.4f}", f"{m.cpu_time:.4f}", f"{overhead:.4f}"]
+                )
         out(f"Performance data exported to: {perf_csv_file}\n")
 
     # Print scoring summary
     if scoring_results:
         scoring_summary = scorer.calculate_score_summary(scoring_results)
         print_scoring_summary(scoring_summary)
-        
+
         # Export results to CSV
         output_csv = base / "results" / f"{run_name}_results.csv"
         scorer.export_results_to_csv(scoring_results, str(output_csv))

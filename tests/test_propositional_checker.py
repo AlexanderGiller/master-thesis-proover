@@ -12,11 +12,17 @@ from src.parser.ast_nodes import (
     Constant,
     InferenceRecord,
     JunctionFormula,
+    QuantifiedFormula,
     StatusInfo,
     Variable,
-    QuantifiedFormula,
 )
-from src.var_mapping import BinaryConnective, FormulaRole, InferenceRule, InferenceStatus, Quantifier
+from src.var_mapping import (
+    BinaryConnective,
+    FormulaRole,
+    InferenceRule,
+    InferenceStatus,
+    Quantifier,
+)
 
 
 def annotated(name, formula, inference=None):
@@ -33,11 +39,17 @@ def test_modus_ponens_accepts_universal_implication_and_reversed_parent_order():
         QuantifiedFormula(
             Quantifier.UNIVERSAL,
             ["X"],
-            BinaryFormula(BinaryConnective.IMPLIES, Atom("p", [Variable("X")]), Atom("q", [Variable("X")])),
+            BinaryFormula(
+                BinaryConnective.IMPLIES, Atom("p", [Variable("X")]), Atom("q", [Variable("X")])
+            ),
         ),
     )
     premise = annotated("premise", Atom("p", [Constant("a")]))
-    conclusion = annotated("result", Atom("q", [Constant("a")]), inference(InferenceRule.MODUS_PONENS, ["premise", "rule"]))
+    conclusion = annotated(
+        "result",
+        Atom("q", [Constant("a")]),
+        inference(InferenceRule.MODUS_PONENS, ["premise", "rule"]),
+    )
 
     assert check_modus_ponens(conclusion, premise, implication) == []
 
@@ -48,7 +60,9 @@ def test_modus_ponens_rejects_missing_or_wrong_premise():
         BinaryFormula(BinaryConnective.IMPLIES, Atom("p"), Atom("q")),
     )
     premise = annotated("premise", Atom("r"))
-    conclusion = annotated("result", Atom("q"), inference(InferenceRule.MODUS_PONENS, ["rule", "premise"]))
+    conclusion = annotated(
+        "result", Atom("q"), inference(InferenceRule.MODUS_PONENS, ["rule", "premise"])
+    )
 
     assert check_modus_ponens(conclusion, implication, premise)
 
@@ -59,7 +73,9 @@ def test_instantiate_mp_accepts_universal_implication_and_premise():
         QuantifiedFormula(
             Quantifier.UNIVERSAL,
             ["X"],
-            BinaryFormula(BinaryConnective.IMPLIES, Atom("p", [Variable("X")]), Atom("q", [Variable("X")]))
+            BinaryFormula(
+                BinaryConnective.IMPLIES, Atom("p", [Variable("X")]), Atom("q", [Variable("X")])
+            ),
         ),
     )
     premise = annotated("premise", Atom("p", [Constant("a")]))
@@ -162,4 +178,3 @@ def test_integration_prv018_s3_no_longer_uses_external_atp(monkeypatch):
     assert "s3" not in result["external_atp_issues"]
     # the final $false step has complementary parents and is handled by the sound fast path
     assert calls == []
-

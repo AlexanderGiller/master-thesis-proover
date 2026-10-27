@@ -9,7 +9,9 @@ def _fake_formula() -> Atom:
 
 
 def test_validate_step_with_atp_returns_unknown_when_binary_missing(monkeypatch):
-    monkeypatch.setattr("src.checker.external_atp_checker._resolve_atp_command", lambda: ["missing-atp"])
+    monkeypatch.setattr(
+        "src.checker.external_atp_checker._resolve_atp_command", lambda: ["missing-atp"]
+    )
 
     def _raise_missing(*args, **kwargs):
         raise FileNotFoundError("missing-atp")
@@ -23,7 +25,9 @@ def test_validate_step_with_atp_returns_unknown_when_binary_missing(monkeypatch)
 
 
 def test_validate_step_with_atp_returns_unknown_on_timeout(monkeypatch):
-    monkeypatch.setattr("src.checker.external_atp_checker._resolve_atp_command", lambda: ["vampire"])
+    monkeypatch.setattr(
+        "src.checker.external_atp_checker._resolve_atp_command", lambda: ["vampire"]
+    )
 
     def _raise_timeout(*args, **kwargs):
         raise subprocess.TimeoutExpired(cmd="vampire", timeout=1.0)
@@ -37,10 +41,14 @@ def test_validate_step_with_atp_returns_unknown_on_timeout(monkeypatch):
 
 
 def test_validate_step_with_atp_returns_unknown_without_szs_status(monkeypatch):
-    monkeypatch.setattr("src.checker.external_atp_checker._resolve_atp_command", lambda: ["vampire"])
+    monkeypatch.setattr(
+        "src.checker.external_atp_checker._resolve_atp_command", lambda: ["vampire"]
+    )
 
     def _fake_run(*args, **kwargs):
-        return subprocess.CompletedProcess(args=args[0], returncode=0, stdout="no status", stderr="")
+        return subprocess.CompletedProcess(
+            args=args[0], returncode=0, stdout="no status", stderr=""
+        )
 
     monkeypatch.setattr("src.checker.external_atp_checker.subprocess.run", _fake_run)
 
@@ -51,7 +59,9 @@ def test_validate_step_with_atp_returns_unknown_without_szs_status(monkeypatch):
 
 
 def test_validate_step_with_atp_returns_true_for_theorem(monkeypatch):
-    monkeypatch.setattr("src.checker.external_atp_checker._resolve_atp_command", lambda: ["vampire"])
+    monkeypatch.setattr(
+        "src.checker.external_atp_checker._resolve_atp_command", lambda: ["vampire"]
+    )
 
     def _fake_run(*args, **kwargs):
         return subprocess.CompletedProcess(
@@ -70,7 +80,9 @@ def test_validate_step_with_atp_returns_true_for_theorem(monkeypatch):
 
 
 def test_validate_step_with_atp_returns_false_for_countersatisfiable(monkeypatch):
-    monkeypatch.setattr("src.checker.external_atp_checker._resolve_atp_command", lambda: ["vampire"])
+    monkeypatch.setattr(
+        "src.checker.external_atp_checker._resolve_atp_command", lambda: ["vampire"]
+    )
 
     def _fake_run(*args, **kwargs):
         return subprocess.CompletedProcess(
@@ -88,10 +100,11 @@ def test_validate_step_with_atp_returns_false_for_countersatisfiable(monkeypatch
     assert note == "CounterSatisfiable"
 
 
-
 def test_validate_step_with_atp_returns_unknown_for_prover_timeout_status(monkeypatch):
     """A prover that stops with its own time limit has no answer: not a refutation."""
-    monkeypatch.setattr("src.checker.external_atp_checker._resolve_atp_command", lambda: ["vampire"])
+    monkeypatch.setattr(
+        "src.checker.external_atp_checker._resolve_atp_command", lambda: ["vampire"]
+    )
 
     def _fake_run(*args, **kwargs):
         return subprocess.CompletedProcess(

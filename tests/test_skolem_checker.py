@@ -221,8 +221,7 @@ class TestSkolemCheckerExamples:
 
         assert "sk" in result["skolem_issues"]
         assert any(
-            "quantified only universally" in reason
-            for reason in result["skolem_issues"]["sk"]
+            "quantified only universally" in reason for reason in result["skolem_issues"]["sk"]
         )
 
     def test_prv084_reports_negative_polarity_existential(self):
@@ -232,11 +231,7 @@ class TestSkolemCheckerExamples:
         )
 
         assert "sk" in result["skolem_issues"]
-        assert any(
-            "negative polarity" in reason
-            for reason in result["skolem_issues"]["sk"]
-        )
-
+        assert any("negative polarity" in reason for reason in result["skolem_issues"]["sk"])
 
 
 def _bin(conn, left, right):

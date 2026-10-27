@@ -12,16 +12,17 @@ Example:
     print(tracker.get_summary())
 """
 
-import time
 import os
-from typing import Optional
+import time
 from dataclasses import dataclass
 from statistics import mean, stdev
+from typing import Optional
 
 
 @dataclass
 class TimeMeasurement:
     """A single time measurement for an operation."""
+
     operation_name: str
     wc_time: float  # Wall-clock time (seconds)
     cpu_time: float  # CPU time (seconds)
@@ -72,9 +73,7 @@ class PerformanceTracker:
             cpu_time = current_cpu - self._start_cpu_time
 
         measurement = TimeMeasurement(
-            operation_name=operation_name,
-            wc_time=wc_time,
-            cpu_time=cpu_time
+            operation_name=operation_name, wc_time=wc_time, cpu_time=cpu_time
         )
 
         self.measurements.append(measurement)
@@ -108,36 +107,36 @@ class PerformanceTracker:
         for measurement in self.measurements:
             if measurement.operation_name not in operations:
                 operations[measurement.operation_name] = {
-                    'wc_times': [],
-                    'cpu_times': [],
-                    'count': 0
+                    "wc_times": [],
+                    "cpu_times": [],
+                    "count": 0,
                 }
-            operations[measurement.operation_name]['wc_times'].append(measurement.wc_time)
-            operations[measurement.operation_name]['cpu_times'].append(measurement.cpu_time)
-            operations[measurement.operation_name]['count'] += 1
+            operations[measurement.operation_name]["wc_times"].append(measurement.wc_time)
+            operations[measurement.operation_name]["cpu_times"].append(measurement.cpu_time)
+            operations[measurement.operation_name]["count"] += 1
 
         # Calculate statistics for each operation
         summary = {}
         for op_name, times in operations.items():
-            wc_list = times['wc_times']
-            cpu_list = times['cpu_times']
+            wc_list = times["wc_times"]
+            cpu_list = times["cpu_times"]
 
             summary[op_name] = {
-                'count': times['count'],
-                'wc_time': {
-                    'min': min(wc_list),
-                    'max': max(wc_list),
-                    'mean': mean(wc_list),
-                    'total': sum(wc_list),
-                    'stdev': stdev(wc_list) if len(wc_list) > 1 else 0.0
+                "count": times["count"],
+                "wc_time": {
+                    "min": min(wc_list),
+                    "max": max(wc_list),
+                    "mean": mean(wc_list),
+                    "total": sum(wc_list),
+                    "stdev": stdev(wc_list) if len(wc_list) > 1 else 0.0,
                 },
-                'cpu_time': {
-                    'min': min(cpu_list),
-                    'max': max(cpu_list),
-                    'mean': mean(cpu_list),
-                    'total': sum(cpu_list),
-                    'stdev': stdev(cpu_list) if len(cpu_list) > 1 else 0.0
-                }
+                "cpu_time": {
+                    "min": min(cpu_list),
+                    "max": max(cpu_list),
+                    "mean": mean(cpu_list),
+                    "total": sum(cpu_list),
+                    "stdev": stdev(cpu_list) if len(cpu_list) > 1 else 0.0,
+                },
             }
 
         return summary
@@ -150,28 +149,28 @@ class PerformanceTracker:
         """
         if not self.measurements:
             return {
-                'total_measurements': 0,
-                'total_wc_time': 0.0,
-                'total_cpu_time': 0.0,
-                'avg_wc_time': 0.0,
-                'avg_cpu_time': 0.0
+                "total_measurements": 0,
+                "total_wc_time": 0.0,
+                "total_cpu_time": 0.0,
+                "avg_wc_time": 0.0,
+                "avg_cpu_time": 0.0,
             }
 
         wc_times = [m.wc_time for m in self.measurements]
         cpu_times = [m.cpu_time for m in self.measurements]
 
         return {
-            'total_measurements': len(self.measurements),
-            'total_wc_time': sum(wc_times),
-            'total_cpu_time': sum(cpu_times),
-            'avg_wc_time': mean(wc_times),
-            'avg_cpu_time': mean(cpu_times),
-            'min_wc_time': min(wc_times),
-            'max_wc_time': max(wc_times),
-            'min_cpu_time': min(cpu_times),
-            'max_cpu_time': max(cpu_times),
-            'stdev_wc_time': stdev(wc_times) if len(wc_times) > 1 else 0.0,
-            'stdev_cpu_time': stdev(cpu_times) if len(cpu_times) > 1 else 0.0
+            "total_measurements": len(self.measurements),
+            "total_wc_time": sum(wc_times),
+            "total_cpu_time": sum(cpu_times),
+            "avg_wc_time": mean(wc_times),
+            "avg_cpu_time": mean(cpu_times),
+            "min_wc_time": min(wc_times),
+            "max_wc_time": max(wc_times),
+            "min_cpu_time": min(cpu_times),
+            "max_cpu_time": max(cpu_times),
+            "stdev_wc_time": stdev(wc_times) if len(wc_times) > 1 else 0.0,
+            "stdev_cpu_time": stdev(cpu_times) if len(cpu_times) > 1 else 0.0,
         }
 
     def print_summary(self, operation_filter: Optional[str] = None):
@@ -184,9 +183,9 @@ class PerformanceTracker:
             print("No measurements recorded")
             return
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("PERFORMANCE SUMMARY")
-        print("="*80)
+        print("=" * 80)
 
         # Filter measurements if requested
         measurements = self.measurements
@@ -230,7 +229,7 @@ class PerformanceTracker:
         print(f"Overhead (I/O, waiting, etc.):")
         print(f"  Total:          {overhead:.4f} s ({overhead_pct:.1f}%)")
 
-        print("="*80)
+        print("=" * 80)
 
     def get_all_measurements(self) -> list[TimeMeasurement]:
         """Get all recorded measurements."""
@@ -254,11 +253,11 @@ def print_performance_table(tracker: PerformanceTracker):
         print("No measurements recorded")
         return
 
-    print("\n" + "="*100)
+    print("\n" + "=" * 100)
     print("DETAILED PERFORMANCE MEASUREMENTS")
-    print("="*100)
+    print("=" * 100)
     print(f"{'Operation':<40} {'WC Time (s)':>15} {'CPU Time (s)':>15} {'Overhead':>15}")
-    print("-"*100)
+    print("-" * 100)
 
     for measurement in measurements:
         overhead = measurement.wc_time - measurement.cpu_time
@@ -267,5 +266,4 @@ def print_performance_table(tracker: PerformanceTracker):
             f"{measurement.cpu_time:>15.4f} {overhead:>15.4f}"
         )
 
-    print("="*100)
-
+    print("=" * 100)

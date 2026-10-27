@@ -9,6 +9,7 @@ that only comes from the final consequence step ($false).
 Usage:  python scripts/exp_extra_tests.py [--dir ProoVer2026/Extra] [--out results/extra]
 Needs the external ATP (Vampire) for the consequence step; see EXTERNAL_ATP_BINARY.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -60,13 +61,19 @@ def main() -> None:
     out = ROOT / args.out
     out.mkdir(parents=True, exist_ok=True)
 
-    expected = list(csv.reader(open(ROOT / "src" / "scoring" / "EXT_expected.csv", encoding="utf-8")))
+    expected = list(
+        csv.reader(open(ROOT / "src" / "scoring" / "EXT_expected.csv", encoding="utf-8"))
+    )
     rows = []
     for name, test, exp, comment in expected:
         proof = base / name
         problem = base / "Problems" / (proof.stem + ".p")
-        kind, payload = verifier.check_proof_file_with_timeout(str(proof), str(problem), args.timeout)
-        rule = test.split("_", 1)[0] if test.split("_", 1)[0] in RULE_KEYS else test.rsplit("_", 1)[0]
+        kind, payload = verifier.check_proof_file_with_timeout(
+            str(proof), str(problem), args.timeout
+        )
+        rule = (
+            test.split("_", 1)[0] if test.split("_", 1)[0] in RULE_KEYS else test.rsplit("_", 1)[0]
+        )
         # the rule name may itself contain underscores (excluded_middle, ...)
         for r in sorted(RULE_KEYS, key=len, reverse=True):
             if test.startswith(r + "_"):

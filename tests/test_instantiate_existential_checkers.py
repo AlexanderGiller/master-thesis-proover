@@ -14,7 +14,6 @@ from src.parser.ast_nodes import (
 )
 from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus, Quantifier
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -33,9 +32,12 @@ class TestInstantiateChecker:
             FormulaRole.PLAIN,
             QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], Atom("q", [Variable("X")])),
         )
-        child = make_annotated("c", FormulaRole.PLAIN, Atom("q", [Constant("a")]), make_inference(
-            InferenceRule.INSTANTIATE, InferenceStatus.THM, ["p"]
-        ))
+        child = make_annotated(
+            "c",
+            FormulaRole.PLAIN,
+            Atom("q", [Constant("a")]),
+            make_inference(InferenceRule.INSTANTIATE, InferenceStatus.THM, ["p"]),
+        )
 
         assert check_instantiate(child, parent) == []
 

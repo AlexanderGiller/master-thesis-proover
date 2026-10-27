@@ -8,6 +8,7 @@ validates the node. The result is written as PDF and PNG.
 Usage:  python scripts/gen_dag_figure.py ProoVer2026/PRV/PRV089+1.s thesis/diagrams/dag_prv089
 Requires the ``dot`` program of Graphviz.
 """
+
 from __future__ import annotations
 
 import subprocess
@@ -23,10 +24,25 @@ from src.parser.ast_nodes import FileSource  # noqa: E402
 from src.parser.parser import load_proof  # noqa: E402
 
 INTERNAL_RULES = {
-    "copy", "duplicate", "rename_variable", "double_negation", "remove_double_negation",
-    "modus_ponens", "instantiate_mp", "conjunction", "split_conjunct", "instantiate",
-    "existential_gen", "weaken", "commute", "excluded_middle", "resolution",
-    "paramodulation", "reflexivity", "transitivity", "rewrite",
+    "copy",
+    "duplicate",
+    "rename_variable",
+    "double_negation",
+    "remove_double_negation",
+    "modus_ponens",
+    "instantiate_mp",
+    "conjunction",
+    "split_conjunct",
+    "instantiate",
+    "existential_gen",
+    "weaken",
+    "commute",
+    "excluded_middle",
+    "resolution",
+    "paramodulation",
+    "reflexivity",
+    "transitivity",
+    "rewrite",
 }
 
 COLOURS = {
@@ -53,7 +69,11 @@ def classify(step, by_name) -> str:
     if inf.rule == "consequence" and len(inf.parents) == 2:
         f = step.formula
         parents = [by_name.get(p) for p in inf.parents]
-        if repr(f) == "$false" and all(parents) and _formulas_are_complements(parents[0].formula, parents[1].formula):
+        if (
+            repr(f) == "$false"
+            and all(parents)
+            and _formulas_are_complements(parents[0].formula, parents[1].formula)
+        ):
             return "shortcut"
     return "atp" if status_allows_atp(inf.status) else "none"
 
@@ -91,7 +111,9 @@ def main() -> None:
     for kind in COLOURS:
         if kind not in used:
             continue
-        lines.append(f'    "leg_{kind}" [label="{COLOURS[kind][1]}", fillcolor="{COLOURS[kind][0]}", fontsize=9];')
+        lines.append(
+            f'    "leg_{kind}" [label="{COLOURS[kind][1]}", fillcolor="{COLOURS[kind][0]}", fontsize=9];'
+        )
         if prev:
             lines.append(f'    "{prev}" -> "leg_{kind}" [style=invis];')
         prev = f"leg_{kind}"
@@ -101,7 +123,12 @@ def main() -> None:
     out_stem.parent.mkdir(parents=True, exist_ok=True)
     out_stem.with_suffix(".dot").write_text(dot, encoding="utf-8")
     for fmt in ("pdf", "png"):
-        subprocess.run(["dot", f"-T{fmt}", "-Gdpi=200", "-o", str(out_stem.with_suffix("." + fmt))], input=dot, text=True, check=True)
+        subprocess.run(
+            ["dot", f"-T{fmt}", "-Gdpi=200", "-o", str(out_stem.with_suffix("." + fmt))],
+            input=dot,
+            text=True,
+            check=True,
+        )
     print("wrote", out_stem.with_suffix(".pdf"))
 
 

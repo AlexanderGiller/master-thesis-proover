@@ -14,7 +14,9 @@ class PropositionalIssue:
     reason: str
 
 
-def _check_inference_metadata(step: AnnotatedFormula, rule: InferenceRule) -> list[PropositionalIssue]:
+def _check_inference_metadata(
+    step: AnnotatedFormula, rule: InferenceRule
+) -> list[PropositionalIssue]:
     issues: list[PropositionalIssue] = []
     if step.inference is None:
         return [PropositionalIssue(step.name, f"{rule} step must have an inference record")]
@@ -75,11 +77,16 @@ def check_conjunction(
     therefore flattened before comparing against the conclusion's operands.
     """
     issues = _check_inference_metadata(step, InferenceRule.CONJUNCTION)
-    if not isinstance(step.formula, JunctionFormula) or step.formula.connective != BinaryConnective.AND:
+    if (
+        not isinstance(step.formula, JunctionFormula)
+        or step.formula.connective != BinaryConnective.AND
+    ):
         issues.append(PropositionalIssue(step.name, "formula must be a conjunction"))
         return issues
 
-    expected_operands = _flatten_conjuncts(left_parent.formula) + _flatten_conjuncts(right_parent.formula)
+    expected_operands = _flatten_conjuncts(left_parent.formula) + _flatten_conjuncts(
+        right_parent.formula
+    )
     actual_operands = step.formula.operands
 
     if len(actual_operands) != len(expected_operands):
@@ -95,7 +102,9 @@ def check_conjunction(
     for index, (expected, actual) in enumerate(zip(expected_operands, actual_operands)):
         if not is_alpha_equivalent(expected, actual):
             issues.append(
-                PropositionalIssue(step.name, f"conjunction operand {index + 1} does not match its parent")
+                PropositionalIssue(
+                    step.name, f"conjunction operand {index + 1} does not match its parent"
+                )
             )
     return issues
 
@@ -105,7 +114,10 @@ def check_split_conjunct(
 ) -> list[PropositionalIssue]:
     """Check extraction of one operand from a conjunction."""
     issues = _check_inference_metadata(step, InferenceRule.SPLIT_CONJUNCT)
-    if not isinstance(parent.formula, JunctionFormula) or parent.formula.connective != BinaryConnective.AND:
+    if (
+        not isinstance(parent.formula, JunctionFormula)
+        or parent.formula.connective != BinaryConnective.AND
+    ):
         issues.append(PropositionalIssue(step.name, "parent formula must be a conjunction"))
         return issues
     if not any(is_alpha_equivalent(step.formula, operand) for operand in parent.formula.operands):
@@ -120,7 +132,6 @@ def check_modus_ponens(
     issues = _check_inference_metadata(step, InferenceRule.MODUS_PONENS)
     if _forms_implication_application(step.formula, first_parent.formula, second_parent.formula):
         return issues
-
 
     issues.append(
         PropositionalIssue(
@@ -140,7 +151,9 @@ def check_instantiate_mp(
         return [PropositionalIssue(step.name, "instantiate_mp step must have an inference record")]
     if step.inference.rule != "instantiate_mp":
         issues.append(
-            PropositionalIssue(step.name, f"rule must be 'instantiate_mp', got '{step.inference.rule}'")
+            PropositionalIssue(
+                step.name, f"rule must be 'instantiate_mp', got '{step.inference.rule}'"
+            )
         )
     if step.inference.status != InferenceStatus.THM:
         issues.append(
@@ -157,5 +170,3 @@ def check_instantiate_mp(
         )
     )
     return issues
-
-

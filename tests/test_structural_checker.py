@@ -12,9 +12,9 @@ from src.parser.ast_nodes import (
     Constant,
     InferenceRecord,
     Negation,
+    QuantifiedFormula,
     StatusInfo,
     Variable,
-    QuantifiedFormula,
 )
 from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus, Quantifier
 
@@ -30,16 +30,12 @@ def inference(rule, parents):
 class TestCopy:
     def test_valid_copy(self):
         parent = annotated("p", Atom("p", [Constant("a")]))
-        step = annotated(
-            "c", Atom("p", [Constant("a")]), inference(InferenceRule.COPY, ["p"])
-        )
+        step = annotated("c", Atom("p", [Constant("a")]), inference(InferenceRule.COPY, ["p"]))
         assert check_copy(step, parent) == []
 
     def test_copy_with_different_formula_is_rejected(self):
         parent = annotated("p", Atom("p", [Constant("a")]))
-        step = annotated(
-            "c", Atom("q", [Constant("a")]), inference(InferenceRule.COPY, ["p"])
-        )
+        step = annotated("c", Atom("q", [Constant("a")]), inference(InferenceRule.COPY, ["p"]))
         issues = check_copy(step, parent)
         assert any("does not match" in it.reason for it in issues)
 

@@ -13,6 +13,7 @@ Usage (project root):
     python scripts/exp_vampire_compat.py [--verify] [--timeout 60]
 Output: results/vampire/compat.csv and results/vampire/compat_summary.json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -55,7 +56,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--proofs", default=str(ROOT / "results" / "vampire" / "proofs"))
     ap.add_argument("--summary", default=str(ROOT / "results" / "vampire" / "summary.csv"))
-    ap.add_argument("--verify", action="store_true", help="also run the checker (needs ATP for thm steps)")
+    ap.add_argument(
+        "--verify", action="store_true", help="also run the checker (needs ATP for thm steps)"
+    )
     ap.add_argument("--timeout", type=float, default=60.0)
     ap.add_argument("--out", default=str(ROOT / "results" / "vampire"))
     args = ap.parse_args()
@@ -89,14 +92,19 @@ def main() -> None:
             from main import check_proof_file_with_timeout
 
             group = "Test" if name.startswith("TST") else "PRV"
-            if group == "PRV" and not (ROOT / "ProoVer2026" / "PRV" / "Problems" / f"{name}.p").exists():
+            if (
+                group == "PRV"
+                and not (ROOT / "ProoVer2026" / "PRV" / "Problems" / f"{name}.p").exists()
+            ):
                 group = "Deprecated"
             problem = ROOT / "ProoVer2026" / group / "Problems" / f"{name}.p"
             try:
                 kind, res = check_proof_file_with_timeout(str(p), str(problem), args.timeout)
                 if kind == "result":
                     bad = sorted(k[:-7] for k, v in res.items() if k.endswith("_issues") and v)
-                    verdict = "VerifiedGood" if res.get("all_ok") else "VerifiedBad:" + ",".join(bad)
+                    verdict = (
+                        "VerifiedGood" if res.get("all_ok") else "VerifiedBad:" + ",".join(bad)
+                    )
                 else:
                     verdict = kind if res is None else f"{kind}: {str(res)[:60]}"
             except Exception as exc:  # noqa: BLE001
@@ -128,9 +136,12 @@ def main() -> None:
         "files": len(rows),
         "with_proof": len(proofs),
         "parse_ok": sum(r["parse_ok"] == "yes" for r in proofs),
-        "parse_failure_reasons": collections.Counter(r["parse_failure"] for r in proofs if r["parse_ok"] == "no"),
+        "parse_failure_reasons": collections.Counter(
+            r["parse_failure"] for r in proofs if r["parse_ok"] == "no"
+        ),
         "proofs_using_only_prover_calculus": sum(
-            r["inferences"] and r["inferences"] == r["inferences_in_prover_calculus"] for r in proofs
+            r["inferences"] and r["inferences"] == r["inferences_in_prover_calculus"]
+            for r in proofs
         ),
         "median_steps": sorted(r["steps"] for r in proofs)[len(proofs) // 2] if proofs else 0,
         "max_steps": max((r["steps"] for r in proofs), default=0),
@@ -140,13 +151,22 @@ def main() -> None:
     for r in proofs:
         tot.update(rules_in((Path(args.proofs) / f"{r['problem']}.s").read_text()))
     summ["rule_usage_vampire"] = dict(tot.most_common())
-    summ["checker_verdicts"] = dict(collections.Counter(r["checker_verdict"] for r in proofs if r["checker_verdict"]))
+    summ["checker_verdicts"] = dict(
+        collections.Counter(r["checker_verdict"] for r in proofs if r["checker_verdict"])
+    )
     summ["share_inferences_in_prover_calculus"] = round(
-        sum(r["inferences_in_prover_calculus"] for r in proofs) / max(1, sum(r["inferences"] for r in proofs)), 4
+        sum(r["inferences_in_prover_calculus"] for r in proofs)
+        / max(1, sum(r["inferences"] for r in proofs)),
+        4,
     )
     summ["parse_failure_reasons"] = dict(summ["parse_failure_reasons"])
     (out / "compat_summary.json").write_text(json.dumps(summ, indent=2))
-    print(json.dumps({k: v for k, v in summ.items() if k not in ("rule_usage_vampire", "reference_rules")}, indent=2))
+    print(
+        json.dumps(
+            {k: v for k, v in summ.items() if k not in ("rule_usage_vampire", "reference_rules")},
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

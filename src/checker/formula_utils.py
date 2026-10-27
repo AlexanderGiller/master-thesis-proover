@@ -16,7 +16,6 @@ from src.parser.ast_nodes import (
     Variable,
 )
 
-
 _MISSING = object()
 
 
@@ -78,7 +77,9 @@ def substitute_node(node: object, replacements: dict[str, object]) -> object:
             args=[substitute_node(arg, replacements) for arg in node.args],
         )
     if isinstance(node, Atom):
-        return Atom(predicate=node.predicate, args=[substitute_node(arg, replacements) for arg in node.args])
+        return Atom(
+            predicate=node.predicate, args=[substitute_node(arg, replacements) for arg in node.args]
+        )
     if isinstance(node, Equality):
         return Equality(
             left=substitute_node(node.left, replacements),
@@ -121,12 +122,20 @@ def _node_equal(left: object, right: object, bound_map: dict[str, str]) -> bool:
     if isinstance(left, Constant):
         return left.name == right.name
     if isinstance(left, FunctionTerm):
-        return left.functor == right.functor and len(left.args) == len(right.args) and all(
-            _node_equal(l_arg, r_arg, bound_map) for l_arg, r_arg in zip(left.args, right.args)
+        return (
+            left.functor == right.functor
+            and len(left.args) == len(right.args)
+            and all(
+                _node_equal(l_arg, r_arg, bound_map) for l_arg, r_arg in zip(left.args, right.args)
+            )
         )
     if isinstance(left, Atom):
-        return left.predicate == right.predicate and len(left.args) == len(right.args) and all(
-            _node_equal(l_arg, r_arg, bound_map) for l_arg, r_arg in zip(left.args, right.args)
+        return (
+            left.predicate == right.predicate
+            and len(left.args) == len(right.args)
+            and all(
+                _node_equal(l_arg, r_arg, bound_map) for l_arg, r_arg in zip(left.args, right.args)
+            )
         )
     if isinstance(left, Equality):
         return (
@@ -146,7 +155,10 @@ def _node_equal(left: object, right: object, bound_map: dict[str, str]) -> bool:
         return (
             left.connective == right.connective
             and len(left.operands) == len(right.operands)
-            and all(_node_equal(l_op, r_op, bound_map) for l_op, r_op in zip(left.operands, right.operands))
+            and all(
+                _node_equal(l_op, r_op, bound_map)
+                for l_op, r_op in zip(left.operands, right.operands)
+            )
         )
     if isinstance(left, QuantifiedFormula):
         if left.quantifier != right.quantifier or len(left.variables) != len(right.variables):
@@ -171,7 +183,10 @@ def _term_variable_names(term: object) -> set[str]:
 
 
 def match_template_to_instance(
-    template: object, instance: object, abstract_vars: set[str], bound_map: dict[str, str] | None = None,
+    template: object,
+    instance: object,
+    abstract_vars: set[str],
+    bound_map: dict[str, str] | None = None,
     substitutions: dict[str, object] | None = None,
     local_bound: frozenset[str] = frozenset(),
 ) -> bool:
@@ -212,22 +227,38 @@ def match_template_to_instance(
         return template.name == instance.name
 
     if isinstance(template, FunctionTerm):
-        return template.functor == instance.functor and len(template.args) == len(instance.args) and all(
-            match_template_to_instance(t_arg, i_arg, abstract_vars, bound_map, substitutions, local_bound)
-            for t_arg, i_arg in zip(template.args, instance.args)
+        return (
+            template.functor == instance.functor
+            and len(template.args) == len(instance.args)
+            and all(
+                match_template_to_instance(
+                    t_arg, i_arg, abstract_vars, bound_map, substitutions, local_bound
+                )
+                for t_arg, i_arg in zip(template.args, instance.args)
+            )
         )
 
     if isinstance(template, Atom):
-        return template.predicate == instance.predicate and len(template.args) == len(instance.args) and all(
-            match_template_to_instance(t_arg, i_arg, abstract_vars, bound_map, substitutions, local_bound)
-            for t_arg, i_arg in zip(template.args, instance.args)
+        return (
+            template.predicate == instance.predicate
+            and len(template.args) == len(instance.args)
+            and all(
+                match_template_to_instance(
+                    t_arg, i_arg, abstract_vars, bound_map, substitutions, local_bound
+                )
+                for t_arg, i_arg in zip(template.args, instance.args)
+            )
         )
 
     if isinstance(template, Equality):
         return (
             template.negated == instance.negated
-            and match_template_to_instance(template.left, instance.left, abstract_vars, bound_map, substitutions, local_bound)
-            and match_template_to_instance(template.right, instance.right, abstract_vars, bound_map, substitutions, local_bound)
+            and match_template_to_instance(
+                template.left, instance.left, abstract_vars, bound_map, substitutions, local_bound
+            )
+            and match_template_to_instance(
+                template.right, instance.right, abstract_vars, bound_map, substitutions, local_bound
+            )
         )
 
     if isinstance(template, Negation):
@@ -238,8 +269,12 @@ def match_template_to_instance(
     if isinstance(template, BinaryFormula):
         return (
             template.connective == instance.connective
-            and match_template_to_instance(template.left, instance.left, abstract_vars, bound_map, substitutions, local_bound)
-            and match_template_to_instance(template.right, instance.right, abstract_vars, bound_map, substitutions, local_bound)
+            and match_template_to_instance(
+                template.left, instance.left, abstract_vars, bound_map, substitutions, local_bound
+            )
+            and match_template_to_instance(
+                template.right, instance.right, abstract_vars, bound_map, substitutions, local_bound
+            )
         )
 
     if isinstance(template, JunctionFormula):
@@ -247,13 +282,17 @@ def match_template_to_instance(
             template.connective == instance.connective
             and len(template.operands) == len(instance.operands)
             and all(
-                match_template_to_instance(t_op, i_op, abstract_vars, bound_map, substitutions, local_bound)
+                match_template_to_instance(
+                    t_op, i_op, abstract_vars, bound_map, substitutions, local_bound
+                )
                 for t_op, i_op in zip(template.operands, instance.operands)
             )
         )
 
     if isinstance(template, QuantifiedFormula):
-        if template.quantifier != instance.quantifier or len(template.variables) != len(instance.variables):
+        if template.quantifier != instance.quantifier or len(template.variables) != len(
+            instance.variables
+        ):
             return False
         new_bound = dict(bound_map)
         for t_var, i_var in zip(template.variables, instance.variables):

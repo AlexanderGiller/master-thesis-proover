@@ -23,6 +23,7 @@ The external prover is taken from EXTERNAL_ATP_BINARY / EXTERNAL_ATP_COMMAND exa
 
 Usage:  python scripts/eval_all.py --parts all [--reps 3]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -52,6 +53,8 @@ DEPRECATED = {p.name for p in (ROOT / "ProoVer2026" / "Deprecated").glob("*.s")}
 def is_official(r: dict) -> bool:
     proof = str(r["proof"]).replace("\\", "/")
     return "/Deprecated/" not in proof and proof.rsplit("/", 1)[-1] not in DEPRECATED
+
+
 DIAG = ROOT / "thesis" / "diagrams"
 WORKER = ROOT / "scripts" / "_eval_worker.py"
 TIME_LIMIT = 30.0
@@ -64,7 +67,15 @@ NON_INFERENCE = {"axiom", "conjecture"}
 # helpers
 # ----------------------------------------------------------------------------
 def tex(s: object) -> str:
-    return str(s).replace("\\", "\\textbackslash{}").replace("_", "\\_").replace("%", "\\%").replace("&", "\\&").replace("$", "\\$").replace("#", "\\#")
+    return (
+        str(s)
+        .replace("\\", "\\textbackslash{}")
+        .replace("_", "\\_")
+        .replace("%", "\\%")
+        .replace("&", "\\&")
+        .replace("$", "\\$")
+        .replace("#", "\\#")
+    )
 
 
 def tt(s: object) -> str:
@@ -84,8 +95,16 @@ def fmt_t(x: float) -> str:
 
 
 def write(path: Path, text: str) -> None:
-    if path.parent == GEN and path.name.startswith("tab_") and text.lstrip().startswith("\\begin{tabular}"):
-        text = "\\resizebox{\\ifdim\\width>\\linewidth\\linewidth\\else\\width\\fi}{!}{%\n" + text.rstrip() + "}\n"
+    if (
+        path.parent == GEN
+        and path.name.startswith("tab_")
+        and text.lstrip().startswith("\\begin{tabular}")
+    ):
+        text = (
+            "\\resizebox{\\ifdim\\width>\\linewidth\\linewidth\\else\\width\\fi}{!}{%\n"
+            + text.rstrip()
+            + "}\n"
+        )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8", newline="\n")
 
@@ -105,7 +124,10 @@ def collect() -> list[dict]:
             for row in csv.reader(fh):
                 if row and row[0].endswith(".s"):
                     # PRV: name,expected  |  TST/EXT: name,tag(rule),expected,...
-                    expected[row[0]] = (row[1] if not f.startswith("PRV") else "", row[2] if not f.startswith("PRV") else row[1])
+                    expected[row[0]] = (
+                        row[1] if not f.startswith("PRV") else "",
+                        row[2] if not f.startswith("PRV") else row[1],
+                    )
     items = []
     seen = set()
     for d, pd in (
@@ -120,19 +142,34 @@ def collect() -> list[dict]:
             seen.add(p.name)
             exp = expected.get(p.name, ("", "UNKNOWN"))
             items.append(
-                dict(name=p.name, proof=str(p), problem=str(pd / (p.stem + ".p")), group=p.name[:3], tag=exp[0], expected=exp[1])
+                dict(
+                    name=p.name,
+                    proof=str(p),
+                    problem=str(pd / (p.stem + ".p")),
+                    group=p.name[:3],
+                    tag=exp[0],
+                    expected=exp[1],
+                )
             )
     return items
 
 
-def run_worker(proof: str, problem: str, env: dict | None = None, timeout: float = TIME_LIMIT) -> dict:
+def run_worker(
+    proof: str, problem: str, env: dict | None = None, timeout: float = TIME_LIMIT
+) -> dict:
     t0 = time.perf_counter()
     t0_abs = time.time()
     e = dict(os.environ)
     if env:
         e.update(env)
     try:
-        cp = subprocess.run([sys.executable, str(WORKER), proof, problem], capture_output=True, text=True, timeout=timeout, env=e)
+        cp = subprocess.run(
+            [sys.executable, str(WORKER), proof, problem],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=e,
+        )
     except subprocess.TimeoutExpired:
         return dict(timeout=True, total_wall=time.perf_counter() - t0)
     total = time.perf_counter() - t0
@@ -143,7 +180,12 @@ def run_worker(proof: str, problem: str, env: dict | None = None, timeout: float
             rec["total_wall"] = rec["t_check_end"] - t0_abs if rec.get("t_check_end") else total
             rec["timeout"] = False
             return rec
-    return dict(timeout=False, error=(cp.stderr.strip().splitlines() or ["worker produced no output"])[-1], total_wall=total, all_ok=None)
+    return dict(
+        timeout=False,
+        error=(cp.stderr.strip().splitlines() or ["worker produced no output"])[-1],
+        total_wall=total,
+        all_ok=None,
+    )
 
 
 def verdict(rec: dict) -> str:
@@ -160,7 +202,10 @@ def unresolved_only(rec: dict) -> bool:
     if not iss or set(iss) != {"external_atp_issues"}:
         return False
     reasons = [r for v in iss["external_atp_issues"].values() for r in v]
-    return bool(reasons) and all(r.startswith("External ATP could not validate") or r.startswith("No checker available") for r in reasons)
+    return bool(reasons) and all(
+        r.startswith("External ATP could not validate") or r.startswith("No checker available")
+        for r in reasons
+    )
 
 
 def ternary(rec: dict) -> str:
@@ -189,18 +234,29 @@ def points(expected: str, outcome: str) -> int:
 
 def binary(rec: dict) -> str:
     v = verdict(rec)
-    return {"VerifiedGood": "verified", "VerifiedBad": "failed", "Timeout": "uncertain", "Error": "failed"}[v]
+    return {
+        "VerifiedGood": "verified",
+        "VerifiedBad": "failed",
+        "Timeout": "uncertain",
+        "Error": "failed",
+    }[v]
 
 
 def env_info() -> dict:
     def sh(cmd: str) -> str:
         try:
-            return subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=20).stdout.strip()
+            return subprocess.run(
+                cmd, shell=True, capture_output=True, text=True, timeout=20
+            ).stdout.strip()
         except Exception:  # noqa: BLE001
             return ""
 
     binary_ = os.environ.get("EXTERNAL_ATP_BINARY", "vampire")
-    path = shutil.which(binary_) or (os.environ.get("EXTERNAL_ATP_COMMAND", "").split() or [""])[0] or str(Path.home() / "vampire" / "vampire")
+    path = (
+        shutil.which(binary_)
+        or (os.environ.get("EXTERNAL_ATP_COMMAND", "").split() or [""])[0]
+        or str(Path.home() / "vampire" / "vampire")
+    )
     vamp = sh(f'"{path}" --version 2>&1 | head -1') if path else ""
     cpu = sh("lscpu | sed -n 's/^Model name:[ ]*//p'") or platform.processor()
     mem = sh("free -m | awk '/Mem:/ {print $2}'")
@@ -238,7 +294,10 @@ def part_runs(reps: int, tag: str = "runs", env: dict | None = None) -> list[dic
         r["wall_reps"] = [x.get("wall") for x in recs if x.get("wall") is not None]
         r["total_wall_median"] = st.median(r["total_wall_reps"])
         out.append(r)
-        print(f"[{tag}] {i:3d}/{len(items)} {it['name']:14s} {verdict(r):13s} {r['total_wall_median']:.2f}s", flush=True)
+        print(
+            f"[{tag}] {i:3d}/{len(items)} {it['name']:14s} {verdict(r):13s} {r['total_wall_median']:.2f}s",
+            flush=True,
+        )
     write(OUT / f"{tag}.json", json.dumps(out))
     return out
 
@@ -261,7 +320,10 @@ def step_classes(rec: dict) -> list[dict]:
             continue
         called = s["name"] in atp
         reasons = iss.get(s["name"], [])
-        unres = any(r.startswith("External ATP could not validate") or r.startswith("No checker available") for r in reasons)
+        unres = any(
+            r.startswith("External ATP could not validate") or r.startswith("No checker available")
+            for r in reasons
+        )
         if unres:
             cls = "unresolved"
         elif b in ATP_ONLY:
@@ -417,10 +479,34 @@ def make_tables() -> None:
         + " & ".join(f"{agree[g][0]}/{agree[g][1]}" for g in groups)
         + f" & {tot_a}/{tot_n} \\\\\n\\bottomrule\n\\end{{tabular}}\n",
     )
-    tst_wrong = [r for r in tst if r["expected"] != "EDGE" and ((r["expected"] == "CORRECT") != (verdict(r) == "VerifiedGood"))]
-    M.update(EvalTstAgree=tot_a, EvalTstTotal=tot_n, EvalTstEdge=len(edge), EvalTstWrong=len(tst_wrong),
-             EvalTstWrongAcc=sum(1 for r in tst_wrong if r["expected"] == "INCORRECT"))
-    write(OUT / "tst_disagreements.json", json.dumps([dict(name=r["name"], tag=r["tag"], expected=r["expected"], verdict=verdict(r), issues=list((r.get("issues") or {}).keys())) for r in tst_wrong]))
+    tst_wrong = [
+        r
+        for r in tst
+        if r["expected"] != "EDGE"
+        and ((r["expected"] == "CORRECT") != (verdict(r) == "VerifiedGood"))
+    ]
+    M.update(
+        EvalTstAgree=tot_a,
+        EvalTstTotal=tot_n,
+        EvalTstEdge=len(edge),
+        EvalTstWrong=len(tst_wrong),
+        EvalTstWrongAcc=sum(1 for r in tst_wrong if r["expected"] == "INCORRECT"),
+    )
+    write(
+        OUT / "tst_disagreements.json",
+        json.dumps(
+            [
+                dict(
+                    name=r["name"],
+                    tag=r["tag"],
+                    expected=r["expected"],
+                    verdict=verdict(r),
+                    issues=list((r.get("issues") or {}).keys()),
+                )
+                for r in tst_wrong
+            ]
+        ),
+    )
 
     # --- rule coverage (ProoVer set)
     per_rule: dict[str, Counter] = defaultdict(Counter)
@@ -436,7 +522,9 @@ def make_tables() -> None:
     for rule in order:
         c = per_rule[rule]
         tot.update(c)
-        lines.append(f"{tt(rule)} & {len(proofs_with[rule])} & {c['steps']} & {c['internal']} & {c['fallback']} & {c['atp']} & {c['unresolved']} \\\\")
+        lines.append(
+            f"{tt(rule)} & {len(proofs_with[rule])} & {c['steps']} & {c['internal']} & {c['fallback']} & {c['atp']} & {c['unresolved']} \\\\"
+        )
     n_rules = len(order)
     write(
         GEN / "tab_coverage.tex",
@@ -457,14 +545,28 @@ def make_tables() -> None:
         cols = ["#1f77b4" if per_rule[k]["internal"] else "#d62728" for k in by_proofs]
         ax.barh(list(ys), [len(proofs_with[k]) for k in by_proofs], color=cols, height=0.7)
         for y, k in zip(ys, by_proofs):
-            ax.text(len(proofs_with[k]) + 0.8, y, f"{per_rule[k]['steps']} step" + ("s" if per_rule[k]['steps'] != 1 else ""), va="center", fontsize=6.5, color="#444444")
+            ax.text(
+                len(proofs_with[k]) + 0.8,
+                y,
+                f"{per_rule[k]['steps']} step" + ("s" if per_rule[k]["steps"] != 1 else ""),
+                va="center",
+                fontsize=6.5,
+                color="#444444",
+            )
         ax.set_yticks(list(ys))
         ax.set_yticklabels(by_proofs, fontsize=7, family="monospace")
         ax.set_xlabel("number of proofs of the ProoVer set that use the rule")
         ax.set_xlim(0, max(len(v) for v in proofs_with.values()) * 1.18)
 
-        ax.legend(handles=[Patch(color="#1f77b4", label="internal checker"), Patch(color="#d62728", label="decided by the prover")],
-                  frameon=False, fontsize=7, loc="lower right")
+        ax.legend(
+            handles=[
+                Patch(color="#1f77b4", label="internal checker"),
+                Patch(color="#d62728", label="decided by the prover"),
+            ],
+            frameon=False,
+            fontsize=7,
+            loc="lower right",
+        )
         ax.grid(axis="x", alpha=0.25)
         fig.tight_layout()
         DIAG.mkdir(parents=True, exist_ok=True)
@@ -512,12 +614,42 @@ def make_tables() -> None:
         EvalTimeouts=n_to,
         EvalRssMedian=f"{st.median(rss):.0f}" if rss else "--",
         EvalRssMax=f"{max(rss):.0f}" if rss else "--",
-        EvalAtpShare=pct(sum(r.get("atp_time", 0) for r in prv), sum(r["total_wall_median"] for r in prv)),
+        EvalAtpShare=pct(
+            sum(r.get("atp_time", 0) for r in prv), sum(r["total_wall_median"] for r in prv)
+        ),
         EvalAtpCalls=sum(r.get("atp_calls", 0) for r in prv),
-        EvalAtpMean=fmt_t(st.mean([c["t"] for r in prv for calls in (r.get("atp") or {}).values() for c in calls]) if any(r.get("atp") for r in prv) else 0),
-        EvalAtpMedian=fmt_t(st.median([c["t"] for r in prv for calls in (r.get("atp") or {}).values() for c in calls]) if any(r.get("atp") for r in prv) else 0),
-        EvalInterpStart=fmt_t(st.median([(r["total_wall"] - r["wall"]) if r.get("t_check_end") else r.get("t_import", 0) for r in base_runs if r.get("wall") is not None and not r.get("timeout")])),
-        EvalNoAtpMedian=fmt_t(st.median([r["total_wall_median"] for r in prv if not r.get("atp_calls") and not r.get("timeout")]) if any(not r.get("atp_calls") for r in prv) else 0),
+        EvalAtpMean=fmt_t(
+            st.mean([c["t"] for r in prv for calls in (r.get("atp") or {}).values() for c in calls])
+            if any(r.get("atp") for r in prv)
+            else 0
+        ),
+        EvalAtpMedian=fmt_t(
+            st.median(
+                [c["t"] for r in prv for calls in (r.get("atp") or {}).values() for c in calls]
+            )
+            if any(r.get("atp") for r in prv)
+            else 0
+        ),
+        EvalInterpStart=fmt_t(
+            st.median(
+                [
+                    (r["total_wall"] - r["wall"]) if r.get("t_check_end") else r.get("t_import", 0)
+                    for r in base_runs
+                    if r.get("wall") is not None and not r.get("timeout")
+                ]
+            )
+        ),
+        EvalNoAtpMedian=fmt_t(
+            st.median(
+                [
+                    r["total_wall_median"]
+                    for r in prv
+                    if not r.get("atp_calls") and not r.get("timeout")
+                ]
+            )
+            if any(not r.get("atp_calls") for r in prv)
+            else 0
+        ),
     )
 
     # --- EXT suite (generated rule test cases, one fresh process each)
@@ -525,7 +657,9 @@ def make_tables() -> None:
     if ext:
         ext_valid = [r for r in ext if r["expected"] == "CORRECT"]
         ext_inv = [r for r in ext if r["expected"] == "INCORRECT"]
-        ext_ok = sum(1 for r in ext_valid if verdict(r) == "VerifiedGood") + sum(1 for r in ext_inv if verdict(r) not in ("VerifiedGood", "Timeout"))
+        ext_ok = sum(1 for r in ext_valid if verdict(r) == "VerifiedGood") + sum(
+            1 for r in ext_inv if verdict(r) not in ("VerifiedGood", "Timeout")
+        )
         ext_walls = [r["total_wall_median"] for r in ext if not r.get("timeout")]
         M.update(
             EvalExtRunsN=len(ext),
@@ -539,7 +673,9 @@ def make_tables() -> None:
         )
 
     # slowest proofs
-    slow = sorted((r for r in prv if not r.get("timeout")), key=lambda r: -r["total_wall_median"])[:6]
+    slow = sorted((r for r in prv if not r.get("timeout")), key=lambda r: -r["total_wall_median"])[
+        :6
+    ]
     rows = []
     for r in slow:
         total = r["total_wall_median"]
@@ -567,7 +703,9 @@ def make_tables() -> None:
     for r in prv:
         v = verdict(r)
         t3 = ternary(r)
-        opt = (r["expected"] == "CORRECT" and t3 == "verified") or (r["expected"] == "INCORRECT" and t3 == "failed")
+        opt = (r["expected"] == "CORRECT" and t3 == "verified") or (
+            r["expected"] == "INCORRECT" and t3 == "failed"
+        )
         if opt:
             continue
         iss = r.get("issues") or {}
@@ -577,7 +715,9 @@ def make_tables() -> None:
             cause = "Wrongly accepted"
         elif t3 == "uncertain":
             cause = "Step not decidable (verdict Unknown)"
-        elif any(k in iss for k in ("axiom_issues", "conjecture_issues", "negated_conjecture_issues")):
+        elif any(
+            k in iss for k in ("axiom_issues", "conjecture_issues", "negated_conjecture_issues")
+        ):
             cause = "Provenance or negated conjecture"
         elif "skolem_issues" in iss:
             cause = "Skolemization check"
@@ -586,7 +726,11 @@ def make_tables() -> None:
         elif "external_atp_issues" in iss:
             cause = "ATP rejected or no justification"
         else:
-            cause = "Other rule check (" + ", ".join(sorted(k.replace('_issues', '') for k in iss)) + ")"
+            cause = (
+                "Other rule check ("
+                + ", ".join(sorted(k.replace("_issues", "") for k in iss))
+                + ")"
+            )
         ex = ""
         for k, val in iss.items():
             for stp, reasons in val.items():
@@ -594,14 +738,18 @@ def make_tables() -> None:
                 break
             if ex:
                 break
-        errs.append(dict(proof=r["name"], expected=r["expected"], verdict=v, cause=cause, example=ex))
+        errs.append(
+            dict(proof=r["name"], expected=r["expected"], verdict=v, cause=cause, example=ex)
+        )
     write(OUT / "errors.json", json.dumps(errs, indent=1))
     by_cause = defaultdict(list)
     for e in errs:
         by_cause[e["cause"]].append(e)
     lines = []
     for cause, es in sorted(by_cause.items(), key=lambda kv: -len(kv[1])):
-        names = ", ".join(tt(e["proof"].replace("+1.s", "")) for e in es[:3]) + (", \\dots" if len(es) > 3 else "")
+        names = ", ".join(tt(e["proof"].replace("+1.s", "")) for e in es[:3]) + (
+            ", \\dots" if len(es) > 3 else ""
+        )
         lines.append(f"{tex(cause)} & {len(es)} & {names} \\\\")
     write(
         GEN / "tab_errors.tex",
@@ -624,12 +772,22 @@ def make_tables() -> None:
 
     # --- no-ATP ablation
     if (OUT / "noatp.json").exists():
-        na = [r for r in load("noatp") if r["group"] == "PRV" and "/Deprecated/" not in r["proof"].replace("\\", "/")]
+        na = [
+            r
+            for r in load("noatp")
+            if r["group"] == "PRV" and "/Deprecated/" not in r["proof"].replace("\\", "/")
+        ]
         rowsn = []
         for label, rs in (("with prover", off), ("without prover", na)):
-            ver_v = sum(1 for r in rs if r["expected"] == "CORRECT" and verdict(r) == "VerifiedGood")
-            ver_i = sum(1 for r in rs if r["expected"] == "INCORRECT" and verdict(r) == "VerifiedGood")
-            rej_i = sum(1 for r in rs if r["expected"] == "INCORRECT" and verdict(r) != "VerifiedGood")
+            ver_v = sum(
+                1 for r in rs if r["expected"] == "CORRECT" and verdict(r) == "VerifiedGood"
+            )
+            ver_i = sum(
+                1 for r in rs if r["expected"] == "INCORRECT" and verdict(r) == "VerifiedGood"
+            )
+            rej_i = sum(
+                1 for r in rs if r["expected"] == "INCORRECT" and verdict(r) != "VerifiedGood"
+            )
             rowsn.append(
                 f"{label} & {ver_v} & {ver_i} & {rej_i} & ${score_policy(rs, binary):+d}$ & ${score_policy(rs, ternary):+d}$ & {sum(1 for r in rs if ternary(r) == 'uncertain')} \\\\"
             )
@@ -640,12 +798,18 @@ def make_tables() -> None:
             + "\n\\bottomrule\n\\end{tabular}\n",
         )
         M.update(
-            EvalNoAtpVerifiedValid=sum(1 for r in na if r["expected"] == "CORRECT" and verdict(r) == "VerifiedGood"),
-            EvalNoAtpWrongAcc=sum(1 for r in na if r["expected"] == "INCORRECT" and verdict(r) == "VerifiedGood"),
+            EvalNoAtpVerifiedValid=sum(
+                1 for r in na if r["expected"] == "CORRECT" and verdict(r) == "VerifiedGood"
+            ),
+            EvalNoAtpWrongAcc=sum(
+                1 for r in na if r["expected"] == "INCORRECT" and verdict(r) == "VerifiedGood"
+            ),
             EvalNoAtpScoreBinary=score_policy(na, binary),
             EvalNoAtpScoreTernary=score_policy(na, ternary),
             EvalNoAtpUncertain=sum(1 for r in na if ternary(r) == "uncertain"),
-            EvalNoAtpWallMedian=fmt_t(st.median([r["total_wall_median"] for r in na if not r.get("timeout")])),
+            EvalNoAtpWallMedian=fmt_t(
+                st.median([r["total_wall_median"] for r in na if not r.get("timeout")])
+            ),
         )
 
     macros("eval_macros", M)
@@ -658,13 +822,30 @@ def make_tables() -> None:
         import matplotlib.pyplot as plt
 
         fig, ax = plt.subplots(figsize=(6.2, 3.4))
-        for used, color, label in ((False, "#1f77b4", "no ATP call"), (True, "#d62728", "with ATP call")):
-            xs = [max(len(r.get("steps", [])), 1) for r in prv if not r.get("timeout") and bool(r.get("atp_calls")) == used]
-            ys = [r["total_wall_median"] for r in prv if not r.get("timeout") and bool(r.get("atp_calls")) == used]
+        for used, color, label in (
+            (False, "#1f77b4", "no ATP call"),
+            (True, "#d62728", "with ATP call"),
+        ):
+            xs = [
+                max(len(r.get("steps", [])), 1)
+                for r in prv
+                if not r.get("timeout") and bool(r.get("atp_calls")) == used
+            ]
+            ys = [
+                r["total_wall_median"]
+                for r in prv
+                if not r.get("timeout") and bool(r.get("atp_calls")) == used
+            ]
             ax.scatter(xs, ys, s=14, alpha=0.75, c=color, label=label, edgecolors="none")
         to = [r for r in prv if r.get("timeout")]
         if to:
-            ax.scatter([max(len(r.get("steps", [])), 1) or 1 for r in to], [TIME_LIMIT] * len(to), marker="x", c="black", label="timeout")
+            ax.scatter(
+                [max(len(r.get("steps", [])), 1) or 1 for r in to],
+                [TIME_LIMIT] * len(to),
+                marker="x",
+                c="black",
+                label="timeout",
+            )
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.axhline(TIME_LIMIT, color="grey", lw=0.8, ls="--")
@@ -682,9 +863,35 @@ def make_tables() -> None:
     # --- per proof csv
     with open(OUT / "per_proof.csv", "w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh)
-        w.writerow(["proof", "group", "expected", "verdict", "steps", "atp_calls", "atp_time", "wall_median", "rss_mb", "issues"])
+        w.writerow(
+            [
+                "proof",
+                "group",
+                "expected",
+                "verdict",
+                "steps",
+                "atp_calls",
+                "atp_time",
+                "wall_median",
+                "rss_mb",
+                "issues",
+            ]
+        )
         for r in runs:
-            w.writerow([r["name"], r["group"], r["expected"], verdict(r), len(r.get("steps", [])), r.get("atp_calls", 0), f"{r.get('atp_time', 0):.3f}", f"{r['total_wall_median']:.3f}", f"{r.get('maxrss_kb', 0) / 1024:.1f}", ";".join((r.get('issues') or {}).keys())])
+            w.writerow(
+                [
+                    r["name"],
+                    r["group"],
+                    r["expected"],
+                    verdict(r),
+                    len(r.get("steps", [])),
+                    r.get("atp_calls", 0),
+                    f"{r.get('atp_time', 0):.3f}",
+                    f"{r['total_wall_median']:.3f}",
+                    f"{r.get('maxrss_kb', 0) / 1024:.1f}",
+                    ";".join((r.get("issues") or {}).keys()),
+                ]
+            )
     print("tables written to", GEN)
 
 
@@ -692,9 +899,25 @@ def make_tables() -> None:
 # part: internal checkers against the prover on single steps
 # ----------------------------------------------------------------------------
 INTERNAL_RULES = {
-    "instantiate", "existential_gen", "modus_ponens", "instantiate_mp", "conjunction", "split_conjunct", "copy", "duplicate",
-    "rename_variable", "double_negation", "remove_double_negation", "weaken", "commute", "excluded_middle", "resolution",
-    "paramodulation", "reflexivity", "transitivity", "rewrite",
+    "instantiate",
+    "existential_gen",
+    "modus_ponens",
+    "instantiate_mp",
+    "conjunction",
+    "split_conjunct",
+    "copy",
+    "duplicate",
+    "rename_variable",
+    "double_negation",
+    "remove_double_negation",
+    "weaken",
+    "commute",
+    "excluded_middle",
+    "resolution",
+    "paramodulation",
+    "reflexivity",
+    "transitivity",
+    "rewrite",
 }
 
 
@@ -717,21 +940,46 @@ def part_internal(cap_per_proof: int = 8, max_total: int = 700) -> None:
         flagged = set()
         for k, v in iss.items():
             flagged |= set(v)
-        cand = [s for s in steps if s.inference and str(s.inference.rule) in INTERNAL_RULES and s.name in by_name and all(p in by_name for p in s.inference.parents) and 0 < len(s.inference.parents) <= 3]
+        cand = [
+            s
+            for s in steps
+            if s.inference
+            and str(s.inference.rule) in INTERNAL_RULES
+            and s.name in by_name
+            and all(p in by_name for p in s.inference.parents)
+            and 0 < len(s.inference.parents) <= 3
+        ]
         rng.shuffle(cand)
         for s in cand[:cap_per_proof]:
             if len(rows) >= max_total:
                 break
             t0 = time.perf_counter()
-            ok, note = validate_step_with_atp(s.formula, [by_name[p].formula for p in s.inference.parents], 10.0)
+            ok, note = validate_step_with_atp(
+                s.formula, [by_name[p].formula for p in s.inference.parents], 10.0
+            )
             dt = time.perf_counter() - t0
-            rows.append(dict(proof=r["name"], step=s.name, rule=str(s.inference.rule), internal_reject=s.name in flagged, atp=str(ok), atp_note=note, t=dt, proof_expected=r["expected"]))
+            rows.append(
+                dict(
+                    proof=r["name"],
+                    step=s.name,
+                    rule=str(s.inference.rule),
+                    internal_reject=s.name in flagged,
+                    atp=str(ok),
+                    atp_note=note,
+                    t=dt,
+                    proof_expected=r["expected"],
+                )
+            )
     write(OUT / "internal.json", json.dumps(rows))
     print(len(rows), "single-step comparisons")
 
 
 def tables_internal() -> None:
-    rows = [r for r in json.loads((OUT / "internal.json").read_text(encoding="utf-8")) if r["proof"] not in DEPRECATED]
+    rows = [
+        r
+        for r in json.loads((OUT / "internal.json").read_text(encoding="utf-8"))
+        if r["proof"] not in DEPRECATED
+    ]
     per = defaultdict(Counter)
     times = []
     for r in rows:
@@ -745,7 +993,9 @@ def tables_internal() -> None:
     tot = Counter()
     for rule, c in sorted(per.items(), key=lambda kv: -kv[1]["n"]):
         tot.update(c)
-        lines.append(f"{tt(rule)} & {c['n']} & {c['acc_True']} & {c['acc_False']} & {c['rej_True']} & {c['rej_False']} & {c['acc_unknown'] + c['rej_unknown']} \\\\")
+        lines.append(
+            f"{tt(rule)} & {c['n']} & {c['acc_True']} & {c['acc_False']} & {c['rej_True']} & {c['rej_False']} & {c['acc_unknown'] + c['rej_unknown']} \\\\"
+        )
     write(
         GEN / "tab_internal.tex",
         "\\begin{tabular}{@{}l r r r r r r@{}}\n\\toprule\n & & \\multicolumn{2}{c}{internal accepts} & \\multicolumn{2}{c}{internal rejects} & \\\\\n\\cmidrule(lr){3-4}\\cmidrule(lr){5-6}\nRule & Steps & prover \\emph{yes} & prover \\emph{no} & prover \\emph{yes} & prover \\emph{no} & unknown \\\\\n\\midrule\n"
@@ -784,7 +1034,10 @@ def _slots(node):
         yield from _slots(node.right)
     elif isinstance(node, JunctionFormula):
         for i in range(len(node.operands)):
-            yield (lambda n=node, i=i: n.operands[i], lambda v, n=node, i=i: n.operands.__setitem__(i, v))
+            yield (
+                lambda n=node, i=i: n.operands[i],
+                lambda v, n=node, i=i: n.operands.__setitem__(i, v),
+            )
             yield from _slots(node.operands[i])
     elif isinstance(node, QuantifiedFormula):
         yield (lambda n=node: n.formula, lambda v, n=node: setattr(n, "formula", v))
@@ -799,7 +1052,14 @@ def _nodes(node):
 
 def apply_operator(op: str, step, steps, rng):
     """Mutate `step` in place. Returns True if the operator was applicable."""
-    from src.parser.ast_nodes import Atom, BinaryFormula, Equality, JunctionFormula, Negation, QuantifiedFormula
+    from src.parser.ast_nodes import (
+        Atom,
+        BinaryFormula,
+        Equality,
+        JunctionFormula,
+        Negation,
+        QuantifiedFormula,
+    )
     from src.var_mapping import BinaryConnective, InferenceStatus, Quantifier
 
     f = step.formula
@@ -808,7 +1068,9 @@ def apply_operator(op: str, step, steps, rng):
         if not js:
             return False
         n = rng.choice(js)
-        n.connective = BinaryConnective.OR if n.connective == BinaryConnective.AND else BinaryConnective.AND
+        n.connective = (
+            BinaryConnective.OR if n.connective == BinaryConnective.AND else BinaryConnective.AND
+        )
         return True
     if op == "flip_implication":
         bs = [n for n in _nodes(f) if isinstance(n, BinaryFormula) and str(n.connective) == "=>"]
@@ -822,7 +1084,9 @@ def apply_operator(op: str, step, steps, rng):
         if not qs:
             return False
         n = rng.choice(qs)
-        n.quantifier = Quantifier.EXISTENTIAL if n.quantifier == Quantifier.UNIVERSAL else Quantifier.UNIVERSAL
+        n.quantifier = (
+            Quantifier.EXISTENTIAL if n.quantifier == Quantifier.UNIVERSAL else Quantifier.UNIVERSAL
+        )
         return True
     if op == "negate_atom":
         slots = [(g, s) for g, s in _slots(f) if isinstance(g(), (Atom, Equality))]
@@ -840,7 +1104,9 @@ def apply_operator(op: str, step, steps, rng):
         del step.inference.parents[rng.randrange(len(step.inference.parents))]
         return True
     if op == "redirect_parent":
-        names = [s.name for s in steps if s.name != step.name and s.name not in step.inference.parents]
+        names = [
+            s.name for s in steps if s.name != step.name and s.name not in step.inference.parents
+        ]
         earlier = []
         for s in steps:
             if s.name == step.name:
@@ -862,7 +1128,15 @@ def apply_operator(op: str, step, steps, rng):
     return False
 
 
-OPERATORS = ["flip_connective", "flip_implication", "swap_quantifier", "negate_atom", "remove_parent", "redirect_parent", "status_cth"]
+OPERATORS = [
+    "flip_connective",
+    "flip_implication",
+    "swap_quantifier",
+    "negate_atom",
+    "remove_parent",
+    "redirect_parent",
+    "status_cth",
+]
 OP_LABEL = {
     "flip_connective": "Change connective ($\\wedge\\leftrightarrow\\vee$)",
     "flip_implication": "Swap sides of an implication",
@@ -881,14 +1155,29 @@ def part_mutation(per_op: int = 2, max_steps: int = 80) -> None:
     from src.checker.external_atp_checker import validate_step_with_atp
 
     V.DEBUG_PROOF_FLOW = False
-    runs = [r for r in load("runs") if r["group"] in ("PRV",) and is_official(r) and r["expected"] == "CORRECT" and verdict(r) == "VerifiedGood" and len(r.get("steps", [])) <= max_steps]
+    runs = [
+        r
+        for r in load("runs")
+        if r["group"] in ("PRV",)
+        and is_official(r)
+        and r["expected"] == "CORRECT"
+        and verdict(r) == "VerifiedGood"
+        and len(r.get("steps", [])) <= max_steps
+    ]
     rng = random.Random(2026)
     orig_load = V.load_proof
     rows = []
     try:
         for r in runs:
             base = orig_load(r["proof"])
-            elig = [s for s in base.steps if s.inference and str(s.inference.rule) not in ("skolemize", "negated_conjecture") and s.role not in ("axiom", "conjecture") and str(s.inference.status) == "thm"]
+            elig = [
+                s
+                for s in base.steps
+                if s.inference
+                and str(s.inference.rule) not in ("skolemize", "negated_conjecture")
+                and s.role not in ("axiom", "conjecture")
+                and str(s.inference.status) == "thm"
+            ]
             for op in OPERATORS:
                 tried = 0
                 cand = elig[:]
@@ -915,11 +1204,24 @@ def part_mutation(per_op: int = 2, max_steps: int = 80) -> None:
                     if not killed:
                         by = {x.name: x for x in mp.steps}
                         try:
-                            ok, _ = validate_step_with_atp(s.formula, [by[p].formula for p in s.inference.parents if p in by], 10.0)
+                            ok, _ = validate_step_with_atp(
+                                s.formula,
+                                [by[p].formula for p in s.inference.parents if p in by],
+                                10.0,
+                            )
                         except Exception:  # noqa: BLE001
                             ok = "unknown"
                         entailed = ok
-                    rows.append(dict(proof=r["name"], op=op, step=s.name, rule=str(s.inference.rule), killed=killed, survivor_entailed=str(entailed)))
+                    rows.append(
+                        dict(
+                            proof=r["name"],
+                            op=op,
+                            step=s.name,
+                            rule=str(s.inference.rule),
+                            killed=killed,
+                            survivor_entailed=str(entailed),
+                        )
+                    )
             print("[mutation]", r["name"], len(rows), flush=True)
     finally:
         V.load_proof = orig_load
@@ -927,7 +1229,11 @@ def part_mutation(per_op: int = 2, max_steps: int = 80) -> None:
 
 
 def tables_mutation() -> None:
-    rows = [r for r in json.loads((OUT / "mutation.json").read_text(encoding="utf-8")) if r["proof"] not in DEPRECATED]
+    rows = [
+        r
+        for r in json.loads((OUT / "mutation.json").read_text(encoding="utf-8"))
+        if r["proof"] not in DEPRECATED
+    ]
     lines = []
     tot = Counter()
     for op in OPERATORS:
@@ -940,7 +1246,9 @@ def tables_mutation() -> None:
         miss = len(surv) - eq
         tot.update(dict(n=len(rs), killed=killed, eq=eq, miss=miss))
         adj = len(rs) - eq
-        lines.append(f"{OP_LABEL[op]} & {len(rs)} & {killed} & {eq} & {miss} & {pct(killed, adj)}\\,\\% \\\\")
+        lines.append(
+            f"{OP_LABEL[op]} & {len(rs)} & {killed} & {eq} & {miss} & {pct(killed, adj)}\\,\\% \\\\"
+        )
     adj = tot["n"] - tot["eq"]
     write(
         GEN / "tab_mutation.tex",
@@ -957,13 +1265,28 @@ def tables_mutation() -> None:
         ops = [op for op in OPERATORS if any(r["op"] == op for r in rows)]
         plain = {op: OP_LABEL[op].replace("\\texttt{", "").replace("}", "") for op in ops}
         killed = [sum(r["killed"] for r in rows if r["op"] == op) for op in ops]
-        eq = [sum(1 for r in rows if r["op"] == op and not r["killed"] and r["survivor_entailed"] == "True") for op in ops]
-        miss = [sum(1 for r in rows if r["op"] == op and not r["killed"]) - e for op, e in zip(ops, eq)]
+        eq = [
+            sum(
+                1
+                for r in rows
+                if r["op"] == op and not r["killed"] and r["survivor_entailed"] == "True"
+            )
+            for op in ops
+        ]
+        miss = [
+            sum(1 for r in rows if r["op"] == op and not r["killed"]) - e for op, e in zip(ops, eq)
+        ]
         fig, ax = plt.subplots(figsize=(6.2, 2.9))
         ys = list(range(len(ops)))[::-1]
         ax.barh(ys, killed, color="#1f77b4", label="rejected (killed)")
         ax.barh(ys, eq, left=killed, color="#bbbbbb", label="accepted, still valid")
-        ax.barh(ys, miss, left=[k + e for k, e in zip(killed, eq)], color="#d62728", label="accepted, not valid (miss)")
+        ax.barh(
+            ys,
+            miss,
+            left=[k + e for k, e in zip(killed, eq)],
+            color="#d62728",
+            label="accepted, not valid (miss)",
+        )
         ax.set_yticks(ys)
         ax.set_yticklabels([plain[op] for op in ops], fontsize=7.5)
         ax.set_xlabel("number of mutants")
@@ -978,8 +1301,14 @@ def tables_mutation() -> None:
         print("mutation figure failed:", exc)
     macros(
         "eval_mutation_macros",
-        dict(EvalMutN=tot["n"], EvalMutKilled=tot["killed"], EvalMutEq=tot["eq"], EvalMutMiss=tot["miss"], EvalMutRate=pct(tot["killed"], adj),
-             EvalMutProofs=len({r["proof"] for r in rows})),
+        dict(
+            EvalMutN=tot["n"],
+            EvalMutKilled=tot["killed"],
+            EvalMutEq=tot["eq"],
+            EvalMutMiss=tot["miss"],
+            EvalMutRate=pct(tot["killed"], adj),
+            EvalMutProofs=len({r["proof"] for r in rows}),
+        ),
     )
     miss = [r for r in rows if not r["killed"] and r["survivor_entailed"] != "True"]
     write(OUT / "mutation_misses.json", json.dumps(miss, indent=1))
@@ -1001,18 +1330,34 @@ def part_inputs() -> None:
         "empty file": "",
         "truncated in the middle of a formula": text[: len(text) // 2],
         "binary garbage": "\x00\x01\x02\xff" * 200,
-        "unknown inference rule": re.sub(r"inference\((\w+),", "inference(frobnicate,", text, count=1),
-        "missing inference annotation": re.sub(r",\s*inference\([^\n]*\)\s*\)\s*\.", ").", text, count=1),
+        "unknown inference rule": re.sub(
+            r"inference\((\w+),", "inference(frobnicate,", text, count=1
+        ),
+        "missing inference annotation": re.sub(
+            r",\s*inference\([^\n]*\)\s*\)\s*\.", ").", text, count=1
+        ),
         "unknown status": text.replace("status(thm)", "status(bogus)", 1),
-        "duplicate step names": text + "\n" + text[text.index("fof("):text.index(").", text.index("fof(")) + 2],
-        f"deeply nested negations ({depth})": "% SZS output start Proof\nfof(a1, axiom, " + "~" * depth + "p(a), file('Problems/PRV010+1.p',s0)).\n% SZS output end Proof\n",
-        f"deeply nested terms ({depth})": "fof(a1, axiom, p(" + "f(" * depth + "a" + ")" * depth + "), file('Problems/PRV010+1.p',s0)).\n",
+        "duplicate step names": text
+        + "\n"
+        + text[text.index("fof(") : text.index(").", text.index("fof(")) + 2],
+        f"deeply nested negations ({depth})": "% SZS output start Proof\nfof(a1, axiom, "
+        + "~" * depth
+        + "p(a), file('Problems/PRV010+1.p',s0)).\n% SZS output end Proof\n",
+        f"deeply nested terms ({depth})": "fof(a1, axiom, p("
+        + "f(" * depth
+        + "a"
+        + ")" * depth
+        + "), file('Problems/PRV010+1.p',s0)).\n",
         "only comments": "% nothing here\n% SZS output start Proof\n% SZS output end Proof\n",
     }
     res = []
     for name, content in cases.items():
         p = tmp / (re.sub(r"\W+", "_", name) + ".s")
-        p.write_text(content, encoding="utf-8", errors="surrogateescape") if "garbage" not in name else p.write_bytes(content.encode("latin-1"))
+        (
+            p.write_text(content, encoding="utf-8", errors="surrogateescape")
+            if "garbage" not in name
+            else p.write_bytes(content.encode("latin-1"))
+        )
         t0 = time.perf_counter()
         kind, payload = V.check_proof_file_with_timeout(str(p), str(prob), 30.0)
         dt = time.perf_counter() - t0
@@ -1022,7 +1367,9 @@ def part_inputs() -> None:
             out = "Timeout"
         else:
             out = "error"
-        res.append(dict(case=name, outcome=out, detail=(payload if kind == "error" else ""), seconds=dt))
+        res.append(
+            dict(case=name, outcome=out, detail=(payload if kind == "error" else ""), seconds=dt)
+        )
         print("[inputs]", name, out, f"{dt:.2f}s", flush=True)
     write(OUT / "inputs.json", json.dumps(res))
 
@@ -1034,18 +1381,33 @@ def tables_inputs() -> None:
         lines.append(f"{tex(r['case'])} & {tt(r['outcome'])} & {r['seconds']:.2f} \\\\")
     write(
         GEN / "tab_inputs.tex",
-        "\\begin{tabular}{@{}l l r@{}}\n\\toprule\nInput & Outcome & Time (s) \\\\\n\\midrule\n" + "\n".join(lines) + "\n\\bottomrule\n\\end{tabular}\n",
+        "\\begin{tabular}{@{}l l r@{}}\n\\toprule\nInput & Outcome & Time (s) \\\\\n\\midrule\n"
+        + "\n".join(lines)
+        + "\n\\bottomrule\n\\end{tabular}\n",
     )
-    macros("eval_inputs_macros", dict(EvalInputsN=len(res), EvalInputsAccepted=sum(1 for r in res if r["outcome"] == "VerifiedGood"),
-                                       EvalInputsCrash=sum(1 for r in res if r["outcome"] == "error")))
+    macros(
+        "eval_inputs_macros",
+        dict(
+            EvalInputsN=len(res),
+            EvalInputsAccepted=sum(1 for r in res if r["outcome"] == "VerifiedGood"),
+            EvalInputsCrash=sum(1 for r in res if r["outcome"] == "error"),
+        ),
+    )
 
 
 # ----------------------------------------------------------------------------
 # part: extra suite, coverage
 # ----------------------------------------------------------------------------
 def part_extra() -> None:
-    subprocess.run([sys.executable, str(ROOT / "scripts" / "gen_extra_tests.py")], check=True, cwd=ROOT)
-    subprocess.run([sys.executable, str(ROOT / "scripts" / "exp_extra_tests.py")], check=True, cwd=ROOT, stdout=subprocess.DEVNULL)
+    subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "gen_extra_tests.py")], check=True, cwd=ROOT
+    )
+    subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "exp_extra_tests.py")],
+        check=True,
+        cwd=ROOT,
+        stdout=subprocess.DEVNULL,
+    )
 
 
 def tables_extra() -> None:
@@ -1069,7 +1431,9 @@ def tables_extra() -> None:
     for rule in sorted(per):
         c = per[rule]
         tot.update(c)
-        lines.append(f"{tt(rule)} & {c['CORRECT']} & {c['acc_ok']} & {c['INCORRECT']} & {c['rej_ok']} & {c['by_rule']} & {c['EDGE'] or '--'} \\\\")
+        lines.append(
+            f"{tt(rule)} & {c['CORRECT']} & {c['acc_ok']} & {c['INCORRECT']} & {c['rej_ok']} & {c['by_rule']} & {c['EDGE'] or '--'} \\\\"
+        )
     write(
         GEN / "tab_extra.tex",
         "\\begin{tabular}{@{}l r r r r r r@{}}\n\\toprule\n & \\multicolumn{2}{c}{valid} & \\multicolumn{3}{c}{invalid} & \\\\\n\\cmidrule(lr){2-3}\\cmidrule(lr){4-6}\nRule & cases & accepted & cases & rejected & by the rule check & edge \\\\\n\\midrule\n"
@@ -1079,17 +1443,38 @@ def tables_extra() -> None:
     edge_rej = tot["edge_rej"]
     macros(
         "eval_extra_macros",
-        dict(EvalExtraN=len(rows), EvalExtraValid=tot["CORRECT"], EvalExtraInvalid=tot["INCORRECT"], EvalExtraEdge=tot["EDGE"],
-             EvalExtraAccOk=tot["acc_ok"], EvalExtraRejOk=tot["rej_ok"], EvalExtraByRule=tot["by_rule"],
-             EvalExtraEdgeRej=edge_rej, EvalExtraEdgeAcc=tot["edge_acc"], EvalExtraRules=len(per)),
+        dict(
+            EvalExtraN=len(rows),
+            EvalExtraValid=tot["CORRECT"],
+            EvalExtraInvalid=tot["INCORRECT"],
+            EvalExtraEdge=tot["EDGE"],
+            EvalExtraAccOk=tot["acc_ok"],
+            EvalExtraRejOk=tot["rej_ok"],
+            EvalExtraByRule=tot["by_rule"],
+            EvalExtraEdgeRej=edge_rej,
+            EvalExtraEdgeAcc=tot["edge_acc"],
+            EvalExtraRules=len(per),
+        ),
     )
 
 
 def part_coverage() -> None:
     cov = OUT / "coverage.json"
     subprocess.run(
-        [sys.executable, "-m", "pytest", "tests", "-q", "-p", "no:cacheprovider", f"--cov={ROOT / 'src'}", f"--cov-report=json:{cov}"],
-        cwd=ROOT, stdout=subprocess.DEVNULL, check=False,
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "tests",
+            "-q",
+            "-p",
+            "no:cacheprovider",
+            f"--cov={ROOT / 'src'}",
+            f"--cov-report=json:{cov}",
+        ],
+        cwd=ROOT,
+        stdout=subprocess.DEVNULL,
+        check=False,
     )
 
 
@@ -1111,26 +1496,42 @@ def tables_coverage() -> None:
             continue
         entry = (p.name, nlines, s["num_statements"], s["covered_lines"])
         (groups["checker"] if "checker" in p.parts else groups["other"]).append(entry)
+
     def line(e):
         return f"{tt(e[0])} & {e[1]} & {e[2]} & {pct(e[3], e[2])}\\,\\% \\\\"
+
     body = [line(e) for e in sorted(groups["checker"], key=lambda e: -e[1])]
     ck = groups["checker"]
     body.append("\\midrule")
-    body.append(f"Checker package & {sum(e[1] for e in ck)} & {sum(e[2] for e in ck)} & {pct(sum(e[3] for e in ck), sum(e[2] for e in ck))}\\,\\% \\\\")
+    body.append(
+        f"Checker package & {sum(e[1] for e in ck)} & {sum(e[2] for e in ck)} & {pct(sum(e[3] for e in ck), sum(e[2] for e in ck))}\\,\\% \\\\"
+    )
     allg = ck + groups["other"]
-    body.append(f"All of \\texttt{{src}} & {sum(e[1] for e in allg)} & {sum(e[2] for e in allg)} & {pct(sum(e[3] for e in allg), sum(e[2] for e in allg))}\\,\\% \\\\")
+    body.append(
+        f"All of \\texttt{{src}} & {sum(e[1] for e in allg)} & {sum(e[2] for e in allg)} & {pct(sum(e[3] for e in allg), sum(e[2] for e in allg))}\\,\\% \\\\"
+    )
     write(
         GEN / "tab_size.tex",
-        "\\begin{tabular}{@{}l r r r@{}}\n\\toprule\nModule & Lines & Statements & Coverage \\\\\n\\midrule\n" + "\n".join(body) + "\n\\bottomrule\n\\end{tabular}\n",
+        "\\begin{tabular}{@{}l r r r@{}}\n\\toprule\nModule & Lines & Statements & Coverage \\\\\n\\midrule\n"
+        + "\n".join(body)
+        + "\n\\bottomrule\n\\end{tabular}\n",
     )
     t = data["totals"]
-    big = max(ck, key=lambda e: e[1]); small = min(ck, key=lambda e: e[1])
+    big = max(ck, key=lambda e: e[1])
+    small = min(ck, key=lambda e: e[1])
     main_lines = sum(1 for _ in open(ROOT / "main.py", encoding="utf-8"))
     macros(
         "eval_size_macros",
-        dict(EvalCheckerLines=sum(e[1] for e in ck), EvalCheckerCov=pct(sum(e[3] for e in ck), sum(e[2] for e in ck)),
-             EvalTotalCov=f"{t['percent_covered']:.1f}", EvalBiggestChecker=tt(big[0].replace('.py', '')), EvalBiggestLines=big[1],
-             EvalSmallestChecker=tt(small[0].replace('.py', '')), EvalSmallestLines=small[1], EvalMainLines=main_lines),
+        dict(
+            EvalCheckerLines=sum(e[1] for e in ck),
+            EvalCheckerCov=pct(sum(e[3] for e in ck), sum(e[2] for e in ck)),
+            EvalTotalCov=f"{t['percent_covered']:.1f}",
+            EvalBiggestChecker=tt(big[0].replace(".py", "")),
+            EvalBiggestLines=big[1],
+            EvalSmallestChecker=tt(small[0].replace(".py", "")),
+            EvalSmallestLines=small[1],
+            EvalMainLines=main_lines,
+        ),
     )
 
 
@@ -1140,7 +1541,11 @@ def main() -> None:
     ap.add_argument("--parts", default="all")
     ap.add_argument("--reps", type=int, default=3)
     args = ap.parse_args()
-    parts = {"runs", "noatp", "internal", "mutation", "inputs", "extra", "coverage", "tables"} if args.parts == "all" else set(args.parts.split(","))
+    parts = (
+        {"runs", "noatp", "internal", "mutation", "inputs", "extra", "coverage", "tables"}
+        if args.parts == "all"
+        else set(args.parts.split(","))
+    )
     OUT.mkdir(parents=True, exist_ok=True)
     GEN.mkdir(parents=True, exist_ok=True)
 
@@ -1165,8 +1570,12 @@ def main() -> None:
         part_coverage()
     if "tables" in parts:
         make_tables()
-        for f, g in (("internal.json", tables_internal), ("mutation.json", tables_mutation), ("inputs.json", tables_inputs),
-                     ("coverage.json", tables_coverage)):
+        for f, g in (
+            ("internal.json", tables_internal),
+            ("mutation.json", tables_mutation),
+            ("inputs.json", tables_inputs),
+            ("coverage.json", tables_coverage),
+        ):
             if (OUT / f).exists():
                 g()
         if (ROOT / "results" / "extra" / "results.csv").exists():

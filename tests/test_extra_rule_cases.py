@@ -3,6 +3,7 @@
 The first group calls the rule checkers directly and needs no external prover.
 The last test runs the whole pipeline and is skipped when no ATP is available.
 """
+
 import csv
 import os
 import shutil
@@ -22,7 +23,7 @@ pytestmark = pytest.mark.skipif(not EXTRA.exists(), reason="run scripts/gen_extr
 
 
 def _expected() -> dict[str, tuple[str, str]]:
-    with open(ROOT / "src"/ "scoring" / "EXT_expected.csv", encoding="utf-8") as fh:
+    with open(ROOT / "src" / "scoring" / "EXT_expected.csv", encoding="utf-8") as fh:
         return {test: (name, exp) for name, test, exp, _ in csv.reader(fh)}
 
 
@@ -65,7 +66,9 @@ def _atp_available() -> bool:
     )
 
 
-@pytest.mark.skipif(not _atp_available(), reason="needs an external ATP for the final consequence step")
+@pytest.mark.skipif(
+    not _atp_available(), reason="needs an external ATP for the final consequence step"
+)
 def test_extra_suite_matches_ground_truth():
     wrong = []
     for test, (name, exp) in _expected().items():

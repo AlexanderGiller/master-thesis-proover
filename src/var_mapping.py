@@ -20,9 +20,9 @@ class InferenceStatus(StrEnum):
     CTH = "cth"  # counter-theorem (used for negated_conjecture step)
     ESA = "esa"  # equisatisfiable
     SAT = "sat"  # satisfiable
-    UNSAT = "unsat" # unsatisfiable
+    UNSAT = "unsat"  # unsatisfiable
     WTH = "wth"  # with theorem
-    #sat, unsat and wtf not part of 2026ProoVer benchmark, but included due to completeness of SZS ontology
+    # sat, unsat and wtf not part of 2026ProoVer benchmark, but included due to completeness of SZS ontology
 
 
 class InferenceRule(StrEnum):

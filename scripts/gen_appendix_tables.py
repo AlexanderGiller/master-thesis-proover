@@ -4,6 +4,7 @@
 Output: thesis/generated/tab_app_prv.tex, tab_app_tst.tex and tab_app_ext.tex (longtable; needs \\usepackage{longtable}).
 Usage:  python scripts/gen_appendix_tables.py
 """
+
 from __future__ import annotations
 
 import json
@@ -69,7 +70,11 @@ def main() -> None:
     tst = [r for r in runs if r["group"] == "TST"]
     ext = [r for r in runs if r["group"] == "EXT"]
     (OUT / "tab_app_prv.tex").write_text(
-        table(prv, "Results for each proof of the ProoVer set (official proofs and samples).", "tab:app-prv"),
+        table(
+            prv,
+            "Results for each proof of the ProoVer set (official proofs and samples).",
+            "tab:app-prv",
+        ),
         encoding="utf-8",
     )
     (OUT / "tab_app_tst.tex").write_text(
@@ -77,7 +82,11 @@ def main() -> None:
         encoding="utf-8",
     )
     (OUT / "tab_app_ext.tex").write_text(
-        table(ext, "Results for each proof of the Extra set (generated rule-level test proofs).", "tab:app-ext"),
+        table(
+            ext,
+            "Results for each proof of the Extra set (generated rule-level test proofs).",
+            "tab:app-ext",
+        ),
         encoding="utf-8",
     )
     print(f"wrote {len(prv)} PRV, {len(tst)} TST and {len(ext)} EXT rows")

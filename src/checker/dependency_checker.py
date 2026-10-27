@@ -1,5 +1,4 @@
-"""Checkers that detect circular reasoning in a proof's dependency graph.
-"""
+"""Checkers that detect circular reasoning in a proof's dependency graph."""
 
 from dataclasses import dataclass
 
@@ -93,9 +92,7 @@ def check_conjecture_not_assumed(
     established premise, i.e. assuming what it set out to prove.
     """
     steps_by_name = {step.name: step for step in steps}
-    conjecture_names = {
-        step.name for step in steps if step.role == FormulaRole.CONJECTURE
-    }
+    conjecture_names = {step.name for step in steps if step.role == FormulaRole.CONJECTURE}
     issues: list[CircularDependencyIssue] = []
 
     if not conjecture_names:

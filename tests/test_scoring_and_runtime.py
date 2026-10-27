@@ -148,7 +148,11 @@ def test_expected_results_loader_accepts_all_layouts(tmp_path):
         encoding="utf-8",
     )
     scorer = ProofScorer(str(f))
-    assert scorer.expected == {"PRV001+1.s": "CORRECT", "TST001+1.s": "INCORRECT", "EXT001+1.s": "EDGE"}
+    assert scorer.expected == {
+        "PRV001+1.s": "CORRECT",
+        "TST001+1.s": "INCORRECT",
+        "EXT001+1.s": "EDGE",
+    }
     assert scorer.score_proof("missing.s", "VerifiedGood").expected_status == "UNKNOWN"
     assert ProofScorer(str(tmp_path / "nope.csv")).expected == {}
 
@@ -189,9 +193,7 @@ def test_score_proofs_script(tmp_path, monkeypatch, capsys):
         encoding="utf-8",
     )
     output = tmp_path / "report.csv"
-    monkeypatch.setattr(
-        sys, "argv", ["score_proofs", "-r", str(results), "-o", str(output)]
-    )
+    monkeypatch.setattr(sys, "argv", ["score_proofs", "-r", str(results), "-o", str(output)])
     score_proofs.main()
     assert output.exists()
     assert "Total Points:          3" in capsys.readouterr().out

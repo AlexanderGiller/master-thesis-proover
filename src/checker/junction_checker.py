@@ -1,5 +1,4 @@
-"""Checkers for junction-reshaping and tautology-introduction proof steps.
-"""
+"""Checkers for junction-reshaping and tautology-introduction proof steps."""
 
 from dataclasses import dataclass
 
@@ -159,7 +158,9 @@ def check_excluded_middle(step: AnnotatedFormula) -> list[JunctionIssue]:
         if not isinstance(operand, Negation):
             continue
         remaining = operands[:index] + operands[index + 1 :]
-        phi = remaining[0] if len(remaining) == 1 else JunctionFormula(BinaryConnective.OR, remaining)
+        phi = (
+            remaining[0] if len(remaining) == 1 else JunctionFormula(BinaryConnective.OR, remaining)
+        )
         if is_alpha_equivalent(phi, operand.formula):
             return issues
 

@@ -26,6 +26,7 @@ Usage (project root, in WSL):
     python scripts/exp_skolem_mutants.py --vampire ~/vampire/vampire --per-kind 60
 Output: results/skolem_mutants.csv, results/skolem_mutants_summary.json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -106,7 +107,9 @@ def replace_skolem_term(formula, functor, new_term_fn):
 
 def set_skolem_info(step, term):
     inf = step.inference
-    info = [dataclasses.replace(i, term=term) if isinstance(i, SkolemizeInfo) else i for i in inf.info]
+    info = [
+        dataclasses.replace(i, term=term) if isinstance(i, SkolemizeInfo) else i for i in inf.info
+    ]
     return dataclasses.replace(step, inference=dataclasses.replace(inf, info=info))
 
 
@@ -143,8 +146,10 @@ def m_drop_arg(step, parent):
     if binder is None:
         return None
     needed = [
-        k for k, a in enumerate(info.term.args)
-        if isinstance(a, Variable) and _occurs(binder.formula, a.name)
+        k
+        for k, a in enumerate(info.term.args)
+        if isinstance(a, Variable)
+        and _occurs(binder.formula, a.name)
         and a.name not in [str(v) for v in binder.variables]
     ]
     if not needed:
@@ -249,7 +254,9 @@ def vampire_entails(vampire: str, conclusion, premise, timeout: int) -> str:
     try:
         out = subprocess.run(
             [vampire, "--mode", "casc", "-t", str(timeout), path],
-            capture_output=True, text=True, timeout=timeout + 10,
+            capture_output=True,
+            text=True,
+            timeout=timeout + 10,
         ).stdout
     except subprocess.TimeoutExpired:
         return "Timeout"
@@ -264,7 +271,9 @@ def vampire_entails(vampire: str, conclusion, premise, timeout: int) -> str:
 # ------------------------------------------------------------------------ main
 def collect_steps():
     items = []
-    for p in sorted(q for d in ("PRV", "Deprecated", "Test") for q in (ROOT / "ProoVer2026" / d).glob("*.s")):
+    for p in sorted(
+        q for d in ("PRV", "Deprecated", "Test") for q in (ROOT / "ProoVer2026" / d).glob("*.s")
+    ):
         try:
             proof = load_proof(str(p))
         except Exception as exc:  # noqa: BLE001
@@ -284,8 +293,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--vampire", default=None, help="path to vampire (omit: checker only)")
     ap.add_argument("--per-kind", type=int, default=1000)
-    ap.add_argument("--max-per-proof", type=int, default=10,
-                    help="cap per proof and kind (PRV072 alone has ~5000 Skolem steps)")
+    ap.add_argument(
+        "--max-per-proof",
+        type=int,
+        default=10,
+        help="cap per proof and kind (PRV072 alone has ~5000 Skolem steps)",
+    )
     ap.add_argument("--timeout", type=int, default=10)
     ap.add_argument("--seed", type=int, default=1)
     args = ap.parse_args()
@@ -294,9 +307,11 @@ def main():
     all_items = collect_steps()
     items = [t for t in all_items if not check_skolemization(t[1], t[2])]
     rejected_orig = sorted({t[0] for t in all_items if check_skolemization(t[1], t[2])})
-    print(f"skolemize steps in reference proofs: {len(all_items)}; "
-          f"accepted by checker: {len(items)}; rejected: {len(all_items) - len(items)} "
-          f"(in proofs: {', '.join(rejected_orig)})")
+    print(
+        f"skolemize steps in reference proofs: {len(all_items)}; "
+        f"accepted by checker: {len(items)}; rejected: {len(all_items) - len(items)} "
+        f"(in proofs: {', '.join(rejected_orig)})"
+    )
     random.shuffle(items)
 
     rows = []
@@ -308,8 +323,11 @@ def main():
                 for r in csv.DictReader(fh):
                     expected[Path(r["Proof"]).stem] = r["Expected"]
     bad_items = [t for t in all_items if check_skolemization(t[1], t[2])]
-    kinds = {"orig": ("valid", lambda s, p: s), **MUTATIONS,
-             "reference_rejected": ("invalid(?)", lambda s, p: s)}
+    kinds = {
+        "orig": ("valid", lambda s, p: s),
+        **MUTATIONS,
+        "reference_rejected": ("invalid(?)", lambda s, p: s),
+    }
     for kind, (truth, fn) in kinds.items():
         n = 0
         per_proof = collections.Counter()
@@ -324,7 +342,9 @@ def main():
                 continue
             if kind != "reference_rejected" and per_proof[proof] >= args.max_per_proof:
                 continue
-            if kind not in ("orig", "reference_rejected") and is_alpha_equivalent(mutant.formula, step.formula):
+            if kind not in ("orig", "reference_rejected") and is_alpha_equivalent(
+                mutant.formula, step.formula
+            ):
                 continue  # mutation had no effect
             n += 1
             per_proof[proof] += 1
@@ -334,10 +354,23 @@ def main():
             oracle = ""
             if args.vampire:
                 st = vampire_entails(args.vampire, mutant.formula, parent.formula, args.timeout)
-                oracle = "accept" if st == "Theorem" else ("reject" if st == "CounterSatisfiable" else st)
-            rows.append(dict(kind=kind, truth=truth, proof=proof, step=step.name,
-                             expected_proof=expected.get(proof, ""),
-                             checker=checker, oracle=oracle, checker_reason=reason))
+                oracle = (
+                    "accept"
+                    if st == "Theorem"
+                    else ("reject" if st == "CounterSatisfiable" else st)
+                )
+            rows.append(
+                dict(
+                    kind=kind,
+                    truth=truth,
+                    proof=proof,
+                    step=step.name,
+                    expected_proof=expected.get(proof, ""),
+                    checker=checker,
+                    oracle=oracle,
+                    checker_reason=reason,
+                )
+            )
         print(f"{kind}: {n} mutants")
 
     out = ROOT / "results"
@@ -354,8 +387,9 @@ def main():
             checker=dict(collections.Counter(x["checker"] for x in r)),
             oracle=dict(collections.Counter(x["oracle"] for x in r)) if args.vampire else None,
         )
-    summ["_reference_steps"] = dict(total=len(all_items), accepted=len(items),
-                                    proofs_with_rejected_steps=rejected_orig)
+    summ["_reference_steps"] = dict(
+        total=len(all_items), accepted=len(items), proofs_with_rejected_steps=rejected_orig
+    )
     (out / "skolem_mutants_summary.json").write_text(json.dumps(summ, indent=2))
     print(json.dumps(summ, indent=2))
 

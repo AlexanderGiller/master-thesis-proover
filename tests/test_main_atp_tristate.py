@@ -16,7 +16,9 @@ def test_external_atp_unknown_creates_issue(monkeypatch):
     )
 
     monkeypatch.setattr("main.parse_file", lambda _path: [])
-    monkeypatch.setattr("main.load_proof", lambda _path: ProofFile(problem_ref="dummy", steps=[step]))
+    monkeypatch.setattr(
+        "main.load_proof", lambda _path: ProofFile(problem_ref="dummy", steps=[step])
+    )
     monkeypatch.setattr(
         "main.validate_step_with_atp",
         lambda step_formula, premise_formulas, timeout_seconds: (

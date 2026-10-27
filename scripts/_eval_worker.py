@@ -7,6 +7,7 @@ the wall-clock/CPU time of the check, the parse time, and the peak memory.
 
 Usage: python scripts/_eval_worker.py PROOF PROBLEM
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -24,7 +25,9 @@ sys.path.insert(0, str(ROOT))
 STEP_RE = re.compile(
     r"^\[DBG\] (?P<name>.+?): branch=(?P<branch>.*?), rule=(?P<rule>[^,]*), status=(?P<status>[^,]*), parents=(?P<n>\d+)$"
 )
-ATP_RE = re.compile(r"^\[DBG\] (?P<name>.+?): ATP call took (?P<t>[\d.]+)s, valid=(?P<v>[^,]+), note=(?P<note>.*)$")
+ATP_RE = re.compile(
+    r"^\[DBG\] (?P<name>.+?): ATP call took (?P<t>[\d.]+)s, valid=(?P<v>[^,]+), note=(?P<note>.*)$"
+)
 
 
 def main() -> None:
@@ -63,12 +66,20 @@ def main() -> None:
         m = STEP_RE.match(line)
         if m:
             steps.append(
-                dict(name=m["name"], branch=m["branch"], rule=m["rule"], status=m["status"], parents=int(m["n"]))
+                dict(
+                    name=m["name"],
+                    branch=m["branch"],
+                    rule=m["rule"],
+                    status=m["status"],
+                    parents=int(m["n"]),
+                )
             )
             continue
         m = ATP_RE.match(line)
         if m:
-            atp.setdefault(m["name"], []).append(dict(t=float(m["t"]), valid=m["v"], note=m["note"]))
+            atp.setdefault(m["name"], []).append(
+                dict(t=float(m["t"]), valid=m["v"], note=m["note"])
+            )
 
     atp_time = sum(c["t"] for calls in atp.values() for c in calls)
     rec = dict(
@@ -76,14 +87,18 @@ def main() -> None:
         error=err,
         all_ok=None if result is None else bool(result["all_ok"]),
         verdict=None if result is None else result.get("verdict"),
-        issues={}
-        if result is None
-        else {
-            k: {s: v[:2] for s, v in list(val.items())[:20]}
-            for k, val in result.items()
-            if k.endswith("_issues") and val
-        },
-        n_issue_steps=0 if result is None else sum(len(v) for k, v in result.items() if k.endswith("_issues")),
+        issues=(
+            {}
+            if result is None
+            else {
+                k: {s: v[:2] for s, v in list(val.items())[:20]}
+                for k, val in result.items()
+                if k.endswith("_issues") and val
+            }
+        ),
+        n_issue_steps=(
+            0 if result is None else sum(len(v) for k, v in result.items() if k.endswith("_issues"))
+        ),
         steps=steps,
         atp=atp,
         atp_calls=sum(len(c) for c in atp.values()),

@@ -1,7 +1,13 @@
 from src.checker.junction_checker import check_excluded_middle
-from src.parser.ast_nodes import AnnotatedFormula, Atom, Equality, InferenceRecord, StatusInfo
+from src.parser.ast_nodes import (
+    AnnotatedFormula,
+    Atom,
+    Equality,
+    InferenceRecord,
+    JunctionFormula,
+    StatusInfo,
+)
 from src.var_mapping import BinaryConnective, FormulaRole, InferenceRule, InferenceStatus
-from src.parser.ast_nodes import JunctionFormula
 
 
 def test_excluded_middle_accepts_equality_or_its_negation():
@@ -23,4 +29,3 @@ def test_excluded_middle_accepts_equality_or_its_negation():
     )
 
     assert check_excluded_middle(step) == []
-

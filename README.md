@@ -260,11 +260,11 @@ Variablen `EXTERNAL_ATP_BINARY` / `EXTERNAL_ATP_COMMAND` wie der Verifier (unter
 |---|---|---|---|
 | `eval_all.py` | Treiber der gesamten Evaluation | ja (ausser `noatp`, `coverage`, `inputs`, `tables`) | alle Tabellen, Zahlen und Abbildungen von Kapitel 7 |
 | `_eval_worker.py` | prueft einen Proof in einem frischen Prozess (wird von `eval_all.py` aufgerufen) | indirekt | Laufzeit- und Speicherwerte |
-| `gen_extra_tests.py` | erzeugt das Extra-Set (Regeltests) | nein | Abschnitt 7.2 |
-| `exp_extra_tests.py` | prueft das Extra-Set und vergleicht mit der Erwartung | ja | Abschnitt 7.2 |
-| `run_vampire_all.sh` | laesst Vampire auf allen Problemen laufen | ja | Fallstudie in 8.3 |
-| `exp_vampire_compat.py` | gibt die Vampire-Beweise an den Verifier | optional | Tabelle zu unveraenderten Vampire-Beweisen (8.3) |
-| `exp_skolem_mutants.py` | vergleicht den Skolem-Check mit einem Entailment-Orakel | optional | Tabelle Skolem-Check vs. Orakel (8.3) |
+| `gen_extra_tests.py` | erzeugt das Extra-Set (Regeltests) | nein | Abschnitt 7.3 |
+| `exp_extra_tests.py` | prueft das Extra-Set und vergleicht mit der Erwartung | ja | Abschnitt 7.3 |
+| `run_vampire_all.sh` | laesst Vampire auf allen Problemen laufen | ja | Fallstudie in 8.4 |
+| `exp_vampire_compat.py` | gibt die Vampire-Beweise an den Verifier | optional | Tabelle zu unveraenderten Vampire-Beweisen (8.4) |
+| `exp_skolem_mutants.py` | vergleicht den Skolem-Check mit einem Entailment-Orakel | optional | Tabelle Skolem-Check vs. Orakel (8.4) |
 | `gen_dag_figure.py` | zeichnet den Abhaengigkeitsgraphen eines Proofs | nein (Graphviz) | Abbildung zu `PRV089` (Design) |
 | `gen_appendix_tables.py` | Tabellen pro Proof (Status, Laufzeit) | nein | nicht mehr in der Thesis, Uebersicht fuer das Repo |
 
@@ -287,7 +287,7 @@ python scripts/eval_all.py --parts tables            # nur Tabellen/Makros/Abbil
 | `internal` | Stichprobe intern gepruefter Schritte, jeweils zusaetzlich von Vampire geprueft | `internal.json` |
 | `mutation` | Mutationen gueltiger Proofs; akzeptierte Mutanten werden mit Vampire klassifiziert | `mutation.json`, `mutation_misses.json` |
 | `inputs` | Zehn kaputte Eingaben auf Basis von `PRV010+1.s` | `inputs.json` |
-| `extra` | Extra-Set (Regeltests) | Teil von `runs.json` |
+| `extra` | Erzeugt das Extra-Set neu (`gen_extra_tests.py`) und wertet es aus (`exp_extra_tests.py`) | `results/extra/results.csv` |
 | `coverage` | Testabdeckung mit pytest-cov und Zeilen pro Modul | `coverage.json` |
 | `tables` | Erzeugt Tabellen, Makros und die Abbildungen `rule_coverage`, `runtime_scatter`, `mutation_outcomes` neu | - |
 
@@ -313,7 +313,7 @@ Rewrite, Transitivitaet, Reflexivitaet, Junktoren-, Quantoren- und Strukturregel
 und mehrere Varianten mit bekanntem Fehler sowie einige Edge Cases. Ergebnis: `ProoVer2026/Extra/` mit
 `EXTnnn+1.s`, `Problems/EXTnnn+1.p` und `EXT_expected.csv`.
 
-`exp_extra_tests.py` prueft dieses Set und hält zusaetzlich fest, ob der Fehler vom Checker der Regel selbst
+`exp_extra_tests.py` prueft dieses Set und haelt zusaetzlich fest, ob der Fehler vom Checker der Regel selbst
 gemeldet wird oder nur vom letzten `consequence`-Schritt. Ergebnis: `results/extra/results.csv` und `summary.json`.
 
 ```bash
@@ -325,10 +325,11 @@ Nuetzlich, wenn ein neuer Regel-Checker hinzukommt: Generator erweitern, Set neu
 
 ### run_vampire_all.sh
 
-Laesst Vampire im CASC-Modus auf allen 176 Problemen aus `ProoVer2026/PRV/Problems`, `ProoVer2026/Deprecated/Problems`
-und `ProoVer2026/Test/Problems` laufen und legt die SZS-Ergebnisse und die Beweise unter `results/vampire/` ab
-(`summary.csv`, `raw/`, `proofs/`). Grundlage fuer die Fallstudie zur Uebertragbarkeit (Kapitel 8.3).
-Die deprecated Paare sind bewusst dabei, damit die Zahlen der Thesis (176 Probleme) reproduziert werden.
+Laesst Vampire im CASC-Modus auf allen Problemen aus `ProoVer2026/PRV/Problems` und `ProoVer2026/Test/Problems`
+laufen und legt die SZS-Ergebnisse und die Beweise unter `results/vampire/` ab
+(`summary.csv`, `raw/`, `proofs/`). Grundlage fuer die Fallstudie zur Uebertragbarkeit (Kapitel 8.4).
+Die Messung in der Thesis lief noch mit allen 100 PRV-Problemen; seit die 9 deprecated Paare in
+`ProoVer2026/Deprecated/` liegen, werden sie hier nicht mehr mitgenommen.
 
 ```bash
 bash scripts/run_vampire_all.sh                      # alle Probleme
@@ -352,9 +353,7 @@ python scripts/exp_vampire_compat.py --verify --timeout 60
 Nimmt die Skolemisierungsschritte der Referenzbeweise, erzeugt Mutanten mit bekanntem Fehler
 (`drop_arg`, `universal`, `negate_atom`, `drop_conjunct`) und vergleicht den internen Skolem-Check mit einem
 Entailment-Orakel (Vampire prueft, ob die Konklusion die Praemisse impliziert). Zeigt, welche Fehler eine reine
-Entailment-Pruefung uebersieht. Ohne `--vampire` wird nur der Checker ausgewertet. Die erwarteten Ergebnisse der Proofs liest das Skript aus
-`results/PRV_results.csv`, `results/Deprecated_results.csv` und `results/Test_results.csv`, also vorher
-`python main.py -d ProoVer2026/PRV`, `-d ProoVer2026/Deprecated` und `-d ProoVer2026/Test` ausfuehren.
+Entailment-Pruefung uebersieht. Ohne `--vampire` wird nur der Checker ausgewertet.
 Ergebnis: `results/skolem_mutants.csv` und `skolem_mutants_summary.json`.
 
 ```bash
@@ -387,11 +386,11 @@ python scripts/gen_appendix_tables.py
 1. Installation wie oben, Vampire 5.0.1 im `PATH` oder ueber `EXTERNAL_ATP_BINARY`.
 2. Tests: `pytest` (291 Tests laufen ohne Prover, 2 brauchen Vampire).
 3. Evaluation: `python scripts/eval_all.py --parts all --reps 3` (mehrere Minuten; Rechner moeglichst nicht anderweitig belasten).
-4. Optional die Fallstudie aus Kapitel 8.3:
+4. Optional die Fallstudie aus Kapitel 8.4:
    `bash scripts/run_vampire_all.sh`, danach `python scripts/exp_vampire_compat.py --verify` und `python scripts/exp_skolem_mutants.py --vampire <pfad>`.
 5. Thesis bauen (in `thesis/`): `latexmk -pdf main.tex`. Vorher `main.aux` und `main.bbl` loeschen, wenn sich die Literatur geaendert hat.
 
-Die Rohdaten des Laufs, der in der Thesis steht, liegen in `results/eval/` (Commit siehe `env.json`).
+Die Rohdaten des Laufs, der in der Thesis steht, liegen in `results/eval/` und `results/extra/` (Commit siehe `results/eval/env.json`).
 
 ## Tests und Entwicklung
 

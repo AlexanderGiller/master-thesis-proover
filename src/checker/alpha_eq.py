@@ -63,9 +63,13 @@ def _normalize_quantifiers(node):
             negated=node.negated,
         )
     if isinstance(node, Atom):
-        return Atom(predicate=node.predicate, args=[_normalize_quantifiers(arg) for arg in node.args])
+        return Atom(
+            predicate=node.predicate, args=[_normalize_quantifiers(arg) for arg in node.args]
+        )
     if isinstance(node, FunctionTerm):
-        return FunctionTerm(functor=node.functor, args=[_normalize_quantifiers(arg) for arg in node.args])
+        return FunctionTerm(
+            functor=node.functor, args=[_normalize_quantifiers(arg) for arg in node.args]
+        )
     return node
 
 

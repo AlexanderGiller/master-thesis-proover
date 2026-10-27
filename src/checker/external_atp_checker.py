@@ -24,7 +24,6 @@ from src.parser.ast_nodes import (
 )
 from src.var_mapping import BinaryConnective, InferenceStatus
 
-
 ATPValidation = bool | Literal["unknown"]
 
 # SZS statuses that settle the entailment question for "premises |= goal".
@@ -85,8 +84,7 @@ def formula_to_tptp(formula: object) -> str:
         if connective == BinaryConnective.IMPLIED:
             connective = BinaryConnective.IMPLIES
         return (
-            f"({formula_to_tptp(formula.left)} {connective} "
-            f"{formula_to_tptp(formula.right)})"
+            f"({formula_to_tptp(formula.left)} {connective} " f"{formula_to_tptp(formula.right)})"
         )
     if isinstance(formula, JunctionFormula):
         sep = f" {formula.connective} "

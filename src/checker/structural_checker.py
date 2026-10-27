@@ -46,14 +46,18 @@ def check_duplicate(
     alpha-equivalent to each other, with the conclusion matching both."""
     issues = _check_inference_metadata(step, InferenceRule.DUPLICATE)
     if not is_alpha_equivalent(first_parent.formula, second_parent.formula):
-        issues.append(StructuralIssue(step.name, "the two parent formulas are not alpha-equivalent"))
+        issues.append(
+            StructuralIssue(step.name, "the two parent formulas are not alpha-equivalent")
+        )
         return issues
     if not is_alpha_equivalent(step.formula, first_parent.formula):
         issues.append(StructuralIssue(step.name, "duplicated formula does not match its parents"))
     return issues
 
 
-def check_rename_variable(step: AnnotatedFormula, parent: AnnotatedFormula) -> list[StructuralIssue]:
+def check_rename_variable(
+    step: AnnotatedFormula, parent: AnnotatedFormula
+) -> list[StructuralIssue]:
     """Check that a rename_variable step only renames (bound) variables,
     i.e. the resulting formula must be alpha-equivalent to its parent."""
     issues = _check_inference_metadata(step, InferenceRule.RENAME_VARIABLE)
@@ -64,7 +68,9 @@ def check_rename_variable(step: AnnotatedFormula, parent: AnnotatedFormula) -> l
     return issues
 
 
-def check_double_negation(step: AnnotatedFormula, parent: AnnotatedFormula) -> list[StructuralIssue]:
+def check_double_negation(
+    step: AnnotatedFormula, parent: AnnotatedFormula
+) -> list[StructuralIssue]:
     """Check that a double_negation step wraps the parent formula in ~~."""
     issues = _check_inference_metadata(step, InferenceRule.DOUBLE_NEGATION)
     if not isinstance(step.formula, Negation) or not isinstance(step.formula.formula, Negation):
@@ -86,7 +92,9 @@ def check_remove_double_negation(
     """Check that a remove_double_negation step strips a leading ~~ from the parent."""
     issues = _check_inference_metadata(step, InferenceRule.REMOVE_DOUBLE_NEGATION)
     if not isinstance(parent.formula, Negation) or not isinstance(parent.formula.formula, Negation):
-        issues.append(StructuralIssue(step.name, "parent formula must be a double negation (~~...)"))
+        issues.append(
+            StructuralIssue(step.name, "parent formula must be a double negation (~~...)")
+        )
         return issues
     inner = parent.formula.formula.formula
     if not is_alpha_equivalent(step.formula, inner):

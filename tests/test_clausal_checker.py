@@ -15,11 +15,17 @@ from src.parser.ast_nodes import (
     InferenceRecord,
     JunctionFormula,
     Negation,
+    QuantifiedFormula,
     StatusInfo,
     Variable,
-    QuantifiedFormula,
 )
-from src.var_mapping import BinaryConnective, FormulaRole, InferenceRule, InferenceStatus, Quantifier
+from src.var_mapping import (
+    BinaryConnective,
+    FormulaRole,
+    InferenceRule,
+    InferenceStatus,
+    Quantifier,
+)
 
 
 def annotated(name, formula, inference=None):
@@ -52,7 +58,9 @@ class TestReflexivity:
 
     def test_reflexivity_rejects_non_equality(self):
         parent = annotated("p", Atom("p", [Constant("a")]))
-        step = annotated("s", Atom("q", [Constant("a")]), inference(InferenceRule.REFLEXIVITY, ["p"]))
+        step = annotated(
+            "s", Atom("q", [Constant("a")]), inference(InferenceRule.REFLEXIVITY, ["p"])
+        )
         issues = check_reflexivity(step, parent)
         assert any("non-negated equality" in it.reason for it in issues)
 
@@ -156,7 +164,9 @@ class TestParamodulation:
         equation = annotated("eq", Equality(Constant("a"), Constant("b")))
         target = annotated("target", Atom("p", [Constant("a")]))
         step = annotated(
-            "s", Atom("p", [Constant("c")]), inference(InferenceRule.PARAMODULATION, ["eq", "target"])
+            "s",
+            Atom("p", [Constant("c")]),
+            inference(InferenceRule.PARAMODULATION, ["eq", "target"]),
         )
         issues = check_paramodulation(step, equation, target)
         assert any("not obtainable" in it.reason for it in issues)
@@ -192,7 +202,10 @@ class TestParamodulation:
 class TestResolution:
     def test_valid_ground_resolution(self):
         left = annotated(
-            "a1", JunctionFormula(BinaryConnective.OR, [Atom("p", [Constant("a")]), Atom("q", [Constant("a")])])
+            "a1",
+            JunctionFormula(
+                BinaryConnective.OR, [Atom("p", [Constant("a")]), Atom("q", [Constant("a")])]
+            ),
         )
         right = annotated("a2", Negation(Atom("p", [Constant("a")])))
         step = annotated(
@@ -206,7 +219,9 @@ class TestResolution:
             QuantifiedFormula(
                 Quantifier.UNIVERSAL,
                 ["X"],
-                JunctionFormula(BinaryConnective.OR, [Atom("p", [Variable("X")]), Atom("q", [Variable("X")])]),
+                JunctionFormula(
+                    BinaryConnective.OR, [Atom("p", [Variable("X")]), Atom("q", [Variable("X")])]
+                ),
             ),
         )
         right = annotated(
@@ -215,7 +230,8 @@ class TestResolution:
                 Quantifier.UNIVERSAL,
                 ["X"],
                 JunctionFormula(
-                    BinaryConnective.OR, [Negation(Atom("p", [Variable("X")])), Atom("s", [Variable("X")])]
+                    BinaryConnective.OR,
+                    [Negation(Atom("p", [Variable("X")])), Atom("s", [Variable("X")])],
                 ),
             ),
         )
@@ -224,7 +240,9 @@ class TestResolution:
             QuantifiedFormula(
                 Quantifier.UNIVERSAL,
                 ["X"],
-                JunctionFormula(BinaryConnective.OR, [Atom("q", [Variable("X")]), Atom("s", [Variable("X")])]),
+                JunctionFormula(
+                    BinaryConnective.OR, [Atom("q", [Variable("X")]), Atom("s", [Variable("X")])]
+                ),
             ),
             inference(InferenceRule.RESOLUTION, ["a1", "a2"]),
         )
@@ -233,7 +251,9 @@ class TestResolution:
     def test_resolution_resolves_to_false(self):
         left = annotated("r", Atom("p", [Constant("a")]))
         right = annotated("neg", Negation(Atom("p", [Constant("a")])))
-        step = annotated("bot", Atom("$false", []), inference(InferenceRule.RESOLUTION, ["r", "neg"]))
+        step = annotated(
+            "bot", Atom("$false", []), inference(InferenceRule.RESOLUTION, ["r", "neg"])
+        )
         assert check_resolution(step, left, right) == []
 
     def test_resolution_rejects_inconsistent_instantiation(self):
@@ -245,7 +265,9 @@ class TestResolution:
             QuantifiedFormula(
                 Quantifier.UNIVERSAL,
                 ["X"],
-                JunctionFormula(BinaryConnective.OR, [Atom("p", [Variable("X")]), Atom("r", [Variable("X")])]),
+                JunctionFormula(
+                    BinaryConnective.OR, [Atom("p", [Variable("X")]), Atom("r", [Variable("X")])]
+                ),
             ),
         )
         right = annotated(
@@ -254,7 +276,8 @@ class TestResolution:
                 Quantifier.UNIVERSAL,
                 ["X"],
                 JunctionFormula(
-                    BinaryConnective.OR, [Negation(Atom("p", [Variable("X")])), Atom("t", [Variable("X")])]
+                    BinaryConnective.OR,
+                    [Negation(Atom("p", [Variable("X")])), Atom("t", [Variable("X")])],
                 ),
             ),
         )
@@ -271,21 +294,29 @@ class TestResolution:
 
 class TestIntegrationAgainstRealProofs:
     def test_prv018_transitivity_and_paramodulation(self):
-        result = check_proof_file("ProoVer2026/PRV/PRV018+1.s", "ProoVer2026/PRV/Problems/PRV018+1.p")
+        result = check_proof_file(
+            "ProoVer2026/PRV/PRV018+1.s", "ProoVer2026/PRV/Problems/PRV018+1.p"
+        )
         assert result["transitivity_issues"] == {}
         assert result["paramodulation_issues"] == {}
 
     def test_prv020_resolution(self):
-        result = check_proof_file("ProoVer2026/PRV/PRV020+1.s", "ProoVer2026/PRV/Problems/PRV020+1.p")
+        result = check_proof_file(
+            "ProoVer2026/PRV/PRV020+1.s", "ProoVer2026/PRV/Problems/PRV020+1.p"
+        )
         assert result["resolution_issues"] == {}
 
     def test_prv021_resolution_and_paramodulation(self):
-        result = check_proof_file("ProoVer2026/PRV/PRV021+1.s", "ProoVer2026/PRV/Problems/PRV021+1.p")
+        result = check_proof_file(
+            "ProoVer2026/PRV/PRV021+1.s", "ProoVer2026/PRV/Problems/PRV021+1.p"
+        )
         assert result["resolution_issues"] == {}
         assert result["paramodulation_issues"] == {}
 
     def test_prv007_reflexivity_ok_but_paramodulation_unsound(self):
-        result = check_proof_file("ProoVer2026/PRV/PRV007+1.s", "ProoVer2026/PRV/Problems/PRV007+1.p")
+        result = check_proof_file(
+            "ProoVer2026/PRV/PRV007+1.s", "ProoVer2026/PRV/Problems/PRV007+1.p"
+        )
         assert result["reflexivity_issues"] == {}
         # The proof's "s" step generalizes a rewritten ground fact into a
         # fresh universally quantified variable, which is not a logically
@@ -294,7 +325,9 @@ class TestIntegrationAgainstRealProofs:
         assert result["paramodulation_issues"] != {}
 
     def test_prv067_resolution_is_unsound(self):
-        result = check_proof_file("ProoVer2026/PRV/PRV067+1.s", "ProoVer2026/PRV/Problems/PRV067+1.p")
+        result = check_proof_file(
+            "ProoVer2026/PRV/PRV067+1.s", "ProoVer2026/PRV/Problems/PRV067+1.p"
+        )
         # a1, a2 do not entail r(a) | t(b) under independent instantiation of
         # the shared pivot variable X; this must be flagged as invalid.
         assert result["resolution_issues"] != {}

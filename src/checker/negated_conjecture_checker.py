@@ -16,7 +16,13 @@ from src.parser.ast_nodes import (
     QuantifiedFormula,
     Variable,
 )
-from src.var_mapping import BinaryConnective, FormulaRole, InferenceRule, InferenceStatus, Quantifier
+from src.var_mapping import (
+    BinaryConnective,
+    FormulaRole,
+    InferenceRule,
+    InferenceStatus,
+    Quantifier,
+)
 
 
 @dataclass
@@ -78,8 +84,12 @@ def _negate_binary_formula(formula: BinaryFormula):
         return JunctionFormula(
             BinaryConnective.OR,
             [
-                JunctionFormula(BinaryConnective.AND, [formula.left, _negate_formula(formula.right)]),
-                JunctionFormula(BinaryConnective.AND, [_negate_formula(formula.left), formula.right]),
+                JunctionFormula(
+                    BinaryConnective.AND, [formula.left, _negate_formula(formula.right)]
+                ),
+                JunctionFormula(
+                    BinaryConnective.AND, [_negate_formula(formula.left), formula.right]
+                ),
             ],
         )
     if connective == "<~>":
