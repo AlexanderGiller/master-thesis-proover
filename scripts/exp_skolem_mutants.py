@@ -62,7 +62,7 @@ from src.var_mapping import BinaryConnective, InferenceRule, Quantifier  # noqa:
 
 # ----------------------------------------------------------------- AST helpers
 def rebuild(node, fn):
-    """Bottom-up rebuild of a dataclass tree; fn may return a replacement or None."""
+    """Bottom-up rebuild of a dataclass tree, where fn may return a replacement or None."""
     if isinstance(node, list):
         return [rebuild(x, fn) for x in node]
     if dataclasses.is_dataclass(node) and not isinstance(node, type):
@@ -264,7 +264,7 @@ def vampire_entails(vampire: str, conclusion, premise, timeout: int) -> str:
 # ------------------------------------------------------------------------ main
 def collect_steps():
     items = []
-    for p in sorted(q for d in ("PRV", "Test") for q in (ROOT / "ProoVer2026" / d).glob("*.s")):
+    for p in sorted(q for d in ("PRV", "Deprecated", "Test") for q in (ROOT / "ProoVer2026" / d).glob("*.s")):
         try:
             proof = load_proof(str(p))
         except Exception as exc:  # noqa: BLE001
@@ -301,7 +301,7 @@ def main():
 
     rows = []
     expected = {}
-    for res_name in ("PRV_results.csv", "Test_results.csv"):
+    for res_name in ("PRV_results.csv", "Deprecated_results.csv", "Test_results.csv"):
         res_csv = ROOT / "results" / res_name
         if res_csv.exists():
             with open(res_csv, newline="") as fh:

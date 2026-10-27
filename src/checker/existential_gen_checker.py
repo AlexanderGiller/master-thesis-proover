@@ -54,7 +54,6 @@ def check_existential_gen(
         new_count = len(existential_vars) - len(target_vars)
         new_vars = existential_vars[:new_count]
         preserved_vars = existential_vars[new_count:]
-        # template = child body, instance = parent body: map child names to parent names
         bound_map = dict(zip(preserved_vars, target_vars))
         return match_template_to_instance(child_body, target_inner, set(new_vars), dict(bound_map))
 

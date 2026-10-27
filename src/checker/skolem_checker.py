@@ -277,8 +277,6 @@ def _skolemize_formula(
     if isinstance(node, BinaryFormula):
         left_pol, right_pol, mixed = _child_polarities(node.connective, polarity)
         if mixed and _analyze_target_bindings(node, target_var)["any"] > 0:
-            # A quantifier below <=> or <~> occurs in both polarities; the
-            # Skolemization is not defined, so the step is rejected later.
             capture["mixed_polarity"] = True
         left, found_left = _skolemize_formula(
             node.left, target_var, skolem_term, scope, active, rename_map, used_names, counter,
@@ -371,15 +369,10 @@ def _skolemize_formula(
                 )
 
             capture["found"] = True
-            # Variables bound by the same existential block are not valid
-            # dependencies for the eliminated variable's Skolem term.
             free_in_body = _free_variable_names(node.formula, set(vars_iter))
             capture["universals"] = [
                 local_map[name] for name in free_in_body if name in local_map
             ]
-            # Only previously accumulated scope variables are valid dependencies
-            # for a Skolem term here; sibling existential variables from the same
-            # quantifier block must not be added.
             capture["scope"] = list(scope)
             capture["rename_map"] = dict(local_map)
             remaining = [fresh for original, fresh in zip(vars_iter, fresh_vars) if original != target_var]
@@ -500,8 +493,6 @@ def check_skolemization(
     if isinstance(sk_term, FunctionTerm):
         sk_functor = sk_term.functor
     elif isinstance(sk_term, Constant):
-        # A Skolem "function" with zero universal dependencies in scope is
-        # simply a nullary constant (e.g. sK0), not a FunctionTerm.
         sk_functor = sk_term.name
     else:
         issues.append(

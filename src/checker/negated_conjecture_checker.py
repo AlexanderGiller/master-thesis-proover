@@ -35,7 +35,6 @@ def _negate_formula(formula):
     - Other formulas become ~(formula)
     """
     if isinstance(formula, Negation):
-        # The negation of ~X is X.
         return formula.formula
     if isinstance(formula, QuantifiedFormula):
         new_quantifier = (
@@ -221,8 +220,6 @@ def check_negated_conjecture(
 
     parent_formula = parent_conj_step.formula
     if isinstance(parent_formula, Negation):
-        # The negation of ~X is X (simplified) or ~~X (literal). In particular
-        # the negation of ~~Y is ~Y, not Y.
         expected_forms = [parent_formula.formula, Negation(parent_formula)]
     else:
         expected_forms = [

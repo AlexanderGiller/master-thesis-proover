@@ -152,8 +152,6 @@ def check_excluded_middle(step: AnnotatedFormula) -> list[JunctionIssue]:
         issues.append(JunctionIssue(step.name, "excluded_middle formula must be a disjunction"))
         return issues
 
-    # Standard excluded-middle forms, including parser-level "!=" representation
-    # of negated equality, are binary disjunctions of complements.
     if len(operands) == 2 and _are_complements(operands[0], operands[1]):
         return issues
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Laeuft Vampire ueber alle Probleme in ProoVer2026/PRV/Problems und ProoVer2026/Test/Problems.
+# Laeuft Vampire ueber alle Probleme in ProoVer2026/PRV, ProoVer2026/Deprecated und ProoVer2026/Test
+# (jeweils Problems/, zusammen 176 Probleme wie in Kapitel 8.3 der Thesis).
 # Nutzung (in WSL, im Projekt-Root):
 #   bash scripts/run_vampire_all.sh                  # alle Probleme
 #   bash scripts/run_vampire_all.sh PRV000+1 PRV010+1 # nur ausgewaehlte
@@ -27,7 +28,7 @@ command -v "$VAMPIRE" >/dev/null 2>&1 || { echo "Vampire nicht gefunden: $VAMPIR
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"/{raw,proofs,rows}
 
-# Jedes Problem wird im Ordner seiner Gruppe (PRV oder Test) aufgerufen, damit file('Problems/X.p',...)
+# Jedes Problem wird im Ordner seiner Gruppe (PRV, Deprecated oder Test) aufgerufen, damit file('Problems/X.p',...)
 # in den Vampire-Beweisen denselben Pfad hat wie in den Referenz-.s-Dateien.
 export ROOT
 cd "$ROOT/ProoVer2026" || exit 1
@@ -60,10 +61,11 @@ if [ "$#" -gt 0 ]; then
   for n in "$@"; do
     n="${n%.p}"
     case "$n" in TST*) grp=Test ;; *) grp=PRV ;; esac
+    [ "$grp" = PRV ] && [ ! -f "PRV/Problems/$n.p" ] && [ -f "Deprecated/Problems/$n.p" ] && grp=Deprecated
     files+=("$grp/Problems/$n.p")
   done
 else
-  files=(PRV/Problems/*.p Test/Problems/*.p)
+  files=(PRV/Problems/*.p Deprecated/Problems/*.p Test/Problems/*.p)
 fi
 
 printf '%s\0' "${files[@]}" | xargs -0 -n1 -P "$JOBS" bash -c 'run_one "$1"' _

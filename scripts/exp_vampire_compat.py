@@ -5,7 +5,7 @@ For every proof in results/vampire/proofs/*.s this script records
   * whether a proof (and not a saturation) was produced,
   * whether the checker's TPTP parser accepts the file (and why not),
   * which inference rules are used and how many of them are part of the
-    ProoVer 2026 reference calculus (= rules occurring in ProoVer2026/PRV and ProoVer2026/Test),
+    ProoVer 2026 reference calculus (= rules occurring in ProoVer2026/PRV, Deprecated and Test),
   * proof size (number of steps),
   * optionally (--verify) the verdict of main.check_proof_file.
 
@@ -36,7 +36,7 @@ def rules_in(text: str) -> collections.Counter:
 
 def reference_rules() -> set[str]:
     rules: set[str] = set()
-    for d in ("PRV", "Test"):
+    for d in ("PRV", "Deprecated", "Test"):
         for p in (ROOT / "ProoVer2026" / d).glob("*.s"):
             rules |= set(rules_in(p.read_text()))
     return rules
@@ -88,7 +88,10 @@ def main() -> None:
         if args.verify and parse_ok == "yes":
             from main import check_proof_file_with_timeout
 
-            problem = ROOT / "ProoVer2026" / ("Test" if name.startswith("TST") else "PRV") / "Problems" / f"{name}.p"
+            group = "Test" if name.startswith("TST") else "PRV"
+            if group == "PRV" and not (ROOT / "ProoVer2026" / "PRV" / "Problems" / f"{name}.p").exists():
+                group = "Deprecated"
+            problem = ROOT / "ProoVer2026" / group / "Problems" / f"{name}.p"
             try:
                 kind, res = check_proof_file_with_timeout(str(p), str(problem), args.timeout)
                 if kind == "result":

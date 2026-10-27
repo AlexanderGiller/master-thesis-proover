@@ -110,7 +110,6 @@ def check_instantiate(step: AnnotatedFormula, parent_step: AnnotatedFormula) -> 
         if any(
             v.name in inner_bound and v.name != old for old, v in kept_map.items()
         ):
-            # Renaming a kept variable to a name bound further inside would capture it.
             continue
         transformed_parent_body = substitute_node(parent_body, kept_map)
 

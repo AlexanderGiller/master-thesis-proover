@@ -187,8 +187,7 @@ def validate_step_with_atp(
         return True, status
     if status in _REFUTING_STATUSES:
         return False, status
-    # Timeout, GaveUp, ResourceOut, MemoryOut, Inappropriate, Error, ...:
-    # the prover has no answer, which is not evidence that the step is wrong.
+
     return "unknown", f"ATP gave no answer (SZS status {status})"
 
 

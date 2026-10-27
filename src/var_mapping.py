@@ -17,11 +17,12 @@ class InferenceStatus(StrEnum):
     """SZS-style status codes used inside inference(...) annotations."""
 
     THM = "thm"  # theorem
-    CTH = "cth"  # co-theorem (used for negated_conjecture step)
+    CTH = "cth"  # counter-theorem (used for negated_conjecture step)
     ESA = "esa"  # equisatisfiable
-    SAT = "sat"
-    UNSAT = "unsat"
+    SAT = "sat"  # satisfiable
+    UNSAT = "unsat" # unsatisfiable
     WTH = "wth"  # with theorem
+    #sat, unsat and wtf not part of 2026ProoVer benchmark, but included due to completeness of SZS ontology
 
 
 class InferenceRule(StrEnum):
@@ -36,7 +37,7 @@ class InferenceRule(StrEnum):
     REFLEXIVITY = "reflexivity"
     TRANSITIVITY = "transitivity"
     REWRITE = "rewrite"
-    SKOLEMIZE = "skolemize"  # NB: TPTP spells it with an 's'
+    SKOLEMIZE = "skolemize"
     CNF_TRANSFORMATION = "cnf_transformation"
     RECTIFY = "rectify"
     FLATTENING = "flattening"

@@ -2,7 +2,7 @@
 """Run the verifier on the generated extra tests (ProoVer2026/Extra) and
 compare the verdicts with the ground truth in EXT_expected.csv.
 
-Per case we record the verdict and the rule-specific issue maps that fired, so
+Record the verdict and the rule-specific issue maps that fired per case, so
 that a rejection caused by the rule checker can be told apart from a rejection
 that only comes from the final consequence step ($false).
 

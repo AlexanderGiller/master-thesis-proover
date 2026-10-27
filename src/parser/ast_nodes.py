@@ -14,7 +14,7 @@ from src.var_mapping import (
 class StatusInfo:
     """Represents status(...) in inference info."""
 
-    status: InferenceStatus  # "thm", "esa", "cth", etc.
+    status: InferenceStatus  # "thm", "esa", "cth"
 
 
 @dataclass

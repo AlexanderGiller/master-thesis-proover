@@ -45,8 +45,7 @@ sys.path.insert(0, str(ROOT))
 
 OUT = ROOT / "results" / "eval"
 GEN = ROOT / "thesis" / "generated"
-# the nine sample proofs that were not scored in the competition; all ProoVer statistics
-# of the thesis refer to the 91 official pairs, the deprecated ones only appear in the totals
+
 DEPRECATED = {p.name for p in (ROOT / "ProoVer2026" / "Deprecated").glob("*.s")}
 
 
@@ -57,7 +56,6 @@ DIAG = ROOT / "thesis" / "diagrams"
 WORKER = ROOT / "scripts" / "_eval_worker.py"
 TIME_LIMIT = 30.0
 
-# branches that are decided by the external prover alone
 ATP_ONLY = {"consequence", "add_hypothesis", "external_atp"}
 NON_INFERENCE = {"axiom", "conjecture"}
 
@@ -87,7 +85,6 @@ def fmt_t(x: float) -> str:
 
 def write(path: Path, text: str) -> None:
     if path.parent == GEN and path.name.startswith("tab_") and text.lstrip().startswith("\\begin{tabular}"):
-        # shrink tables that are wider than the text block (needs graphicx)
         text = "\\resizebox{\\ifdim\\width>\\linewidth\\linewidth\\else\\width\\fi}{!}{%\n" + text.rstrip() + "}\n"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8", newline="\n")
@@ -142,8 +139,6 @@ def run_worker(proof: str, problem: str, env: dict | None = None, timeout: float
     for line in cp.stdout.splitlines():
         if line.startswith("@@JSON@@"):
             rec = json.loads(line[8:])
-            # total = process start until the end of the check (what the competition measures);
-            # the extra parse measurement of the worker after the check is not included
             rec["process_wall"] = total
             rec["total_wall"] = rec["t_check_end"] - t0_abs if rec.get("t_check_end") else total
             rec["timeout"] = False
@@ -236,8 +231,6 @@ def part_runs(reps: int, tag: str = "runs", env: dict | None = None) -> list[dic
     out = []
     for i, it in enumerate(items, 1):
         recs = [run_worker(it["proof"], it["problem"], env) for _ in range(reps)]
-        # keep the phases (start-up, parsing, ATP, checks) of the median repetition, so that
-        # they add up to the reported median total (Table tab:eval-slowest)
         med_rec = sorted(recs, key=lambda x: x["total_wall"])[len(recs) // 2]
         r = dict(med_rec)
         r.update(it)
@@ -292,7 +285,6 @@ def make_tables() -> None:
     tst = [r for r in runs if r["group"] == "TST"]
     M: dict[str, object] = {}
 
-    # --- environment macros
     M.update(
         EvalCPU=tex(info["cpu"]),
         EvalCores=info["cores"],
@@ -306,7 +298,6 @@ def make_tables() -> None:
         EvalReps=info.get("reps", 3),
     )
 
-    # --- verdict matrix on the ProoVer set
     def count(rs, exp, ver):
         return sum(1 for r in rs if r["expected"] == exp and verdict(r) == ver)
 
@@ -347,7 +338,6 @@ def make_tables() -> None:
         EvalWrongAcc=wrong_acc,
     )
 
-    # --- official competition proofs (ProoVer2026/PRV) versus the sample proofs (ProoVer2026/Deprecated)
     off = [r for r in prv_all if is_official(r)]
     off_val = [r for r in off if r["expected"] == "CORRECT"]
     off_inv = [r for r in off if r["expected"] == "INCORRECT"]
@@ -366,8 +356,6 @@ def make_tables() -> None:
         EvalSampleN=len(prv_all) - len(off),
     )
 
-    # verdict matrix (Table tab:eval-matrix): the official pairs are the primary result,
-    # the deprecated sample proofs are only added as a total row
     def matrix_cells(rs):
         out = {}
         for exp in ("CORRECT", "INCORRECT"):
@@ -456,12 +444,12 @@ def make_tables() -> None:
         + "\n".join(lines)
         + f"\n\\midrule\nTotal ({n_rules} rules) & {len(prv)} & {tot['steps']} & {tot['internal']} & {tot['fallback']} & {tot['atp']} & {tot['unresolved']} \\\\\n\\bottomrule\n\\end{{tabular}}\n",
     )
-    # figure: how often each rule occurs and how its steps are decided
     try:
         import matplotlib
 
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        from matplotlib.patches import Patch
 
         by_proofs = sorted(order, key=lambda k: (len(proofs_with[k]), per_rule[k]["steps"]))
         fig, ax = plt.subplots(figsize=(6.2, 0.17 * len(by_proofs) + 0.9))
@@ -474,7 +462,6 @@ def make_tables() -> None:
         ax.set_yticklabels(by_proofs, fontsize=7, family="monospace")
         ax.set_xlabel("number of proofs of the ProoVer set that use the rule")
         ax.set_xlim(0, max(len(v) for v in proofs_with.values()) * 1.18)
-        from matplotlib.patches import Patch
 
         ax.legend(handles=[Patch(color="#1f77b4", label="internal checker"), Patch(color="#d62728", label="decided by the prover")],
                   frameon=False, fontsize=7, loc="lower right")
@@ -514,7 +501,7 @@ def make_tables() -> None:
     walls = [r["total_wall_median"] for r in prv if not r.get("timeout")]
     all_w = sorted(walls)
     p90 = all_w[int(0.9 * (len(all_w) - 1))] if all_w else 0
-    base_runs = prv  # run time and memory refer to the official pairs, like all other ProoVer statistics
+    base_runs = prv
     rss = [r["maxrss_kb"] / 1024 for r in base_runs if r.get("maxrss_kb")]
     n_to = sum(1 for r in prv if r.get("timeout"))
     M.update(
@@ -558,12 +545,11 @@ def make_tables() -> None:
         total = r["total_wall_median"]
         atp_t = r.get("atp_time", 0)
         parse = r.get("parse_warm", 0)
-        # all phases come from the median repetition: start-up = total minus the check itself,
-        # rule checks = check minus parsing minus prover
+
         if r.get("t_check_end"):
             startup = max(total - r.get("wall", 0), 0)
             rest = max(r.get("wall", 0) - atp_t - parse, 0)
-        else:  # results of an older worker version (total included extra parse passes)
+        else:
             startup = r.get("t_import", 0)
             rest = max(total - atp_t - parse - startup, 0)
         rows.append(
@@ -576,8 +562,6 @@ def make_tables() -> None:
         + "\n\\bottomrule\n\\end{tabular}\n",
     )
 
-    # per-category averages (internal check cost per rule family) from the step log are not available per step;
-    # instead report the median time per proof by the dominant rule family
     # --- error analysis
     errs = []
     for r in prv:
@@ -640,7 +624,6 @@ def make_tables() -> None:
 
     # --- no-ATP ablation
     if (OUT / "noatp.json").exists():
-        # only the 91 official pairs (ProoVer2026/PRV), as in the main evaluation
         na = [r for r in load("noatp") if r["group"] == "PRV" and "/Deprecated/" not in r["proof"].replace("\\", "/")]
         rowsn = []
         for label, rs in (("with prover", off), ("without prover", na)):
@@ -961,11 +944,10 @@ def tables_mutation() -> None:
     adj = tot["n"] - tot["eq"]
     write(
         GEN / "tab_mutation.tex",
-        "\\begin{tabular}{@{}l r r r r r@{}}\n\\toprule\nMutation operator & Mutants & Killed & Survivors still valid & Survivors not valid & Kill rate (without valid) \\\\\n\\midrule\n"
+        "\\begin{tabular}{@{}l r r r r r@{}}\n\\toprule\nMutation operator & Mutants & Rejected & Accepted, still valid & Accepted, not valid & Detection rate \\\\\n\\midrule\n"
         + "\n".join(lines)
         + f"\n\\midrule\nTotal & {tot['n']} & {tot['killed']} & {tot['eq']} & {tot['miss']} & {pct(tot['killed'], adj)}\\,\\% \\\\\n\\bottomrule\n\\end{{tabular}}\n",
     )
-    # figure: outcome of the mutants per operator
     try:
         import matplotlib
 

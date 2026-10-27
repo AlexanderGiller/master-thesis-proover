@@ -4,7 +4,9 @@
 *.coverage
 *.xml
 *.venv
-results
+results/*
+!results/eval/
+!results/extra/
 
 # LaTeX build files
 thesis/*.aux

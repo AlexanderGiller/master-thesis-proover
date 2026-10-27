@@ -36,7 +36,6 @@ def main() -> None:
     t_import = time.perf_counter() - t_start
     verifier.DEBUG_PROOF_FLOW = True
 
-    # 1) the actual check, exactly as in a normal run (one parse, debug lines only go to a buffer)
     buf = io.StringIO()
     cpu0 = time.process_time()
     wall0 = time.perf_counter()
@@ -49,13 +48,10 @@ def main() -> None:
         err = f"{type(exc).__name__}: {exc}"
     wall = time.perf_counter() - wall0
     cpu = time.process_time() - cpu0
-    # end of the check as an absolute time stamp: eval_all.py measures the total from the start
-    # of this process up to here, so the extra measurements below do not count
+
     t_check_end = time.time()
     maxrss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 
-    # 2) separate parse measurement for the breakdown into phases (not part of the total);
-    #    the LALR tables are already built by the check, so this is the warm parse time
     t0 = time.perf_counter()
     verifier.parse_file(problem)
     verifier.load_proof(proof)
