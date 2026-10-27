@@ -5,7 +5,6 @@ from pathlib import Path
 from lark import Lark, Transformer
 
 from src.deep_recursion import run_with_larger_stack
-
 from src.var_mapping import (
     BinaryConnective,
     FormulaRole,

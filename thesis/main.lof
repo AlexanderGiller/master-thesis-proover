@@ -1,0 +1,18 @@
+\babel@toc {english}{}\relax 
+\babel@toc {english}{}\relax 
+\contentsline {figure}{\numberline {1}{\ignorespaces The ProoVer 2026 proof \texttt {PRV000+1.s} (comments and SZS delimiters omitted). Axiom and conjecture are imported from the problem file, \texttt {neg} negates the conjecture, and one \texttt {consequence} step derives \texttt {\$false} from \texttt {neg} and \texttt {a1}.}}{10}{figure.1}%
+\contentsline {figure}{\numberline {2}{\ignorespaces Expected score of accepting, rejecting, and abstaining as a function of the probability $p$ that the proof is valid, under the ProoVer 2026 scoring scheme. Accepting beats abstaining only for $p>10/11$, and rejecting only for $p<2/3$.}}{23}{figure.2}%
+\contentsline {figure}{\numberline {3}{\ignorespaces Architecture view of the verifier modules and their main dependencies. Parsing, checking, and verdict aggregation run in a worker process with a wall-clock limit.}}{27}{figure.3}%
+\contentsline {figure}{\numberline {4}{\ignorespaces Dependency graph of the valid benchmark proof \texttt {PRV089}. Each node is an annotated formula with its name, role, formula, and justification and each edge leads from a parent to the step derived from it. The color shows which check of the verifier validates the node. Generated from the proof file with \texttt {scripts/gen\_dag\_figure.py}.}}{29}{figure.4}%
+\contentsline {figure}{\numberline {5}{\ignorespaces Validation flow for a \texttt {skolemize} step.}}{34}{figure.5}%
+\contentsline {figure}{\numberline {6}{\ignorespaces Decision flow for aggregating step-level outcomes into the final proof verdict.}}{36}{figure.6}%
+\contentsline {figure}{\numberline {7}{\ignorespaces Call sequence of \texttt {check\_proof\_file} including parser, global checks, rule dispatch, ATP fallback, and verdict aggregation.}}{41}{figure.7}%
+\contentsline {figure}{\numberline {8}{\ignorespaces Structure of the alpha-equivalence check (pseudocode, simplified).}}{42}{figure.8}%
+\contentsline {figure}{\numberline {9}{\ignorespaces Result mapping of the ATP fallback.}}{45}{figure.9}%
+\contentsline {figure}{\numberline {10}{\ignorespaces Timeout handling of the driver (excerpt from \texttt {main.py}, simplified).}}{46}{figure.10}%
+\contentsline {figure}{\numberline {11}{\ignorespaces Template matching with capture check (excerpt of \texttt {formula\_utils.py}, abbreviated).}}{48}{figure.11}%
+\contentsline {figure}{\numberline {12}{\ignorespaces Unification with occurs check (excerpt of \texttt {clausal\_checker.py}).}}{49}{figure.12}%
+\contentsline {figure}{\numberline {13}{\ignorespaces Structure of the resolution check (excerpt of \texttt {clausal\_checker.py}, abbreviated).}}{50}{figure.13}%
+\contentsline {figure}{\numberline {14}{\ignorespaces Inference rules of the ProoVer set by the number of proofs that use them. Blue rules have an internal checker, red rules are decided by the external prover. The labels give the number of steps.}}{59}{figure.14}%
+\contentsline {figure}{\numberline {15}{\ignorespaces Wall-clock time per proof of the ProoVer set against the number of steps. Proofs in which the external prover was called are drawn in red. The dashed line is the time limit.}}{61}{figure.15}%
+\contentsline {figure}{\numberline {16}{\ignorespaces Outcome of the mutation test per operator: mutants rejected by the verifier, mutants accepted that still follow from their premises, and mutants accepted that do not (none).}}{63}{figure.16}%

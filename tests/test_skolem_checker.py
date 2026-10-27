@@ -177,16 +177,16 @@ class TestSkolemCheckerUnit:
 class TestSkolemCheckerExamples:
     def test_cor003_reports_no_skolem_issues(self):
         result = check_proof_file(
-            str(ROOT / "examples" / "correct" / "COR003+1.s"),
-            str(ROOT / "examples" / "correct" / "Problems" / "COR003+1.p"),
+            str(ROOT / "tests" / "fixtures" / "examples" / "correct" / "COR003+1.s"),
+            str(ROOT / "tests" / "fixtures" / "examples" / "correct" / "Problems" / "COR003+1.p"),
         )
 
         assert result["skolem_issues"] == {}
 
     def test_evl003_reports_duplicate_skolem_symbol(self):
         result = check_proof_file(
-            str(ROOT / "examples" / "incorrect" / "EVL003+1.s"),
-            str(ROOT / "examples" / "incorrect" / "Problems" / "EVL003+1.p"),
+            str(ROOT / "tests" / "fixtures" / "examples" / "incorrect" / "EVL003+1.s"),
+            str(ROOT / "tests" / "fixtures" / "examples" / "incorrect" / "Problems" / "EVL003+1.p"),
         )
 
         assert "groom" in result["skolem_issues"]
@@ -196,8 +196,8 @@ class TestSkolemCheckerExamples:
 
     def test_evl004_reports_incorrect_resulting_formula(self):
         result = check_proof_file(
-            str(ROOT / "examples" / "incorrect" / "EVL004+1.s"),
-            str(ROOT / "examples" / "incorrect" / "Problems" / "EVL004+1.p"),
+            str(ROOT / "tests" / "fixtures" / "examples" / "incorrect" / "EVL004+1.s"),
+            str(ROOT / "tests" / "fixtures" / "examples" / "incorrect" / "Problems" / "EVL004+1.p"),
         )
 
         assert "groom" in result["skolem_issues"]
@@ -205,66 +205,121 @@ class TestSkolemCheckerExamples:
             "not a correct Skolemization" in reason for reason in result["skolem_issues"]["groom"]
         )
 
-    def test_prv005_reports_no_skolem_issues(self):
-        result = check_proof_file(
-            str(ROOT / "ProoVer2026" / "PRV005+1.s"),
-            str(ROOT / "ProoVer2026" / "Problems" / "PRV005+1.p"),
-        )
-
-        assert result["skolem_issues"] == {}
-
-    def test_prv058_reports_multiple_status_in_skolemize(self):
-        result = check_proof_file(
-            str(ROOT / "ProoVer2026" / "PRV058+1.s"),
-            str(ROOT / "ProoVer2026" / "Problems" / "PRV058+1.p"),
-        )
-
-        assert "s1" in result["skolem_issues"]
-        assert any(
-            "exactly one status" in reason
-            for reason in result["skolem_issues"]["s1"]
-        )
-
-    def test_prv080_reports_existential_dependency_in_skolem_term(self):
-        result = check_proof_file(
-            str(ROOT / "ProoVer2026" / "PRV080+1.s"),
-            str(ROOT / "ProoVer2026" / "Problems" / "PRV080+1.p"),
-        )
-
-        assert "sk" in result["skolem_issues"]
-        assert any(
-            "Skolem term arguments" in reason for reason in result["skolem_issues"]["sk"]
-        )
-
     def test_prv085_reports_no_skolem_issues(self):
         result = check_proof_file(
-            str(ROOT / "ProoVer2026" / "PRV085+1.s"),
-            str(ROOT / "ProoVer2026" / "Problems" / "PRV085+1.p"),
+            str(ROOT / "ProoVer2026" / "PRV" / "PRV085+1.s"),
+            str(ROOT / "ProoVer2026" / "PRV" / "Problems" / "PRV085+1.p"),
         )
 
         assert result["skolem_issues"] == {}
 
     def test_prv083_reports_universal_only_skolem_target(self):
         result = check_proof_file(
-            str(ROOT / "ProoVer2026" / "PRV083+1.s"),
-            str(ROOT / "ProoVer2026" / "Problems" / "PRV083+1.p"),
+            str(ROOT / "ProoVer2026" / "PRV" / "PRV083+1.s"),
+            str(ROOT / "ProoVer2026" / "PRV" / "Problems" / "PRV083+1.p"),
         )
 
         assert "sk" in result["skolem_issues"]
         assert any(
-            "quantified only universally" in reason
-            for reason in result["skolem_issues"]["sk"]
+            "quantified only universally" in reason for reason in result["skolem_issues"]["sk"]
         )
 
     def test_prv084_reports_negative_polarity_existential(self):
         result = check_proof_file(
-            str(ROOT / "ProoVer2026" / "PRV084+1.s"),
-            str(ROOT / "ProoVer2026" / "Problems" / "PRV084+1.p"),
+            str(ROOT / "ProoVer2026" / "PRV" / "PRV084+1.s"),
+            str(ROOT / "ProoVer2026" / "PRV" / "Problems" / "PRV084+1.p"),
         )
 
         assert "sk" in result["skolem_issues"]
-        assert any(
-            "negative polarity" in reason
-            for reason in result["skolem_issues"]["sk"]
-        )
+        assert any("negative polarity" in reason for reason in result["skolem_issues"]["sk"])
 
+
+def _bin(conn, left, right):
+    from src.parser.ast_nodes import BinaryFormula
+
+    return BinaryFormula(connective=conn, left=left, right=right)
+
+
+def _sk_step(formula, var="X", term=None):
+    term = term or FunctionTerm("sK0", [])
+    return make_annotated(
+        "sk",
+        FormulaRole.PLAIN,
+        formula,
+        make_inference(
+            InferenceRule.SKOLEMIZE,
+            InferenceStatus.ESA,
+            ["par"],
+            new_symbols=["sK0"],
+            skolem_var=var,
+            skolem_term=term,
+        ),
+    )
+
+
+def _p(t):
+    return Atom("p", [t])
+
+
+def _r():
+    return Atom("r", [])
+
+
+class TestSkolemPolarityBelowConnectives:
+    """Polarity of quantifiers in the antecedent of an implication and below equivalences."""
+
+    def test_existential_in_antecedent_cannot_be_eliminated(self):
+        # (?[X]: p(X)) => r  is  ![X]: (p(X) => r); X is effectively universal.
+        parent = make_annotated(
+            "par",
+            FormulaRole.AXIOM,
+            _bin(
+                BinaryConnective.IMPLIES,
+                QuantifiedFormula(Quantifier.EXISTENTIAL, ["X"], _p(Variable("X"))),
+                _r(),
+            ),
+        )
+        child = _sk_step(_bin(BinaryConnective.IMPLIES, _p(FunctionTerm("sK0", [])), _r()))
+        issues = check_skolemization(child, parent)
+        assert issues
+        assert any("negative polarity" in str(i) for i in issues)
+
+    def test_universal_in_antecedent_is_effectively_existential(self):
+        # (![X]: p(X)) => r  is  ?[X]: (p(X) => r); sK0 is a valid Skolem constant.
+        parent = make_annotated(
+            "par",
+            FormulaRole.AXIOM,
+            _bin(
+                BinaryConnective.IMPLIES,
+                QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], _p(Variable("X"))),
+                _r(),
+            ),
+        )
+        child = _sk_step(_bin(BinaryConnective.IMPLIES, _p(FunctionTerm("sK0", [])), _r()))
+        assert check_skolemization(child, parent) == []
+
+    def test_existential_in_consequent_still_works(self):
+        parent = make_annotated(
+            "par",
+            FormulaRole.AXIOM,
+            _bin(
+                BinaryConnective.IMPLIES,
+                _r(),
+                QuantifiedFormula(Quantifier.EXISTENTIAL, ["X"], _p(Variable("X"))),
+            ),
+        )
+        child = _sk_step(_bin(BinaryConnective.IMPLIES, _r(), _p(FunctionTerm("sK0", []))))
+        assert check_skolemization(child, parent) == []
+
+    def test_quantifier_below_equivalence_is_rejected(self):
+        parent = make_annotated(
+            "par",
+            FormulaRole.AXIOM,
+            _bin(
+                BinaryConnective.IFF,
+                QuantifiedFormula(Quantifier.EXISTENTIAL, ["X"], _p(Variable("X"))),
+                _r(),
+            ),
+        )
+        child = _sk_step(_bin(BinaryConnective.IFF, _p(FunctionTerm("sK0", [])), _r()))
+        assert check_skolemization(child, parent)

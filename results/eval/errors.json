@@ -1,0 +1,9 @@
+[
+ {
+  "proof": "PRV097+1.s",
+  "expected": "INCORRECT",
+  "verdict": "VerifiedBad",
+  "cause": "Step not decidable (verdict Unknown)",
+  "example": "s: No checker available for rule 'trivial' with status 'esa'"
+ }
+]

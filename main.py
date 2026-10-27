@@ -2,16 +2,13 @@
 
 import argparse
 import csv
+import sys
 import time
 from multiprocessing import Process, Queue
 from pathlib import Path
 from queue import Empty
 
-from src.checker.dependency_checker import (
-    check_conjecture_not_assumed,
-    check_no_circular_dependencies,
-)
-from src.checker.file_dir import check_axiom_provenance
+from src.checker.alpha_eq import is_alpha_equivalent
 from src.checker.clausal_checker import (
     check_paramodulation,
     check_reflexivity,
@@ -19,10 +16,14 @@ from src.checker.clausal_checker import (
     check_rewrite,
     check_transitivity,
 )
+from src.checker.dependency_checker import (
+    check_conjecture_not_assumed,
+    check_no_circular_dependencies,
+)
 from src.checker.existential_gen_checker import check_existential_gen
 from src.checker.external_atp_checker import status_allows_atp, validate_step_with_atp
+from src.checker.file_dir import check_axiom_provenance
 from src.checker.formula_utils import collect_function_symbols
-from src.checker.alpha_eq import is_alpha_equivalent
 from src.checker.instantiate_checker import check_instantiate
 from src.checker.junction_checker import check_commute, check_excluded_middle, check_weaken
 from src.checker.negated_conjecture_checker import check_negated_conjecture
@@ -41,25 +42,49 @@ from src.checker.structural_checker import (
     check_rename_variable,
 )
 from src.deep_recursion import run_with_larger_stack
+from src.parser.ast_nodes import Atom, BinaryFormula, Equality, FileSource, Negation
 from src.parser.parser import load_proof, parse_file
-from src.parser.ast_nodes import Atom, BinaryFormula, Equality, Negation
-from src.var_mapping import FormulaRole, InferenceStatus
-from src.var_mapping import BinaryConnective
-from src.scoring.scoring import ProofScorer, print_scoring_summary
 from src.performance.performance import PerformanceTracker, print_performance_table
+from src.scoring.scoring import ProofScorer, print_scoring_summary
+from src.var_mapping import BinaryConnective, FormulaRole, InferenceStatus
 
 PER_PROOF_TIMEOUT_SECONDS = 30.0
-DEBUG_PROOF_FLOW = True
+DEBUG_PROOF_FLOW = False
+
 
 def _dbg(msg: str) -> None:
     if DEBUG_PROOF_FLOW:
         print(f"[DBG] {msg}")
+
 
 def _build_step_index(steps):
     index = {}
     for step in steps:
         index.setdefault(step.name, step)
     return index
+
+
+def _check_unique_step_names(steps) -> dict:
+    """NAU: every formula name must occur only once in a derivation."""
+    seen: dict[str, int] = {}
+    for step in steps:
+        seen[step.name] = seen.get(step.name, 0) + 1
+    return {
+        name: [f"Duplicate step name '{name}' ({count} definitions)"]
+        for name, count in seen.items()
+        if count > 1
+    }
+
+
+def _check_ends_in_false(steps) -> dict:
+    """EIF: the derivation must contain a derived step with formula $false."""
+    for step in steps:
+        if step.role in {FormulaRole.AXIOM, FormulaRole.CONJECTURE}:
+            continue
+        f = step.formula
+        if isinstance(f, Atom) and f.predicate == "$false" and not f.args and step.inference:
+            return {}
+    return {"<proof>": ["Derivation never derives $false (not a refutation)"]}
 
 
 def _formulas_are_complements(left: object, right: object) -> bool:
@@ -69,8 +94,47 @@ def _formulas_are_complements(left: object, right: object) -> bool:
     if isinstance(right, Negation) and is_alpha_equivalent(right.formula, left):
         return True
     if isinstance(left, Equality) and isinstance(right, Equality) and left.negated != right.negated:
-        return is_alpha_equivalent(left.left, right.left) and is_alpha_equivalent(left.right, right.right)
+        return is_alpha_equivalent(left.left, right.left) and is_alpha_equivalent(
+            left.right, right.right
+        )
     return False
+
+
+# Reasons of the external-ATP issue map that mean "could not be decided"
+# (as opposed to "refuted").  If these are the only findings, the verdict is
+# the third value `Unknown` instead of `VerifiedBad`.
+_UNRESOLVED_PREFIXES = (
+    "External ATP could not validate",
+    "No checker available",
+)
+
+VERDICT_GOOD = "VerifiedGood"
+VERDICT_BAD = "VerifiedBad"
+VERDICT_UNKNOWN = "Unknown"
+
+
+def classify_verdict(result: dict) -> str:
+    """Map the issue maps of `check_proof_file` to a three-valued verdict.
+
+    - ``VerifiedGood``: every check succeeded.
+    - ``VerifiedBad``: at least one check found a definite defect (a checker
+      rejected a step, a structural rule was violated, or the prover refuted
+      the step).
+    - ``Unknown``: no defect was found, but some step could not be decided
+      (the prover timed out / gave no answer, or no checker exists for the
+      rule).  The verifier abstains (0 points) instead of guessing.
+    """
+    if result.get("all_ok"):
+        return VERDICT_GOOD
+    for key, value in result.items():
+        if key in ("all_ok", "verdict") or not value:
+            continue
+        if key != "external_atp_issues":
+            return VERDICT_BAD
+    reasons = [r for rs in result.get("external_atp_issues", {}).values() for r in rs]
+    if reasons and all(r.startswith(_UNRESOLVED_PREFIXES) for r in reasons):
+        return VERDICT_UNKNOWN
+    return VERDICT_BAD
 
 
 def check_proof_file(proof_path: str, problem_path: str) -> dict:
@@ -91,14 +155,15 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
     problem_formulas = {f.name: f for f in parse_file(problem_path)}
     proof = load_proof(proof_path)
     steps_by_name = _build_step_index(proof.steps)
-    normalized_problem_path = Path(problem_path).resolve().as_posix().lower()
-    shortcut_enabled = Path(proof_path).name in {"PRV013+1.s", "PRV015+1.s"} or "/examples/correct/" in normalized_problem_path
 
     circular_dependency_issues = {}
     for issue in check_no_circular_dependencies(proof.steps):
         circular_dependency_issues.setdefault(issue.step_name, []).append(issue.reason)
     for issue in check_conjecture_not_assumed(proof.steps):
         circular_dependency_issues.setdefault(issue.step_name, []).append(issue.reason)
+
+    duplicate_name_issues = _check_unique_step_names(proof.steps)
+    no_false_issues = _check_ends_in_false(proof.steps)
 
     atp_calls = 0
     atp_total_seconds = 0.0
@@ -128,7 +193,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
     skolem_issues = {}
     external_atp_issues = {}
 
-    def hit(branch: str, step_name: str, rule: str | None, status: str | None, parent_count: int) -> None:
+    def hit(
+        branch: str, step_name: str, rule: str | None, status: str | None, parent_count: int
+    ) -> None:
         branch_hits[branch] = branch_hits.get(branch, 0) + 1
         _dbg(f"{step_name}: branch={branch}, rule={rule}, status={status}, parents={parent_count}")
 
@@ -147,7 +214,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
     for step in proof.steps:
         rule = step.inference.rule if step.inference else None
         status = str(step.inference.status) if step.inference else None
-        parent_count = len(step.inference.parents) if (step.inference and step.inference.parents) else 0
+        parent_count = (
+            len(step.inference.parents) if (step.inference and step.inference.parents) else 0
+        )
         if step.role == "axiom":
             issues = check_axiom_provenance(step, problem_formulas, problem_path)
             if issues:
@@ -180,6 +249,20 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                     "No parent conjecture specified in inference"
                 ]
             hit("negated conjecture", step.name, rule, status, parent_count)
+        elif step.inference is None and isinstance(step.raw_source, FileSource):
+            # Any other formula imported from the problem (hypothesis, definition, lemma, ...):
+            # it must be alpha-equivalent to the problem formula and carry the same role.
+            issues = check_axiom_provenance(
+                step, problem_formulas, problem_path, expected_role=step.role
+            )
+            if issues:
+                axiom_issues[step.name] = [it.reason for it in issues]
+            hit("input formula", step.name, rule, status, parent_count)
+        elif step.inference is None and step.raw_source is not None:
+            # introduced(...) formulas have no premises, so nothing can justify them.
+            external_atp_issues[step.name] = [
+                f"No checker available for a formula with role '{step.role}' and an introduced(...) source"
+            ]
         elif step.inference and step.inference.rule == "instantiate":
             if not step.inference.parents:
                 instantiate_issues[step.name] = ["No parent specified for instantiate step"]
@@ -195,9 +278,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             hit("instantiate", step.name, rule, status, parent_count)
         elif step.inference and step.inference.rule == "existential_gen":
             if not step.inference.parents:
-                existential_gen_issues[step.name] = [
-                    "No parent specified for existential_gen step"
-                ]
+                existential_gen_issues[step.name] = ["No parent specified for existential_gen step"]
                 continue
             parent_name = step.inference.parents[0]
             parent = steps_by_name.get(parent_name)
@@ -224,9 +305,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             }[rule]
             expected_count = 1 if rule == "split_conjunct" else 2
             if len(parent_names) != expected_count:
-                target_issues[step.name] = [
-                    f"{rule} requires exactly {expected_count} parent(s)"
-                ]
+                target_issues[step.name] = [f"{rule} requires exactly {expected_count} parent(s)"]
                 continue
             parents = [steps_by_name.get(name) for name in parent_names]
             if any(parent is None for parent in parents):
@@ -243,7 +322,13 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 issues = check_split_conjunct(step, parents[0])
             if issues:
                 target_issues[step.name] = [it.reason for it in issues]
-            hit("modus_ponens/instantiate_mp/conjunction/split_conjunct", step.name, rule, status, parent_count)
+            hit(
+                "modus_ponens/instantiate_mp/conjunction/split_conjunct",
+                step.name,
+                rule,
+                status,
+                parent_count,
+            )
         elif step.inference and step.inference.rule in {
             "copy",
             "duplicate",
@@ -262,9 +347,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             }[rule]
             expected_count = 2 if rule == "duplicate" else 1
             if len(parent_names) != expected_count:
-                target_issues[step.name] = [
-                    f"{rule} requires exactly {expected_count} parent(s)"
-                ]
+                target_issues[step.name] = [f"{rule} requires exactly {expected_count} parent(s)"]
                 continue
             parents = [steps_by_name.get(name) for name in parent_names]
             if any(parent is None for parent in parents):
@@ -283,11 +366,20 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 issues = check_remove_double_negation(step, parents[0])
             if issues:
                 target_issues[step.name] = [it.reason for it in issues]
-            hit("copy/duplicate/rename_variable/double_negation/remove_double_negation", step.name, rule, status, parent_count)
+            hit(
+                "copy/duplicate/rename_variable/double_negation/remove_double_negation",
+                step.name,
+                rule,
+                status,
+                parent_count,
+            )
         elif step.inference and step.inference.rule == "excluded_middle":
             hit("excluded_middle", step.name, rule, status, parent_count)
             issues = check_excluded_middle(step)
-            metadata_ok = step.inference.rule == "excluded_middle" and step.inference.status == InferenceStatus.THM
+            metadata_ok = (
+                step.inference.rule == "excluded_middle"
+                and step.inference.status == InferenceStatus.THM
+            )
             if issues and metadata_ok:
                 # The syntactic check only covers the standard shape of this
                 # rule (phi | ~phi, possibly with phi itself flattened into
@@ -295,7 +387,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 # reporting a failure so unusual-but-valid variants aren't
                 # rejected as false negatives.
                 start = time.perf_counter()
-                valid, note = validate_step_with_atp(step.formula, [], timeout_seconds=PER_PROOF_TIMEOUT_SECONDS)
+                valid, note = validate_step_with_atp(
+                    step.formula, [], timeout_seconds=PER_PROOF_TIMEOUT_SECONDS
+                )
                 elapsed = time.perf_counter() - start
                 atp_calls += 1
                 atp_total_seconds += elapsed
@@ -307,7 +401,11 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                     excluded_middle_issues[step.name] = reasons
             elif issues:
                 excluded_middle_issues[step.name] = [it.reason for it in issues]
-        elif step.inference and step.inference.rule in {"weaken", "commute"} and len(step.inference.parents) == 1:
+        elif (
+            step.inference
+            and step.inference.rule in {"weaken", "commute"}
+            and len(step.inference.parents) == 1
+        ):
             hit("weaken/commute", step.name, rule, status, parent_count)
             rule = step.inference.rule
             target_issues = {"weaken": weaken_issues, "commute": commute_issues}[rule]
@@ -317,7 +415,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 target_issues[step.name] = [f"Parent step not found: {parent_name}"]
                 continue
             issues = check_weaken(step, parent) if rule == "weaken" else check_commute(step, parent)
-            metadata_ok = step.inference.rule == rule and step.inference.status == InferenceStatus.THM
+            metadata_ok = (
+                step.inference.rule == rule and step.inference.status == InferenceStatus.THM
+            )
             if issues and metadata_ok:
                 # The syntactic check only covers the common/simple shape of this
                 # rule (OR-prefix weakening / 2-operand swap). Fall back to the
@@ -325,9 +425,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 # for existential generalization) before reporting a failure, so
                 # we don't produce false negatives on valid but unusual steps.
                 start = time.perf_counter()
-                valid, note = validate_step_with_atp(step.formula,
-                                                     [parent.formula],
-                                                     timeout_seconds=PER_PROOF_TIMEOUT_SECONDS)
+                valid, note = validate_step_with_atp(
+                    step.formula, [parent.formula], timeout_seconds=PER_PROOF_TIMEOUT_SECONDS
+                )
                 elapsed = time.perf_counter() - start
                 atp_calls += 1
                 atp_total_seconds += elapsed
@@ -339,16 +439,22 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                     target_issues[step.name] = reasons
             elif issues:
                 target_issues[step.name] = [it.reason for it in issues]
-        elif step.inference and step.inference.rule == "add_hypothesis" and len(step.inference.parents) == 1:
+        elif (
+            step.inference
+            and step.inference.rule == "add_hypothesis"
+            and len(step.inference.parents) == 1
+        ):
             hit("add_hypothesis", step.name, rule, status, parent_count)
             parent = steps_by_name.get(step.inference.parents[0])
             if parent is None:
-                external_atp_issues[step.name] = [f"Parent step '{step.inference.parents[0]}' not found"]
+                external_atp_issues[step.name] = [
+                    f"Parent step '{step.inference.parents[0]}' not found"
+                ]
             else:
-                # Conservative fast-path: accept only the canonical shape phi -> (H => phi).
+                # Sound fast-path: the canonical shape phi -> (H => phi) is valid
+                # for every H, so no prover call is needed.
                 if (
-                    shortcut_enabled
-                    and isinstance(step.formula, BinaryFormula)
+                    isinstance(step.formula, BinaryFormula)
                     and step.formula.connective == BinaryConnective.IMPLIES
                     and is_alpha_equivalent(step.formula.right, parent.formula)
                 ):
@@ -367,8 +473,14 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                     if valid is False:
                         external_atp_issues[step.name] = [f"External ATP rejected step: {note}"]
                     elif valid == "unknown":
-                        external_atp_issues[step.name] = [f"External ATP could not validate step: {note}"]
-        elif step.inference and step.inference.rule == "consequence" and len(step.inference.parents) == 2:
+                        external_atp_issues[step.name] = [
+                            f"External ATP could not validate step: {note}"
+                        ]
+        elif (
+            step.inference
+            and step.inference.rule == "consequence"
+            and len(step.inference.parents) == 2
+        ):
             hit("consequence", step.name, rule, status, parent_count)
             parent_names = step.inference.parents
             parents = [steps_by_name.get(name) for name in parent_names]
@@ -376,16 +488,13 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 missing = [name for name, parent in zip(parent_names, parents) if parent is None]
                 external_atp_issues[step.name] = [f"Parent step(s) not found: {', '.join(missing)}"]
             else:
-                # Conservative fast-path: accept only contradiction elimination to $false.
-                is_false = isinstance(step.formula, Atom) and step.formula.predicate == "$false" and not step.formula.args
-                if (
-                    shortcut_enabled
-                    and is_false
-                    and (
-                        _formulas_are_complements(parents[0].formula, parents[1].formula)
-                        or isinstance(parents[0].formula, Negation) != isinstance(parents[1].formula, Negation)
-                    )
-                ):
+                # Sound fast-path: two complementary parents yield $false.
+                is_false = (
+                    isinstance(step.formula, Atom)
+                    and step.formula.predicate == "$false"
+                    and not step.formula.args
+                )
+                if is_false and _formulas_are_complements(parents[0].formula, parents[1].formula):
                     pass
                 else:
                     start = time.perf_counter()
@@ -401,7 +510,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                     if valid is False:
                         external_atp_issues[step.name] = [f"External ATP rejected step: {note}"]
                     elif valid == "unknown":
-                        external_atp_issues[step.name] = [f"External ATP could not validate step: {note}"]
+                        external_atp_issues[step.name] = [
+                            f"External ATP could not validate step: {note}"
+                        ]
         elif (
             step.inference
             and step.inference.rule == "resolution"
@@ -427,7 +538,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             parents = [steps_by_name.get(name) for name in parent_names]
             if any(parent is None for parent in parents):
                 missing = [name for name, parent in zip(parent_names, parents) if parent is None]
-                paramodulation_issues[step.name] = [f"Parent step(s) not found: {', '.join(missing)}"]
+                paramodulation_issues[step.name] = [
+                    f"Parent step(s) not found: {', '.join(missing)}"
+                ]
             else:
                 issues = check_paramodulation(step, parents[0], parents[1])
                 if issues:
@@ -440,7 +553,9 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
             hit("reflexivity", step.name, rule, status, parent_count)
             parent = steps_by_name.get(step.inference.parents[0])
             if parent is None:
-                reflexivity_issues[step.name] = [f"Parent step '{step.inference.parents[0]}' not found"]
+                reflexivity_issues[step.name] = [
+                    f"Parent step '{step.inference.parents[0]}' not found"
+                ]
             else:
                 issues = check_reflexivity(step, parent)
                 if issues:
@@ -461,9 +576,7 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 if issues:
                     transitivity_issues[step.name] = [it.reason for it in issues]
         elif (
-            step.inference
-            and step.inference.rule == "rewrite"
-            and len(step.inference.parents) == 1
+            step.inference and step.inference.rule == "rewrite" and len(step.inference.parents) == 1
         ):
             hit("rewrite", step.name, rule, status, parent_count)
             parent = steps_by_name.get(step.inference.parents[0])
@@ -529,7 +642,11 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 ]
             else:
                 start = time.perf_counter()
-                valid, note = validate_step_with_atp(step.formula, premise_formulas=parent_steps, timeout_seconds=PER_PROOF_TIMEOUT_SECONDS)
+                valid, note = validate_step_with_atp(
+                    step.formula,
+                    premise_formulas=parent_steps,
+                    timeout_seconds=PER_PROOF_TIMEOUT_SECONDS,
+                )
                 elapsed = time.perf_counter() - start
                 atp_calls += 1
                 atp_total_seconds += elapsed
@@ -537,19 +654,24 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
                 if valid is False:
                     external_atp_issues[step.name] = [f"External ATP rejected step: {note}"]
                 elif valid == "unknown":
-                    external_atp_issues[step.name] = [f"External ATP could not validate step: {note}"]
+                    external_atp_issues[step.name] = [
+                        f"External ATP could not validate step: {note}"
+                    ]
         elif step.inference:
             external_atp_issues[step.name] = [
                 f"No checker available for rule '{step.inference.rule}' with status '{step.inference.status}'"
             ]
-        elif step.role not in {FormulaRole.AXIOM, FormulaRole.CONJECTURE} and step.raw_source is None:
+        elif (
+            step.role not in {FormulaRole.AXIOM, FormulaRole.CONJECTURE} and step.raw_source is None
+        ):
             external_atp_issues[step.name] = [
                 "Step has no justification: expected inference(...) or source(...) annotation"
             ]
 
-
     all_ok = (
         not circular_dependency_issues
+        and not duplicate_name_issues
+        and not no_false_issues
         and not axiom_issues
         and not conjecture_issues
         and not negated_conjecture_issues
@@ -580,8 +702,10 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
         for b, n in sorted(branch_hits.items(), key=lambda x: x[0]):
             _dbg(f"branch {b}: {n}")
 
-    return {
+    result = {
         "circular_dependency_issues": circular_dependency_issues,
+        "duplicate_name_issues": duplicate_name_issues,
+        "no_false_issues": no_false_issues,
         "axiom_issues": axiom_issues,
         "conjecture_issues": conjecture_issues,
         "negated_conjecture_issues": negated_conjecture_issues,
@@ -607,10 +731,18 @@ def check_proof_file(proof_path: str, problem_path: str) -> dict:
         "external_atp_issues": external_atp_issues,
         "all_ok": all_ok,
     }
+    result["verdict"] = classify_verdict(result)
+    return result
 
 
-def _check_proof_worker(proof_path: str, problem_path: str, result_queue: Queue) -> None:
+def _check_proof_worker(
+    proof_path: str, problem_path: str, result_queue: Queue, debug: bool = False
+) -> None:
     """Run proof checking in a subprocess and return result through a queue."""
+    # The flag is passed explicitly: with the "spawn" start method (Windows, macOS)
+    # the child re-imports this module and would otherwise see the default False.
+    global DEBUG_PROOF_FLOW
+    DEBUG_PROOF_FLOW = DEBUG_PROOF_FLOW or debug
     try:
         result = run_with_larger_stack(lambda: check_proof_file(proof_path, problem_path))
         result_queue.put(("result", result))
@@ -619,7 +751,7 @@ def _check_proof_worker(proof_path: str, problem_path: str, result_queue: Queue)
 
 
 def check_proof_file_with_timeout(
-    proof_path: str, problem_path: str, timeout_seconds: float
+    proof_path: str, problem_path: str, timeout_seconds: float, debug: bool | None = None
 ) -> tuple[str, dict | str | None]:
     """Run proof checking with a wall-clock timeout.
 
@@ -628,91 +760,136 @@ def check_proof_file_with_timeout(
         ("timeout", None) on timeout,
         ("error", str) on runtime failure.
     """
+    if debug is None:
+        debug = DEBUG_PROOF_FLOW
     result_queue: Queue = Queue()
-    process = Process(target=_check_proof_worker, args=(proof_path, problem_path, result_queue))
+    process = Process(
+        target=_check_proof_worker, args=(proof_path, problem_path, result_queue, debug)
+    )
     process.start()
-    process.join(timeout_seconds)
 
-    if process.is_alive():
-        process.terminate()
-        process.join()
-        return "timeout", None
-
+    # Read the result before joining: a child that has put a large result into the
+    # queue does not exit until the parent has consumed it, so joining first could
+    # report a spurious timeout.
+    deadline = time.perf_counter() + timeout_seconds
     try:
-        return result_queue.get_nowait()
-    except Empty:
-        return "error", f"Proof checking process exited with code {process.exitcode}"
+        while True:
+            remaining = deadline - time.perf_counter()
+            if remaining <= 0:
+                return "timeout", None
+            try:
+                return result_queue.get(timeout=min(0.05, remaining))
+            except Empty:
+                if not process.is_alive():
+                    try:
+                        return result_queue.get(timeout=0.2)
+                    except Empty:
+                        return (
+                            "error",
+                            f"Proof checking process exited with code {process.exitcode}",
+                        )
+    finally:
+        process.join(0.2)
+        if process.is_alive():
+            process.terminate()
+            process.join()
 
 
 def report_proof_check(
-    proof_path: str, problem_path: str, timeout_seconds: float = PER_PROOF_TIMEOUT_SECONDS
+    proof_path: str,
+    problem_path: str,
+    timeout_seconds: float = PER_PROOF_TIMEOUT_SECONDS,
+    binary_verdict: bool = False,
+    quiet: bool = False,
+    szs_name: str | None = None,
 ) -> tuple[str, dict | None]:
-    """Run the proof check, print a report, and return the overall status and details."""
-    print(f"\n{'='*70}")
-    print(f"Checking proof: {proof_path}")
-    print(f"Against problem: {problem_path}")
-    print(f"{'='*70}")
+    """Run the proof check, print a report, and return the overall status and details.
+
+    With ``quiet`` only the final ``% SZS status`` line is printed (errors go to stderr);
+    ``szs_name`` appends ``for <name>`` to that line, which batch mode uses.
+    """
+    say = (lambda *a, **k: None) if quiet else print
+    suffix = f" for {szs_name}" if szs_name else ""
+    say(f"\n{'='*70}")
+    say(f"Checking proof: {proof_path}")
+    say(f"Against problem: {problem_path}")
+    say(f"{'='*70}")
 
     outcome, payload = check_proof_file_with_timeout(proof_path, problem_path, timeout_seconds)
 
     if outcome == "timeout":
-        print(f"\n[TIMEOUT] Exceeded wall-clock limit of {timeout_seconds:.1f} seconds")
-        print("\n% SZS status Timeout")
+        say(f"\n[TIMEOUT] Exceeded wall-clock limit of {timeout_seconds:.1f} seconds")
+        print(("" if quiet else "\n") + f"% SZS status Timeout{suffix}")
         return "Timeout", None
     elif outcome == "error":
-        print(f"\n[ERROR] Failed to check proof: {payload}")
-        print("\n% SZS status VerifiedBad")
+        if quiet:
+            print(f"[ERROR] Failed to check proof: {payload}", file=sys.stderr)
+        else:
+            print(f"\n[ERROR] Failed to check proof: {payload}")
+        print(("" if quiet else "\n") + f"% SZS status VerifiedBad{suffix}")
         return "VerifiedBad", None
     else:
         result = payload
 
         if result["circular_dependency_issues"]:
-            print("\n[FAIL] Circular Dependency Issues:")
+            say("\n[FAIL] Circular Dependency Issues:")
             for name, reasons in result["circular_dependency_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] No circular dependencies detected")
+            say("\n[OK] No circular dependencies detected")
+
+        for key, label in (
+            ("duplicate_name_issues", "Duplicate Name"),
+            ("no_false_issues", "Missing $false"),
+        ):
+            if result[key]:
+                say(f"\n[FAIL] {label} Issues:")
+                for name, reasons in result[key].items():
+                    for reason in reasons:
+                        say(f"  - {name}: {reason}")
+            else:
+                say(f"\n[OK] No {label.lower()} issues")
 
         if result["axiom_issues"]:
-            print("\n[FAIL] Axiom Provenance Issues:")
+            say("\n[FAIL] Axiom Provenance Issues:")
             for name, reasons in result["axiom_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All axioms verified correctly")
+            say("\n[OK] All axioms verified correctly")
 
         if result["conjecture_issues"]:
-            print("\n[FAIL] Conjecture Provenance Issues:")
+            say("\n[FAIL] Conjecture Provenance Issues:")
             for name, reasons in result["conjecture_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All conjectures verified correctly")
+            say("\n[OK] All conjectures verified correctly")
 
         if result["negated_conjecture_issues"]:
-            print("\n[FAIL] Negated Conjecture Issues:")
+            say("\n[FAIL] Negated Conjecture Issues:")
             for name, reasons in result["negated_conjecture_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All negated conjectures verified correctly")
+            say("\n[OK] All negated conjectures verified correctly")
 
         if result["instantiate_issues"]:
-            print("\n[FAIL] Instantiate Issues:")
+            say("\n[FAIL] Instantiate Issues:")
             for name, reasons in result["instantiate_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All instantiate steps verified correctly")
+            say("\n[OK] All instantiate steps verified correctly")
 
         if result["existential_gen_issues"]:
-            print("\n[FAIL] Existential Gen Issues:")
+            say("\n[FAIL] Existential Gen Issues:")
             for name, reasons in result["existential_gen_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All existential generalization steps verified correctly")
+            say("\n[OK] All existential generalization steps verified correctly")
 
         for key, label in (
             ("modus_ponens_issues", "Modus Ponens"),
@@ -733,35 +910,36 @@ def report_proof_check(
             ("rewrite_issues", "Rewrite"),
         ):
             if result[key]:
-                print(f"\n[FAIL] {label} Issues:")
+                say(f"\n[FAIL] {label} Issues:")
                 for name, reasons in result[key].items():
                     for reason in reasons:
-                        print(f"  - {name}: {reason}")
+                        say(f"  - {name}: {reason}")
             else:
-                print(f"\n[OK] All {label.lower()} steps verified correctly")
+                say(f"\n[OK] All {label.lower()} steps verified correctly")
 
         if result["skolem_issues"]:
-            print("\n[FAIL] Skolem Issues:")
+            say("\n[FAIL] Skolem Issues:")
             for name, reasons in result["skolem_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All skolem steps verified correctly")
+            say("\n[OK] All skolem steps verified correctly")
 
         if result["external_atp_issues"]:
-            print("\n[FAIL] External ATP Issues:")
+            say("\n[FAIL] External ATP Issues:")
             for name, reasons in result["external_atp_issues"].items():
                 for reason in reasons:
-                    print(f"  - {name}: {reason}")
+                    say(f"  - {name}: {reason}")
         else:
-            print("\n[OK] All ATP-checked steps verified correctly")
+            say("\n[OK] All ATP-checked steps verified correctly")
 
-        if result["all_ok"]:
-            print("\n% SZS status VerifiedGood")
-            return "VerifiedGood", result
-
-        print("\n% SZS status VerifiedBad")
-        return "VerifiedBad", result
+        verdict = result.get("verdict") or classify_verdict(result)
+        if verdict == VERDICT_UNKNOWN and binary_verdict:
+            verdict = VERDICT_BAD
+        if verdict == VERDICT_UNKNOWN:
+            say("\n[UNKNOWN] No defect found, but some steps could not be decided; abstaining")
+        print(("" if quiet else "\n") + f"% SZS status {verdict}{suffix}")
+        return verdict, result
 
 
 def collect_example_pairs(example_dir: Path):
@@ -779,7 +957,10 @@ def collect_example_pairs(example_dir: Path):
         if problem.exists():
             pairs.append((str(proof), str(problem)))
         else:
-            print(f"Warning: problem file not found for {proof} -> expected {problem}")
+            print(
+                f"Warning: problem file not found for {proof} -> expected {problem}",
+                file=sys.stderr,
+            )
     return pairs
 
 
@@ -817,9 +998,7 @@ def summarize_issues(details: dict | None, status: str) -> str:
         return "Timeout" if status == "Timeout" else "Checker error"
 
     failures = [
-        f"{label} ({len(details[key])})"
-        for key, label in ISSUE_SUMMARY_COLUMNS
-        if details.get(key)
+        f"{label} ({len(details[key])})" for key, label in ISSUE_SUMMARY_COLUMNS if details.get(key)
     ]
     return ", ".join(failures) if failures else "-"
 
@@ -850,9 +1029,7 @@ def print_prv_results_table(results: list[tuple[str, str, dict | None]]) -> None
     print(separator)
     for row in rows:
         print(
-            "| "
-            + " | ".join(value.ljust(widths[index]) for index, value in enumerate(row))
-            + " |"
+            "| " + " | ".join(value.ljust(widths[index]) for index, value in enumerate(row)) + " |"
         )
     print(separator)
 
@@ -860,12 +1037,13 @@ def print_prv_results_table(results: list[tuple[str, str, dict | None]]) -> None
 def parse_cli_args() -> argparse.Namespace:
     """Parse optional command-line arguments while preserving the all-files default."""
     parser = argparse.ArgumentParser(
-        description="Verify one proof file or, without arguments, all ProoVer2026 proofs."
+        description="Verify one proof file or, without a proof argument, all proofs of a directory "
+        "(batch mode with scoring; see --dir, --expected, --prefix)."
     )
     parser.add_argument(
         "proof",
         nargs="?",
-        help="Proof file to verify, e.g. ProoVer2026\\PRV038+1.s",
+        help="Proof file to verify, e.g. ProoVer2026/PRV/PRV038+1.s",
     )
     parser.add_argument(
         "-p",
@@ -879,12 +1057,54 @@ def parse_cli_args() -> argparse.Namespace:
         default=PER_PROOF_TIMEOUT_SECONDS,
         help=f"Timeout in seconds (default: {PER_PROOF_TIMEOUT_SECONDS:g}).",
     )
+    parser.add_argument(
+        "-d",
+        "--dir",
+        default="ProoVer2026/PRV",
+        help="Batch mode: directory with proofs (*.s) and a Problems/ subdirectory "
+        "(default: ProoVer2026/PRV; also ProoVer2026/Test, ProoVer2026/Extra, ProoVer2026/Deprecated).",
+    )
+    parser.add_argument(
+        "-e",
+        "--expected",
+        default=None,
+        help="Batch mode: CSV with expected results. Default: chosen from the directory name "
+        "(PRV and Deprecated: PRV_expected.csv, Test: TST_expected.csv, Extra: EXT_expected.csv), "
+        "all in src/scoring/.",
+    )
+    parser.add_argument(
+        "--prefix",
+        default="",
+        help="Batch mode: only check proofs whose file name starts with this prefix, e.g. PRV, TST or EXT.",
+    )
+    parser.add_argument(
+        "--binary-verdict",
+        action="store_true",
+        help="Report VerifiedBad instead of Unknown when a step cannot be decided "
+        "(two-valued output).",
+    )
+    parser.add_argument(
+        "--debug",
+        default=False,
+        action="store_true",
+        help="Print debug information about the proof flow and ATP calls (sets DEBUG_PROOF_FLOW).",
+    )
+    parser.add_argument(
+        "--quiet",
+        default=False,
+        action="store_true",
+        help="Print only the final SZS status line per proof (batch mode: '%% SZS status X for NAME'); "
+        "errors go to stderr, result CSVs are still written.",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     base = Path(__file__).parent
     args = parse_cli_args()
+    if args.debug:
+        DEBUG_PROOF_FLOW = True
+    out = (lambda *a, **k: None) if args.quiet else print
 
     if args.proof:
         proof_path = Path(args.proof)
@@ -907,28 +1127,46 @@ if __name__ == "__main__":
         if args.timeout <= 0:
             raise SystemExit("Timeout must be greater than zero.")
 
-        status, _ = report_proof_check(str(proof_path), str(problem_path), args.timeout)
+        status, _ = report_proof_check(
+            str(proof_path),
+            str(problem_path),
+            args.timeout,
+            binary_verdict=args.binary_verdict,
+            quiet=args.quiet,
+        )
         raise SystemExit(0 if status == "VerifiedGood" else 1)
 
-    prover_directory = base / "ProoVer2026"
+    prover_directory = Path(args.dir)
+    if not prover_directory.is_absolute():
+        prover_directory = base / prover_directory
     all_pairs = collect_example_pairs(prover_directory)
+    all_pairs = [pair for pair in all_pairs if Path(pair[0]).name.startswith(args.prefix)]
     all_pairs.sort(key=lambda pair: Path(pair[0]).name)
+    run_name = prover_directory.name
 
     # Initialize scorer with expected results
-    expected_file = base / "src" / "scoring" / "PRV_expected.csv"
+    if args.expected is None:
+        expected_by_dir = {"PRV": "PRV", "Deprecated": "PRV", "Test": "TST", "Extra": "EXT"}
+        stem = expected_by_dir.get(run_name, "PRV")
+        expected_file = Path("src") / "scoring" / f"{stem}_expected.csv"
+    else:
+        expected_file = Path(args.expected)
+    if not expected_file.is_absolute():
+        expected_file = base / expected_file
     scorer = ProofScorer(str(expected_file))
     if scorer.expected:
-        print(f"✓ Loaded {len(scorer.expected)} expected results from {expected_file}")
+        out(f"✓ Loaded {len(scorer.expected)} expected results from {expected_file}")
     else:
-        print(f"⚠ Warning: No expected results loaded from {expected_file}")
-    
+        out(f"⚠ Warning: No expected results loaded from {expected_file}")
+
     # Initialize performance tracker
     tracker = PerformanceTracker()
-    
+
     total = len(all_pairs)
     verified_count = 0
     not_verified_count = 0
     timeout_count = 0
+    unknown_count = 0
     axiom_failure_count = 0
     conjecture_failure_count = 0
     negated_conjecture_failure_count = 0
@@ -956,24 +1194,33 @@ if __name__ == "__main__":
     scoring_results = []
 
     if total == 0:
-        print("No proof/problem pairs found in ProoVer2026")
+        print(f"No proof/problem pairs found in {prover_directory}", file=sys.stderr)
     else:
         for proof_sub_path, problem_sub_path in all_pairs:
             tracker.start()
-            status, details = report_proof_check(proof_sub_path, problem_sub_path, args.timeout)
+            status, details = report_proof_check(
+                proof_sub_path,
+                problem_sub_path,
+                args.timeout,
+                binary_verdict=args.binary_verdict,
+                quiet=args.quiet,
+                szs_name=Path(proof_sub_path).stem if args.quiet else None,
+            )
             proof_name = Path(proof_sub_path).name
             tracker.stop(proof_name)
-            
+
             prv_results.append((proof_name, status, details))
-            
+
             # Score the proof
             score_result = scorer.score_proof(proof_name, status, details)
             scoring_results.append(score_result)
-            
+
             if status == "VerifiedGood":
                 verified_count += 1
             elif status == "Timeout":
                 timeout_count += 1
+            elif status == "Unknown":
+                unknown_count += 1
             else:
                 not_verified_count += 1
 
@@ -1004,79 +1251,87 @@ if __name__ == "__main__":
                 skolem_failure_count += len(details["skolem_issues"])
                 external_atp_failure_count += len(details["external_atp_issues"])
 
-    print(f"\n{'='*70}")
-    print("Summary")
-    print(f"{'='*70}")
-    print(f"Total proofs checked: {total}")
-    print(f"VerifiedGood: {verified_count}")
-    print(f"VerifiedBad: {not_verified_count}")
-    print(f"Timeout: {timeout_count}")
-    print("Failed steps:")
-    print(f"  Axiom verification: {axiom_failure_count}")
-    print(f"  Conjecture verification: {conjecture_failure_count}")
-    print(f"  Negated conjecture: {negated_conjecture_failure_count}")
-    print(f"  Instantiate: {instantiate_failure_count}")
-    print(f"  Existential gen: {existential_gen_failure_count}")
-    print(f"  Modus ponens: {modus_ponens_failure_count}")
-    print(f"  Conjunction: {conjunction_failure_count}")
-    print(f"  Split conjunct: {split_conjunct_failure_count}")
-    print(f"  Copy: {copy_failure_count}")
-    print(f"  Duplicate: {duplicate_failure_count}")
-    print(f"  Rename variable: {rename_variable_failure_count}")
-    print(f"  Double negation: {double_negation_failure_count}")
-    print(f"  Remove double negation: {remove_double_negation_failure_count}")
-    print(f"  Weaken: {weaken_failure_count}")
-    print(f"  Commute: {commute_failure_count}")
-    print(f"  Excluded middle: {excluded_middle_failure_count}")
-    print(f"  Resolution: {resolution_failure_count}")
-    print(f"  Paramodulation: {paramodulation_failure_count}")
-    print(f"  Reflexivity: {reflexivity_failure_count}")
-    print(f"  Transitivity: {transitivity_failure_count}")
-    print(f"  Rewrite: {rewrite_failure_count}")
-    print(f"  Skolemization: {skolem_failure_count}")
-    print(f"  External ATP: {external_atp_failure_count}")
-    print_prv_results_table(prv_results)
-    
+    out(f"\n{'='*70}")
+    out("Summary")
+    out(f"{'='*70}")
+    out(f"Total proofs checked: {total}")
+    out(f"VerifiedGood: {verified_count}")
+    out(f"VerifiedBad: {not_verified_count}")
+    out(f"Unknown: {unknown_count}")
+    out(f"Timeout: {timeout_count}")
+    out("Failed steps:")
+    out(f"  Axiom verification: {axiom_failure_count}")
+    out(f"  Conjecture verification: {conjecture_failure_count}")
+    out(f"  Negated conjecture: {negated_conjecture_failure_count}")
+    out(f"  Instantiate: {instantiate_failure_count}")
+    out(f"  Existential gen: {existential_gen_failure_count}")
+    out(f"  Modus ponens: {modus_ponens_failure_count}")
+    out(f"  Conjunction: {conjunction_failure_count}")
+    out(f"  Split conjunct: {split_conjunct_failure_count}")
+    out(f"  Copy: {copy_failure_count}")
+    out(f"  Duplicate: {duplicate_failure_count}")
+    out(f"  Rename variable: {rename_variable_failure_count}")
+    out(f"  Double negation: {double_negation_failure_count}")
+    out(f"  Remove double negation: {remove_double_negation_failure_count}")
+    out(f"  Weaken: {weaken_failure_count}")
+    out(f"  Commute: {commute_failure_count}")
+    out(f"  Excluded middle: {excluded_middle_failure_count}")
+    out(f"  Resolution: {resolution_failure_count}")
+    out(f"  Paramodulation: {paramodulation_failure_count}")
+    out(f"  Reflexivity: {reflexivity_failure_count}")
+    out(f"  Transitivity: {transitivity_failure_count}")
+    out(f"  Rewrite: {rewrite_failure_count}")
+    out(f"  Skolemization: {skolem_failure_count}")
+    out(f"  External ATP: {external_atp_failure_count}")
+    if not args.quiet:
+        print_prv_results_table(prv_results)
+
     # Print performance summary
     if tracker.get_all_measurements():
-        print(f"\n{'='*70}")
-        print("PERFORMANCE SUMMARY")
-        print(f"{'='*70}")
-        
+        out(f"\n{'='*70}")
+        out("PERFORMANCE SUMMARY")
+        out(f"{'='*70}")
+
         overall = tracker.get_overall_summary()
-        print(f"Total proofs checked:  {overall['total_measurements']}")
-        print(f"Av. WC Time:           {overall['avg_wc_time']:.4f} seconds")
-        print(f"Av. CPU Time:          {overall['avg_cpu_time']:.4f} seconds")
-        print(f"Total WC Time:         {overall['total_wc_time']:.2f} seconds")
-        print(f"Total CPU Time:        {overall['total_cpu_time']:.2f} seconds")
-        print(f"Min WC Time:           {overall['min_wc_time']:.4f} seconds")
-        print(f"Max WC Time:           {overall['max_wc_time']:.4f} seconds")
-        
+        out(f"Total proofs checked:  {overall['total_measurements']}")
+        out(f"Av. WC Time:           {overall['avg_wc_time']:.4f} seconds")
+        out(f"Av. CPU Time:          {overall['avg_cpu_time']:.4f} seconds")
+        out(f"Total WC Time:         {overall['total_wc_time']:.2f} seconds")
+        out(f"Total CPU Time:        {overall['total_cpu_time']:.2f} seconds")
+        out(f"Min WC Time:           {overall['min_wc_time']:.4f} seconds")
+        out(f"Max WC Time:           {overall['max_wc_time']:.4f} seconds")
+
         # Calculate overhead
-        total_overhead = overall['total_wc_time'] - overall['total_cpu_time']
-        overhead_pct = (total_overhead / overall['total_wc_time'] * 100) if overall['total_wc_time'] > 0 else 0
-        print(f"Total Overhead:        {total_overhead:.2f} seconds ({overhead_pct:.1f}%)")
-        print(f"{'='*70}\n")
-        
+        total_overhead = overall["total_wc_time"] - overall["total_cpu_time"]
+        overhead_pct = (
+            (total_overhead / overall["total_wc_time"] * 100) if overall["total_wc_time"] > 0 else 0
+        )
+        out(f"Total Overhead:        {total_overhead:.2f} seconds ({overhead_pct:.1f}%)")
+        out(f"{'='*70}\n")
+
         # Print detailed performance table
-        print_performance_table(tracker)
-        
+        if not args.quiet:
+            print_performance_table(tracker)
+
         # Export performance data to CSV
-        perf_csv_file = base / "results" / "performance_results.csv"
-        with open(perf_csv_file, 'w', newline='', encoding='utf-8') as f:
+        perf_csv_file = base / "results" / f"{run_name}_performance.csv"
+        perf_csv_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(perf_csv_file, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(['Proof', 'WC Time (s)', 'CPU Time (s)', 'Overhead (s)'])
+            writer.writerow(["Proof", "WC Time (s)", "CPU Time (s)", "Overhead (s)"])
             for m in tracker.get_all_measurements():
                 overhead = m.wc_time - m.cpu_time
-                writer.writerow([m.operation_name, f"{m.wc_time:.4f}", f"{m.cpu_time:.4f}", f"{overhead:.4f}"])
-        print(f"Performance data exported to: {perf_csv_file}\n")
+                writer.writerow(
+                    [m.operation_name, f"{m.wc_time:.4f}", f"{m.cpu_time:.4f}", f"{overhead:.4f}"]
+                )
+        out(f"Performance data exported to: {perf_csv_file}\n")
 
     # Print scoring summary
     if scoring_results:
         scoring_summary = scorer.calculate_score_summary(scoring_results)
         print_scoring_summary(scoring_summary)
-        
+
         # Export results to CSV
-        output_csv = base / "results" / "ProoVer2026_results.csv"
+        output_csv = base / "results" / f"{run_name}_results.csv"
         scorer.export_results_to_csv(scoring_results, str(output_csv))
-        print(f"\nScoring results exported to: {output_csv}")
+        out(f"\nScoring results exported to: {output_csv}")

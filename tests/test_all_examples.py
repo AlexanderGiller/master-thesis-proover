@@ -12,7 +12,7 @@ from src.var_mapping import (
     Quantifier,
 )
 
-EXAMPLES_DIR = Path("examples/correct")
+EXAMPLES_DIR = Path("tests/fixtures/examples/correct")
 
 
 @pytest.mark.parametrize("proof_path", sorted(EXAMPLES_DIR.glob("*.s")))

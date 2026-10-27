@@ -7,8 +7,13 @@ It assumes the verification results are already stored in a CSV file.
 
 import argparse
 import csv
+import sys
 from pathlib import Path
-from src.scoring import ProofScorer, ScoringResult, print_scoring_summary
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
+from src.scoring.scoring import ProofScorer, ScoringResult, print_scoring_summary
 
 
 def load_verification_results(results_csv: str) -> dict:
@@ -19,11 +24,11 @@ def load_verification_results(results_csv: str) -> dict:
     if not path.exists():
         raise FileNotFoundError(f"Results file not found: {results_csv}")
 
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            proof_name = row.get('Proof')
-            status = row.get('Status')
+            proof_name = row.get("Proof")
+            status = row.get("Status")
             if proof_name and status:
                 results[proof_name] = status
 
@@ -35,23 +40,26 @@ def main():
         description="Score proof verification results against expected outcomes."
     )
     parser.add_argument(
-        "-e", "--expected",
-        default="PRV_expected.csv",
-        help="CSV file with expected results (default: PRV_expected.csv)"
+        "-e",
+        "--expected",
+        default="src/scoring/PRV_expected.csv",
+        help="CSV file with expected results (default: src/scoring/PRV_expected.csv)",
     )
     parser.add_argument(
-        "-r", "--results",
-        default="ProoVer2026_results.csv",
-        help="CSV file with verification results (default: ProoVer2026_results.csv)"
+        "-r",
+        "--results",
+        default="results/PRV_results.csv",
+        help="CSV file with verification results (default: results/PRV_results.csv)",
     )
     parser.add_argument(
-        "-o", "--output",
-        default="scoring_report.csv",
-        help="Output file for scoring report (default: scoring_report.csv)"
+        "-o",
+        "--output",
+        default="results/scoring_report.csv",
+        help="Output file for scoring report (default: results/scoring_report.csv)",
     )
 
     args = parser.parse_args()
-    base = Path(__file__).parent
+    base = ROOT
 
     expected_file = base / args.expected
     results_file = base / args.results
@@ -66,13 +74,13 @@ def main():
     # Try to load existing results
     if results_file.exists():
         print(f"Reading verification results from: {results_file}")
-        with open(results_file, 'r', encoding='utf-8') as f:
+        with open(results_file, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             results = []
             for row in reader:
-                proof_name = row.get('Proof')
-                expected = row.get('Expected', 'UNKNOWN')
-                actual = row.get('Actual')
+                proof_name = row.get("Proof")
+                expected = row.get("Expected", "UNKNOWN")
+                actual = row.get("Actual")
                 if proof_name and actual:
                     score_result = ScoringResult(proof_name, expected, actual)
                     results.append(score_result)
@@ -94,4 +102,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -1,8 +1,8 @@
 """Scoring system for proof verification results."""
 
 import csv
+import sys
 from pathlib import Path
-from typing import Optional
 
 
 class ScoringResult:
@@ -34,10 +34,10 @@ class ScoringResult:
         - Falsch als Falsch (INCORRECT → VerifiedBad): +2
         - Richtig als Falsch (CORRECT → VerifiedBad): -1
         - Falsch als Richtig (INCORRECT → VerifiedGood): -10
-        - Timeout: 0
+        - Timeout / Unknown (abstention): 0
         """
         # Timeout always gives 0 points
-        if self.actual_status == "Timeout":
+        if self.actual_status in ("Timeout", "Unknown"):
             return 0
 
         # Map expected status to expected szs status
@@ -68,12 +68,14 @@ class ScoringResult:
 
     def get_error_categories(self) -> dict:
         """Extract error categories from the details."""
-        if not self.details or self.actual_status == "Timeout":
+        if not self.details or self.actual_status in ("Timeout", "Unknown"):
             return {}
 
         error_categories = {}
         issue_columns = [
             ("circular_dependency_issues", "Circular dependency"),
+            ("duplicate_name_issues", "Duplicate name"),
+            ("no_false_issues", "Missing $false"),
             ("axiom_issues", "Axiom"),
             ("conjecture_issues", "Conjecture"),
             ("negated_conjecture_issues", "Negated conjecture"),
@@ -120,17 +122,31 @@ class ProofScorer:
         path = Path(file_path)
 
         if not path.exists():
-            print(f"Warning: Expected results file not found: {file_path}")
+            print(f"Warning: Expected results file not found: {file_path}", file=sys.stderr)
             return expected
 
         try:
-            with open(path, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    if row.get('proof') and row.get('expected_status'):
-                        expected[row['proof']] = row['expected_status']
+            # Accepted layouts (with or without header row):
+            #   PRV: proof,expected_status,description
+            #   TST: proof,test_id,expected,description
+            #   EXT: proof,rule,expected,description
+            # The expected value is the first of CORRECT / INCORRECT / EDGE after the file name.
+            with open(path, "r", encoding="utf-8", newline="") as f:
+                for row in csv.reader(f):
+                    if not row or not row[0].strip().endswith(".s"):
+                        continue
+                    status = next(
+                        (
+                            c.strip()
+                            for c in row[1:]
+                            if c.strip() in ("CORRECT", "INCORRECT", "EDGE")
+                        ),
+                        None,
+                    )
+                    if status:
+                        expected[row[0].strip()] = status
         except Exception as e:
-            print(f"Error loading expected results: {e}")
+            print(f"Error loading expected results: {e}", file=sys.stderr)
 
         return expected
 
@@ -151,17 +167,23 @@ class ProofScorer:
         # Calculate total points
         total_points = sum(r.points for r in results)
 
-        # Maximum possible points (all correct as correct = +1 each)
-        max_points = total
-
-        # Minimum possible points (all incorrect as incorrect = -10 each)
-        min_points = -10 * total
+        # Best and worst possible points given the expected results:
+        # a valid proof scores +1 / -1, an invalid proof +2 / -10, others 0.
+        max_points = sum({"CORRECT": 1, "INCORRECT": 2}.get(r.expected_status, 0) for r in results)
+        min_points = sum(
+            {"CORRECT": -1, "INCORRECT": -10}.get(r.expected_status, 0) for r in results
+        )
 
         # Count by status
         verified_good = sum(1 for r in results if r.actual_status == "VerifiedGood")
         verified_bad = sum(1 for r in results if r.actual_status == "VerifiedBad")
         timeout = sum(1 for r in results if r.actual_status == "Timeout")
-        error = sum(1 for r in results if r.actual_status not in ["VerifiedGood", "VerifiedBad", "Timeout"])
+        unknown = sum(1 for r in results if r.actual_status == "Unknown")
+        error = sum(
+            1
+            for r in results
+            if r.actual_status not in ["VerifiedGood", "VerifiedBad", "Timeout", "Unknown"]
+        )
 
         # Count by scoring result type
         count_correct_as_correct = sum(1 for r in results if r.points == 1)
@@ -203,6 +225,7 @@ class ProofScorer:
             "verified_good": verified_good,
             "verified_bad": verified_bad,
             "timeout": timeout,
+            "unknown": unknown,
             "error": error,
             "error_categories": sorted_errors,
         }
@@ -212,29 +235,24 @@ class ProofScorer:
         path = Path(output_file)
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(path, 'w', newline='', encoding='utf-8') as f:
+        with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow([
-                "Proof",
-                "Expected",
-                "Actual",
-                "Points",
-                "Error Categories"
-            ])
+            writer.writerow(["Proof", "Expected", "Actual", "Points", "Error Categories"])
 
             for result in results:
                 errors = ", ".join(
-                    f"{cat} ({count})"
-                    for cat, count in result.get_error_categories().items()
+                    f"{cat} ({count})" for cat, count in result.get_error_categories().items()
                 )
 
-                writer.writerow([
-                    result.proof_name,
-                    result.expected_status,
-                    result.actual_status,
-                    result.points,
-                    errors
-                ])
+                writer.writerow(
+                    [
+                        result.proof_name,
+                        result.expected_status,
+                        result.actual_status,
+                        result.points,
+                        errors,
+                    ]
+                )
 
 
 def print_scoring_summary(summary: dict) -> None:
@@ -243,37 +261,39 @@ def print_scoring_summary(summary: dict) -> None:
         print("No results to summarize")
         return
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("SCORING SUMMARY (Point-based System)")
-    print("="*70)
+    print("=" * 70)
     print(f"Total Proofs:          {summary['total']}")
     print(f"Total Points:          {summary['total_points']}")
-    print(f"Max Possible:          {summary['max_points']} (all +1)")
-    print(f"Min Possible:          {summary['min_points']} (all -10)")
+    print(f"Max Possible:          {summary['max_points']} (+1 per valid, +2 per invalid proof)")
+    print(f"Min Possible:          {summary['min_points']} (-1 per valid, -10 per invalid proof)")
     print()
     print("Score Breakdown:")
-    print(f"  Correct → VerifiedGood:  {summary['count_correct_as_correct']:3d} proofs × (+1) = {summary['points_correct_as_correct']:+4d}")
-    print(f"  Incorrect → VerifiedBad: {summary['count_false_as_false']:3d} proofs × (+2) = {summary['points_false_as_false']:+4d}")
-    print(f"  Correct → VerifiedBad:   {summary['count_correct_as_false']:3d} proofs × (-1) = {summary['points_correct_as_false']:+4d}")
-    print(f"  Incorrect → VerifiedGood:{summary['count_false_as_correct']:3d} proofs × (-10) = {summary['points_false_as_correct']:+4d}")
+    print(
+        f"  Correct → VerifiedGood:  {summary['count_correct_as_correct']:3d} proofs × (+1) = {summary['points_correct_as_correct']:+4d}"
+    )
+    print(
+        f"  Incorrect → VerifiedBad: {summary['count_false_as_false']:3d} proofs × (+2) = {summary['points_false_as_false']:+4d}"
+    )
+    print(
+        f"  Correct → VerifiedBad:   {summary['count_correct_as_false']:3d} proofs × (-1) = {summary['points_correct_as_false']:+4d}"
+    )
+    print(
+        f"  Incorrect → VerifiedGood:{summary['count_false_as_correct']:3d} proofs × (-10) = {summary['points_false_as_correct']:+4d}"
+    )
     print()
     print("Verification Status:")
     print(f"  VerifiedGood:    {summary['verified_good']}")
     print(f"  VerifiedBad:     {summary['verified_bad']}")
+    print(f"  Unknown:         {summary['unknown']}")
     print(f"  Timeout:         {summary['timeout']}")
     print(f"  Error:           {summary['error']}")
 
-    if summary['error_categories']:
+    if summary["error_categories"]:
         print()
         print("Top Error Categories:")
-        for category, count in summary['error_categories'][:10]:
+        for category, count in summary["error_categories"][:10]:
             print(f"  {category}: {count}")
 
-    print("="*70)
-
-
-
-
-
-
-
+    print("=" * 70)

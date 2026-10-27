@@ -1,5 +1,5 @@
 from src.checker.file_dir import ProvenanceIssue, check_axiom_provenance
-from src.parser.ast_nodes import AnnotatedFormula, Atom, Constant, InferenceRecord, FileSource
+from src.parser.ast_nodes import AnnotatedFormula, Atom, Constant, FileSource, InferenceRecord
 from src.var_mapping import (
     FormulaRole,
 )

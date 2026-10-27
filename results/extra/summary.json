@@ -1,0 +1,114 @@
+{
+  "total": 109,
+  "false_accept": 0,
+  "false_reject": 0,
+  "per_rule": {
+    "add_hypothesis": {
+      "ok": 2,
+      "n": 2,
+      "rejected_by_rule_checker": 1
+    },
+    "commute": {
+      "ok": 6,
+      "n": 6,
+      "rejected_by_rule_checker": 3
+    },
+    "conjunction": {
+      "ok": 3,
+      "n": 4,
+      "rejected_by_rule_checker": 2,
+      "edge_VerifiedBad": 1
+    },
+    "consequence": {
+      "ok": 1,
+      "n": 1,
+      "rejected_by_rule_checker": 1
+    },
+    "copy": {
+      "ok": 3,
+      "n": 3,
+      "rejected_by_rule_checker": 2
+    },
+    "double_negation": {
+      "ok": 3,
+      "n": 3,
+      "rejected_by_rule_checker": 2
+    },
+    "duplicate": {
+      "ok": 3,
+      "n": 3,
+      "rejected_by_rule_checker": 2
+    },
+    "excluded_middle": {
+      "ok": 5,
+      "n": 6,
+      "rejected_by_rule_checker": 4,
+      "edge_VerifiedGood": 1
+    },
+    "existential_gen": {
+      "ok": 6,
+      "n": 6,
+      "rejected_by_rule_checker": 4
+    },
+    "instantiate": {
+      "ok": 8,
+      "n": 8,
+      "rejected_by_rule_checker": 4
+    },
+    "modus_ponens": {
+      "ok": 8,
+      "n": 8,
+      "rejected_by_rule_checker": 5
+    },
+    "paramodulation": {
+      "ok": 12,
+      "n": 14,
+      "rejected_by_rule_checker": 8,
+      "edge_VerifiedBad": 2
+    },
+    "reflexivity": {
+      "ok": 5,
+      "n": 6,
+      "rejected_by_rule_checker": 4,
+      "edge_VerifiedBad": 1
+    },
+    "remove_double_negation": {
+      "ok": 3,
+      "n": 3,
+      "rejected_by_rule_checker": 2
+    },
+    "rename_variable": {
+      "ok": 3,
+      "n": 3,
+      "rejected_by_rule_checker": 2
+    },
+    "resolution": {
+      "ok": 13,
+      "n": 14,
+      "rejected_by_rule_checker": 9,
+      "edge_VerifiedBad": 1
+    },
+    "rewrite": {
+      "ok": 3,
+      "n": 3,
+      "rejected_by_rule_checker": 2
+    },
+    "split_conjunct": {
+      "ok": 3,
+      "n": 4,
+      "rejected_by_rule_checker": 2,
+      "edge_VerifiedBad": 1
+    },
+    "transitivity": {
+      "ok": 6,
+      "n": 6,
+      "rejected_by_rule_checker": 4
+    },
+    "weaken": {
+      "ok": 5,
+      "n": 6,
+      "rejected_by_rule_checker": 3,
+      "edge_VerifiedGood": 1
+    }
+  }
+}

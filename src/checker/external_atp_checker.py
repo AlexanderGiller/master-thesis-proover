@@ -22,10 +22,13 @@ from src.parser.ast_nodes import (
     QuantifiedFormula,
     Variable,
 )
-from src.var_mapping import BinaryConnective, InferenceStatus, Quantifier
-
+from src.var_mapping import BinaryConnective, InferenceStatus
 
 ATPValidation = bool | Literal["unknown"]
+
+# SZS statuses that settle the entailment question for "premises |= goal".
+_CONFIRMING_STATUSES = {"Theorem", "Unsatisfiable", "ContradictoryAxioms"}
+_REFUTING_STATUSES = {"CounterSatisfiable", "Satisfiable"}
 
 
 def _quote_symbol(name: str) -> str:
@@ -81,8 +84,7 @@ def formula_to_tptp(formula: object) -> str:
         if connective == BinaryConnective.IMPLIED:
             connective = BinaryConnective.IMPLIES
         return (
-            f"({formula_to_tptp(formula.left)} {connective} "
-            f"{formula_to_tptp(formula.right)})"
+            f"({formula_to_tptp(formula.left)} {connective} " f"{formula_to_tptp(formula.right)})"
         )
     if isinstance(formula, JunctionFormula):
         sep = f" {formula.connective} "
@@ -179,9 +181,12 @@ def validate_step_with_atp(
         return "unknown", "ATP output did not contain an SZS status"
 
     status = match.group(1)
-    if status in {"Theorem", "Unsatisfiable", "ContradictoryAxioms"}:
+    if status in _CONFIRMING_STATUSES:
         return True, status
-    return False, status
+    if status in _REFUTING_STATUSES:
+        return False, status
+
+    return "unknown", f"ATP gave no answer (SZS status {status})"
 
 
 def status_allows_atp(status: InferenceStatus | None) -> bool:

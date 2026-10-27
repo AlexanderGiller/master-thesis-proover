@@ -719,17 +719,32 @@ class TestNegatedConjectureDoubleNegation:
     """Test handling of double negation."""
 
     def test_double_negation_elimination(self):
-        """If conjecture is ~(~P), negated should be P."""
+        """If the conjecture is ~(~P), its negation is ~P (not P)."""
         from src.checker.negated_conjecture_checker import _negate_formula
 
         atom = Atom("p", [])
         double_neg = Negation(Negation(atom))
 
         negated = _negate_formula(double_neg)
-        assert negated == atom
+        assert negated == Negation(atom)
 
     def test_double_negation_in_conjecture_step(self):
-        """Conjecture: ~(~p(X)), Negated: p(X)"""
+        """Conjecture: ~(~p(X)), negated conjecture: ~p(X)."""
+        conj = make_annotated(
+            "c", FormulaRole.CONJECTURE, Negation(Negation(Atom("p", [Variable("X")])))
+        )
+
+        neg_conj = make_annotated(
+            "nc",
+            FormulaRole.NEGATED_CONJECTURE,
+            Negation(Atom("p", [Variable("X")])),
+            make_neg_inference(InferenceRule.NEGATED_CONJECTURE, InferenceStatus.CTH, ["c"]),
+        )
+
+        assert check_negated_conjecture(neg_conj, conj) == []
+
+    def test_double_negation_conjecture_rejects_unnegated_atom(self):
+        """Regression: p(X) is equivalent to the conjecture ~(~p(X)), not to its negation."""
         conj = make_annotated(
             "c", FormulaRole.CONJECTURE, Negation(Negation(Atom("p", [Variable("X")])))
         )
@@ -741,8 +756,7 @@ class TestNegatedConjectureDoubleNegation:
             make_neg_inference(InferenceRule.NEGATED_CONJECTURE, InferenceStatus.CTH, ["c"]),
         )
 
-        issues = check_negated_conjecture(neg_conj, conj)
-        assert issues == []
+        assert check_negated_conjecture(neg_conj, conj) != []
 
 
 class TestNegatedConjectureComplexDeMorgan:

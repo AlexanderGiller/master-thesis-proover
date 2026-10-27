@@ -99,7 +99,7 @@ def test_include_and_parse_file_pretty_runs(capsys):
     assert include_result.path == "file.p"
     assert include_result.selected_formulas is None
     # run parse_file_pretty on an existing problem file to exercise printing
-    parse_file_pretty("examples/correct/Problems/COR001+1.p")
+    parse_file_pretty("tests/fixtures/examples/correct/Problems/COR001+1.p")
     captured = capsys.readouterr()
     # tree.pretty prints something; ensure output is non-empty
     assert captured.out is not None
@@ -205,6 +205,6 @@ def test_annotations_and_top_level_and_parse_pretty(capsys):
     ann = t.fof_annotated(["name", "axiom", "formula", None])
     assert ann.name == "name" and ann.role == "axiom"
     # parse_file_pretty prints tree; run on an existing example problem file
-    parse_file_pretty("examples/correct/Problems/COR001+1.p")
+    parse_file_pretty("tests/fixtures/examples/correct/Problems/COR001+1.p")
     out = capsys.readouterr().out
     assert out is not None

@@ -14,7 +14,6 @@ from src.parser.ast_nodes import (
 )
 from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus, Quantifier
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -33,9 +32,12 @@ class TestInstantiateChecker:
             FormulaRole.PLAIN,
             QuantifiedFormula(Quantifier.UNIVERSAL, ["X"], Atom("q", [Variable("X")])),
         )
-        child = make_annotated("c", FormulaRole.PLAIN, Atom("q", [Constant("a")]), make_inference(
-            InferenceRule.INSTANTIATE, InferenceStatus.THM, ["p"]
-        ))
+        child = make_annotated(
+            "c",
+            FormulaRole.PLAIN,
+            Atom("q", [Constant("a")]),
+            make_inference(InferenceRule.INSTANTIATE, InferenceStatus.THM, ["p"]),
+        )
 
         assert check_instantiate(child, parent) == []
 
@@ -183,8 +185,8 @@ class TestExistentialGenChecker:
 class TestCheckerIntegrationExamples:
     def test_prv008_example_contains_new_steps(self):
         result = check_proof_file(
-            str(ROOT / "ProoVer2026" / "PRV008+1.s"),
-            str(ROOT / "ProoVer2026" / "Problems" / "PRV008+1.p"),
+            str(ROOT / "ProoVer2026" / "PRV" / "PRV008+1.s"),
+            str(ROOT / "ProoVer2026" / "PRV" / "Problems" / "PRV008+1.p"),
         )
 
         assert result["instantiate_issues"] == {}

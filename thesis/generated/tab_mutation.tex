@@ -1,0 +1,16 @@
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
+\begin{tabular}{@{}l r r r r r@{}}
+\toprule
+Mutation operator & Mutants & Killed & Survivors still valid & Survivors not valid & Kill rate (without valid) \\
+\midrule
+Change connective ($\wedge\leftrightarrow\vee$) & 21 & 19 & 2 & 0 & 100.0\,\% \\
+Swap sides of an implication & 21 & 18 & 3 & 0 & 100.0\,\% \\
+Swap quantifier kind ($\forall\leftrightarrow\exists$) & 20 & 19 & 1 & 0 & 100.0\,\% \\
+Negate an atom & 77 & 76 & 1 & 0 & 100.0\,\% \\
+Remove a premise & 68 & 66 & 2 & 0 & 100.0\,\% \\
+Cite another premise & 77 & 69 & 8 & 0 & 100.0\,\% \\
+Change status \texttt{thm} to \texttt{cth} & 77 & 36 & 41 & 0 & 100.0\,\% \\
+\midrule
+Total & 361 & 303 & 58 & 0 & 100.0\,\% \\
+\bottomrule
+\end{tabular}}

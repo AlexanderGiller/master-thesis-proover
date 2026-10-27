@@ -12,9 +12,9 @@ from src.parser.ast_nodes import (
     Constant,
     InferenceRecord,
     Negation,
+    QuantifiedFormula,
     StatusInfo,
     Variable,
-    QuantifiedFormula,
 )
 from src.var_mapping import FormulaRole, InferenceRule, InferenceStatus, Quantifier
 
@@ -30,16 +30,12 @@ def inference(rule, parents):
 class TestCopy:
     def test_valid_copy(self):
         parent = annotated("p", Atom("p", [Constant("a")]))
-        step = annotated(
-            "c", Atom("p", [Constant("a")]), inference(InferenceRule.COPY, ["p"])
-        )
+        step = annotated("c", Atom("p", [Constant("a")]), inference(InferenceRule.COPY, ["p"]))
         assert check_copy(step, parent) == []
 
     def test_copy_with_different_formula_is_rejected(self):
         parent = annotated("p", Atom("p", [Constant("a")]))
-        step = annotated(
-            "c", Atom("q", [Constant("a")]), inference(InferenceRule.COPY, ["p"])
-        )
+        step = annotated("c", Atom("q", [Constant("a")]), inference(InferenceRule.COPY, ["p"]))
         issues = check_copy(step, parent)
         assert any("does not match" in it.reason for it in issues)
 
@@ -166,26 +162,26 @@ class TestRemoveDoubleNegation:
 class TestIntegrationAgainstRealProofs:
     def test_prv009_rename_variable(self):
         result = check_proof_file(
-            "ProoVer2026/PRV009+1.s", "ProoVer2026/Problems/PRV009+1.p"
+            "ProoVer2026/PRV/PRV009+1.s", "ProoVer2026/PRV/Problems/PRV009+1.p"
         )
         assert result["rename_variable_issues"] == {}
 
     def test_prv026_copy(self):
         result = check_proof_file(
-            "ProoVer2026/PRV026+1.s", "ProoVer2026/Problems/PRV026+1.p"
+            "ProoVer2026/PRV/PRV026+1.s", "ProoVer2026/PRV/Problems/PRV026+1.p"
         )
         assert result["copy_issues"] == {}
 
     def test_prv098_copy_and_duplicate_chain(self):
         result = check_proof_file(
-            "ProoVer2026/PRV098+1.s", "ProoVer2026/Problems/PRV098+1.p"
+            "ProoVer2026/PRV/PRV098+1.s", "ProoVer2026/PRV/Problems/PRV098+1.p"
         )
         assert result["copy_issues"] == {}
         assert result["duplicate_issues"] == {}
 
     def test_prv010_double_negation_and_removal(self):
         result = check_proof_file(
-            "ProoVer2026/PRV010+1.s", "ProoVer2026/Problems/PRV010+1.p"
+            "ProoVer2026/PRV/PRV010+1.s", "ProoVer2026/PRV/Problems/PRV010+1.p"
         )
         assert result["double_negation_issues"] == {}
         assert result["remove_double_negation_issues"] == {}

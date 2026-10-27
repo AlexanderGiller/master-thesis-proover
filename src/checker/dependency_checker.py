@@ -1,5 +1,4 @@
-"""Checkers that detect circular reasoning in a proof's dependency graph.
-"""
+"""Checkers that detect circular reasoning in a proof's dependency graph."""
 
 from dataclasses import dataclass
 
@@ -51,7 +50,7 @@ def check_no_circular_dependencies(
             stack[-1] = (node, next_idx + 1)
             parent = parents[next_idx]
             if parent not in color:
-                continue  # dangling reference; not this checker's concern
+                continue
 
             state = color[parent]
             if state == WHITE:
@@ -93,9 +92,7 @@ def check_conjecture_not_assumed(
     established premise, i.e. assuming what it set out to prove.
     """
     steps_by_name = {step.name: step for step in steps}
-    conjecture_names = {
-        step.name for step in steps if step.role == FormulaRole.CONJECTURE
-    }
+    conjecture_names = {step.name for step in steps if step.role == FormulaRole.CONJECTURE}
     issues: list[CircularDependencyIssue] = []
 
     if not conjecture_names:
