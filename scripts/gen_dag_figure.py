@@ -78,6 +78,10 @@ def classify(step, by_name) -> str:
     return "atp" if status_allows_atp(inf.status) else "none"
 
 
+def html(text: str) -> str:
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def esc(text: str) -> str:
     return text.replace("\\", "\\\\").replace('"', '\\"')
 
@@ -98,8 +102,13 @@ def main() -> None:
         used.add(kind)
         inf = s.inference
         how = f"{inf.rule} [{inf.status}]" if inf else "file(...)"
-        label = f"{s.name}  ({s.role})\\n{esc(repr(s.formula))}\\n{esc(how)}"
-        lines.append(f'  "{s.name}" [label="{label}", fillcolor="{COLOURS[kind][0]}"];')
+        # formulas, names, and rules in monospace (HTML-like label of Graphviz)
+        label = (
+            f'<FONT FACE="Courier">{html(s.name)}</FONT>  ({html(str(s.role))})<BR/>'
+            f'<FONT FACE="Courier">{html(repr(s.formula))}</FONT><BR/>'
+            f'<FONT FACE="Courier">{html(how)}</FONT>'
+        )
+        lines.append(f'  "{s.name}" [label=<{label}>, fillcolor="{COLOURS[kind][0]}"];')
     for s in proof.steps:
         if s.inference:
             for p in s.inference.parents:

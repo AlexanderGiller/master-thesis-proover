@@ -1,9 +1,14 @@
 \resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%
-\begin{tabular}{@{}l r r r r r r@{}}
+\begin{tabular}{@{}l l r r r r r@{}}
 \toprule
- & valid verified & invalid verified & invalid rejected & Score (binary) & Score (three-valued) & uncertain \\
+ & & \multicolumn{2}{c}{valid proofs} & invalid proofs & & \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-5}
+prover & verdict & verified & rejected & rejected & unknown & score \\
 \midrule
-with prover & 44 & 0 & 47 & $+138$ & $+136$ & 1 \\
-without prover & 22 & 0 & 47 & $+94$ & $+106$ & 27 \\
+with prover & three-valued & 44 & 0 & 46 & 1 & $+136$ \\
+ & binary & 44 & 0 & 47 & -- & $+138$ \\
+\addlinespace
+without prover & three-valued & 22 & 0 & 42 & 27 & $+106$ \\
+ & binary & 22 & 22 & 47 & -- & $+94$ \\
 \bottomrule
 \end{tabular}}

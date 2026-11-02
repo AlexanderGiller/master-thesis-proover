@@ -20,6 +20,12 @@
 
 \usepackage{url}
 \usepackage{hyperref}
+\hypersetup{
+  pdftitle={Designing a Competitive Proof Verification System for TPTP-Style Benchmarks},
+  pdfauthor={Alexander Giller},
+  pdfsubject={Master's thesis, LMU Munich},
+  pdfkeywords={proof checking, TPTP, TSTP, ProoVer, automated theorem proving}
+}
 \usepackage[ngerman,english]{babel}
 
 \usepackage{graphicx}
@@ -59,6 +65,7 @@
 \setcounter{totalnumber}{5}
 \setlength{\emergencystretch}{3em}
 \usepackage{array}
+\usepackage{amsmath}
 \newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}} % left-aligned paragraph column (no underfull boxes in tables)
 \usepackage[htt]{hyphenat} % allow line breaks in \texttt words (e.g. after underscores)  % avoid overfull lines with long \texttt names
 
@@ -70,4 +77,6 @@ ex-am-ple
 }
 
 % vertically centred tilde for TPTP negation in typewriter text (Table fof-syntax)
+% name of the verifier
+\newcommand{\TSTPy}{TSTPy}
 \newcommand{\tptptilde}{\raisebox{-0.45ex}{\textasciitilde}}

@@ -72,7 +72,7 @@ def main() -> None:
     (OUT / "tab_app_prv.tex").write_text(
         table(
             prv,
-            "Results for each proof of the ProoVer set (official proofs and samples).",
+            "Results for each proof of the ProoVer set, including the nine deprecated pairs.",
             "tab:app-prv",
         ),
         encoding="utf-8",
