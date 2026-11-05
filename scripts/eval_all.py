@@ -512,9 +512,13 @@ def make_tables() -> None:
     per_rule: dict[str, Counter] = defaultdict(Counter)
     proofs_with: dict[str, set] = defaultdict(set)
     for r in prv:
+        called = r.get("atp") or {}
         for s in step_classes(r):
             per_rule[s["rule"]][s["cls"]] += 1
             per_rule[s["rule"]]["steps"] += 1
+            if s["cls"] == "atp" and s["name"] not in called:
+                # delegated rule, but decided by a sound shortcut without a prover call
+                per_rule[s["rule"]]["shortcut"] += 1
             proofs_with[s["rule"]].add(r["name"])
     order = sorted(per_rule, key=lambda k: -per_rule[k]["steps"])
     tot = Counter()
@@ -539,37 +543,73 @@ def make_tables() -> None:
         import matplotlib.pyplot as plt
         from matplotlib.patches import Patch
 
-        by_proofs = sorted(order, key=lambda k: (len(proofs_with[k]), per_rule[k]["steps"]))
-        fig, ax = plt.subplots(figsize=(6.2, 0.17 * len(by_proofs) + 0.9))
-        ys = range(len(by_proofs))
-        cols = ["#1f77b4" if per_rule[k]["internal"] else "#d62728" for k in by_proofs]
-        ax.barh(list(ys), [len(proofs_with[k]) for k in by_proofs], color=cols, height=0.7)
-        for y, k in zip(ys, by_proofs):
-            ax.text(
-                len(proofs_with[k]) + 0.8,
-                y,
-                f"{per_rule[k]['steps']} step" + ("s" if per_rule[k]["steps"] != 1 else ""),
-                va="center",
-                fontsize=6.5,
-                color="#444444",
+        BLUE, RED, PURPLE = "#1f77b4", "#d62728", "#9467bd"
+
+        def colour(k):
+            if per_rule[k]["internal"]:
+                return BLUE
+            return PURPLE if per_rule[k]["shortcut"] else RED
+
+        def steps_label(n):
+            return f"{n} step" + ("s" if n != 1 else "")
+
+        # rules that occur in a single proof are grouped by colour into one bar each
+        single = [k for k in order if len(proofs_with[k]) == 1]
+        bars = []  # (label, proofs, colour, annotation)
+        for k in order:
+            if len(proofs_with[k]) == 1:
+                continue
+            note = steps_label(per_rule[k]["steps"])
+            if per_rule[k]["shortcut"]:
+                note += f", {per_rule[k]['shortcut']} without prover call"
+            bars.append((k, len(proofs_with[k]), colour(k), note))
+        for col, kind in ((BLUE, "internal"), (RED, "prover"), (PURPLE, "shortcut")):
+            ks = [k for k in single if colour(k) == col]
+            if not ks:
+                continue
+            n_proofs = len(set().union(*(proofs_with[k] for k in ks)))
+            n_steps = sum(per_rule[k]["steps"] for k in ks)
+            bars.append(
+                (
+                    f"{len(ks)} other rules",
+                    n_proofs,
+                    col,
+                    f"{steps_label(n_steps)}, one proof each",
+                )
             )
-        ax.set_yticks(list(ys))
-        ax.set_yticklabels(by_proofs, fontsize=7, family="monospace")
+        bars.sort(key=lambda b: (b[1], b[0]))
+        fig, ax = plt.subplots(figsize=(5.2, 0.15 * len(bars) + 0.9))
+        ys = list(range(len(bars)))
+        ax.barh(ys, [b[1] for b in bars], color=[b[2] for b in bars], height=0.7)
+        for y, b in zip(ys, bars):
+            ax.text(b[1] + 0.8, y, b[3], va="center", fontsize=6.5, color="#444444")
+        ax.set_yticks(ys)
+        ax.set_yticklabels([b[0] for b in bars], fontsize=7, family="monospace")
         ax.set_xlabel("number of proofs of the ProoVer set that use the rule")
-        ax.set_xlim(0, max(len(v) for v in proofs_with.values()) * 1.18)
+        ax.set_xlim(0, max(b[1] for b in bars) * 1.65)
 
         ax.legend(
             handles=[
-                Patch(color="#1f77b4", label="internal checker"),
-                Patch(color="#d62728", label="decided by the prover"),
+                Patch(color=BLUE, label="internal checker"),
+                Patch(color=PURPLE, label="prover, or sound shortcut without prover call"),
+                Patch(color=RED, label="decided by the prover"),
             ],
             frameon=False,
             fontsize=7,
-            loc="lower right",
+            loc="center right",
         )
         ax.grid(axis="x", alpha=0.25)
         fig.tight_layout()
         DIAG.mkdir(parents=True, exist_ok=True)
+        M.update(
+            EvalSingleRules=len(single),
+            EvalSingleRulesInternal=", ".join(
+                tt(k) for k in sorted(single) if colour(k) == BLUE
+            ),
+            EvalSingleRulesProver=", ".join(tt(k) for k in sorted(single) if colour(k) == RED),
+            EvalConsSteps=per_rule["consequence"]["steps"],
+            EvalConsShortcut=per_rule["consequence"]["shortcut"],
+        )
         fig.savefig(DIAG / "rule_coverage.pdf")
         fig.savefig(DIAG / "rule_coverage.png", dpi=200)
         plt.close(fig)
@@ -693,7 +733,7 @@ def make_tables() -> None:
         )
     write(
         GEN / "tab_slowest.tex",
-        "\\begin{tabular}{@{}l r r r r r r r r@{}}\n\\toprule\nProof & Steps & ATP calls & Start-up & Parsing & ATP & Rule checks & Total & MB \\\\\n\\midrule\n"
+        "\\begin{tabular}{@{}l r r r r r r r r@{}}\n\\toprule\nProof & Steps & ATP calls & Interpreter & Parsing & ATP & Rule checks & Total & MB \\\\\n\\midrule\n"
         + "\n".join(rows)
         + "\n\\bottomrule\n\\end{tabular}\n",
     )
@@ -779,21 +819,27 @@ def make_tables() -> None:
         ]
         rowsn = []
         for label, rs in (("with prover", off), ("without prover", na)):
-            ver_v = sum(
-                1 for r in rs if r["expected"] == "CORRECT" and verdict(r) == "VerifiedGood"
-            )
-            ver_i = sum(
-                1 for r in rs if r["expected"] == "INCORRECT" and verdict(r) == "VerifiedGood"
-            )
-            rej_i = sum(
-                1 for r in rs if r["expected"] == "INCORRECT" and verdict(r) != "VerifiedGood"
-            )
-            rowsn.append(
-                f"{label} & {ver_v} & {ver_i} & {rej_i} & ${score_policy(rs, binary):+d}$ & ${score_policy(rs, ternary):+d}$ & {sum(1 for r in rs if ternary(r) == 'uncertain')} \\\\"
-            )
+            for pol_name, pol in (("three-valued", ternary), ("binary", binary)):
+                val = [r for r in rs if r["expected"] == "CORRECT"]
+                inv = [r for r in rs if r["expected"] == "INCORRECT"]
+                cells = [
+                    sum(1 for r in val if pol(r) == "verified"),
+                    sum(1 for r in val if pol(r) == "failed"),
+                    sum(1 for r in inv if pol(r) == "failed"),
+                    sum(1 for r in rs if pol(r) == "uncertain"),
+                ]
+                assert not any(r["expected"] == "INCORRECT" and pol(r) == "verified" for r in rs)
+                unk = str(cells[3]) if pol is ternary else "--"
+                rowsn.append(
+                    f"{label if pol is ternary else ''} & {pol_name} & {cells[0]} & {cells[1]} & {cells[2]} & {unk} & ${score_policy(rs, pol):+d}$ \\\\"
+                )
+            if label == "with prover":
+                rowsn.append("\\addlinespace")
         write(
             GEN / "tab_noatp.tex",
-            "\\begin{tabular}{@{}l r r r r r r@{}}\n\\toprule\n & valid verified & invalid verified & invalid rejected & Score (binary) & Score (three-valued) & uncertain \\\\\n\\midrule\n"
+            "\\begin{tabular}{@{}l l r r r r r@{}}\n\\toprule\n & & \\multicolumn{2}{c}{valid proofs} & invalid proofs & & \\\\\n"
+            "\\cmidrule(lr){3-4}\\cmidrule(lr){5-5}\n"
+            "Prover & Verdict & verified & rejected & rejected & Unknown & Score \\\\\n\\midrule\n"
             + "\n".join(rowsn)
             + "\n\\bottomrule\n\\end{tabular}\n",
         )
@@ -807,6 +853,18 @@ def make_tables() -> None:
             EvalNoAtpScoreBinary=score_policy(na, binary),
             EvalNoAtpScoreTernary=score_policy(na, ternary),
             EvalNoAtpUncertain=sum(1 for r in na if ternary(r) == "uncertain"),
+            EvalNoAtpUncertainValid=sum(
+                1 for r in na if r["expected"] == "CORRECT" and ternary(r) == "uncertain"
+            ),
+            EvalNoAtpUncertainInvalid=sum(
+                1 for r in na if r["expected"] == "INCORRECT" and ternary(r) == "uncertain"
+            ),
+            EvalNoAtpRejInvalid=sum(
+                1 for r in na if r["expected"] == "INCORRECT" and ternary(r) == "failed"
+            ),
+            EvalNoAtpRejValidBinary=sum(
+                1 for r in na if r["expected"] == "CORRECT" and binary(r) == "failed"
+            ),
             EvalNoAtpWallMedian=fmt_t(
                 st.median([r["total_wall_median"] for r in na if not r.get("timeout")])
             ),
@@ -1247,14 +1305,14 @@ def tables_mutation() -> None:
         tot.update(dict(n=len(rs), killed=killed, eq=eq, miss=miss))
         adj = len(rs) - eq
         lines.append(
-            f"{OP_LABEL[op]} & {len(rs)} & {killed} & {eq} & {miss} & {pct(killed, adj)}\\,\\% \\\\"
+            f"{OP_LABEL[op]} & {len(rs)} & {killed} & {eq} & {pct(killed, adj)}\\,\\% \\\\"
         )
     adj = tot["n"] - tot["eq"]
     write(
         GEN / "tab_mutation.tex",
-        "\\begin{tabular}{@{}l r r r r r@{}}\n\\toprule\nMutation operator & Mutants & Rejected & Accepted, still valid & Accepted, not valid & Detection rate \\\\\n\\midrule\n"
+        "\\begin{tabular}{@{}l r r r r@{}}\n\\toprule\nMutation operator & Mutants & Rejected & Accepted, still valid & Detection rate \\\\\n\\midrule\n"
         + "\n".join(lines)
-        + f"\n\\midrule\nTotal & {tot['n']} & {tot['killed']} & {tot['eq']} & {tot['miss']} & {pct(tot['killed'], adj)}\\,\\% \\\\\n\\bottomrule\n\\end{{tabular}}\n",
+        + f"\n\\midrule\nTotal & {tot['n']} & {tot['killed']} & {tot['eq']} & {pct(tot['killed'], adj)}\\,\\% \\\\\n\\bottomrule\n\\end{{tabular}}\n",
     )
     try:
         import matplotlib
@@ -1376,12 +1434,14 @@ def part_inputs() -> None:
 
 def tables_inputs() -> None:
     res = json.loads((OUT / "inputs.json").read_text(encoding="utf-8"))
-    lines = []
-    for r in res:
-        lines.append(f"{tex(r['case'])} & {tt(r['outcome'])} & {r['seconds']:.2f} \\\\")
+    cells = [f"{tex(r['case'])} & {tt(r['outcome'])}" for r in res]
+    # two input/outcome pairs per row, so that the table is half as tall
+    half = (len(cells) + 1) // 2
+    left, right = cells[:half], cells[half:] + [" & "] * (2 * half - len(cells))
+    lines = [f"{a} & {b} \\\\" for a, b in zip(left, right)]
     write(
         GEN / "tab_inputs.tex",
-        "\\begin{tabular}{@{}l l r@{}}\n\\toprule\nInput & Outcome & Time (s) \\\\\n\\midrule\n"
+        "\\begin{tabular}{@{}l l @{\\hspace{1.5em}} l l@{}}\n\\toprule\nInput & Outcome & Input & Outcome \\\\\n\\midrule\n"
         + "\n".join(lines)
         + "\n\\bottomrule\n\\end{tabular}\n",
     )

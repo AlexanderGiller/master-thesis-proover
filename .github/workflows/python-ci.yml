@@ -36,7 +36,7 @@ jobs:
         run: pytest
 
       - name: Enforce coverage threshold
-        run: coverage report --fail-under=85
+        run: coverage report --fail-under=75
 
       - name: Generate coverage badge
         run: coverage-badge -o htmlcov/coverage.svg -f

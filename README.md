@@ -1,6 +1,6 @@
-# ProoVer Thesis Proof Checker
+# TSTPy
 
-This project is a proof checker for TPTP/TSTP proofs in the setting of the ProoVer 2026 competition.
+TSTPy is a proof checker for TPTP/TSTP proofs in the setting of the ProoVer 2026 competition.
 It verifies individual inference steps, uses an external ATP (Vampire) where needed, and produces result and scoring reports.
 
 ## Context
